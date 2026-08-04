@@ -1,0 +1,838 @@
+/* ================================================================
+   KEUANGAN BOT - Google Apps Script
+   Versi: 2.6
+   Deskripsi: Bot pencatat keuangan otomatis via WhatsApp/Webhook
+              dengan Groq AI + Google Sheets
+   ================================================================ */
+
+/* ================================
+   KONFIGURASI - Pakai Script Properties
+   Cara set: Extensions > Apps Script > Project Settings > Script Properties
+   Keys: GROQ_API_KEY, SPREADSHEET_ID
+================================ */
+const CONFIG = {
+  SCRIPT_VERSION: "WA_FINANCE_SCRIPT_V2_6_IDEMPOTENT_MESSAGE_ID",
+  MODEL_NAME:     "llama-3.3-70b-versatile",
+  GROQ_URL:       "https://api.groq.com/openai/v1/chat/completions",
+  SHEET_TRANSAKSI: "Transaksi",
+  SHEET_REKENING:  "Rekening",
+  DEFAULT_REKENING: "Cash",
+  DEFAULT_REKENING_LIST: ["BCA", "GOPAY", "QRIS", "SUPERBANK", "Transfer", "Cash"],
+  MAX_RETRIES:    2,
+};
+
+/** Ambil API key & Spreadsheet ID dari Script Properties (aman) */
+function getConfig_(key) {
+  const val = PropertiesService.getScriptProperties().getProperty(key);
+  if (!val) throw new Error(`Script Property '${key}' belum diset. Buka Project Settings > Script Properties.`);
+  return val;
+}
+
+
+/* ================================================================
+   MAIN WEBHOOK
+================================================================ */
+function doPost(e) {
+  let lock = null;
+  let session = "-", from = "-", pesan = "";
+
+  try {
+    // --- Validasi payload ---
+    if (!e || !e.postData || !e.postData.contents) {
+      return respond_("❌ Payload kosong atau tidak valid.");
+    }
+
+    const data = safeParseJson_(e.postData.contents);
+    if (!data) return respond_("❌ Format JSON tidak valid.");
+
+    pesan   = (data.body  || "").trim();
+    session = data.session || "-";
+    from    = data.from    || "-";
+
+    if (!pesan) return respond_("❌ Pesan kosong.");
+    const pesanLower = pesan.toLowerCase();
+
+    // ── COMMAND: PING / TEST CONNECTION ─────────────────────────
+    // Dipakai dashboard untuk cek endpoint hidup tanpa membuka/menulis Spreadsheet.
+    if (data.command === "ping" || pesanLower === "ping") {
+      return respond_("pong");
+    }
+
+    // Semua operasi yang membaca/menulis spreadsheet dikunci agar retry /
+    // request paralel tidak membuat transaksi dobel atau saldo tabrakan.
+    lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+
+    // Spreadsheet ID dari webapp diprioritaskan; Script Properties menjadi fallback.
+    const spreadsheetId = (data.spreadsheet_id || getConfig_("SPREADSHEET_ID")).trim();
+    const ss            = SpreadsheetApp.openById(spreadsheetId);
+    ensureDefaultRekening_(ss);
+
+    // ── COMMAND: NEW RECAP / TUTUP PERIODE ──────────────────────
+    // Dipakai webapp untuk backup tab aktif lalu mulai periode baru dari 0.
+    if (data.command === "new_recap") {
+      return respond_(handleNewRecap_(ss, data));
+    }
+
+    // ── COMMAND: BATAL / UNDO ───────────────────────────────────
+    if (data.command === "cancel_by_message_id") {
+      const ids = Array.isArray(data.cancel_message_ids)
+        ? data.cancel_message_ids
+        : extractCancelMessageIds_(pesan);
+      return respond_(handleBatalByMessageIds_(ss, ids));
+    }
+
+    if (
+      data.command === "cancel_last" ||
+      ["batal", "batal terakhir", "undo", "cancel", "hapus terakhir"].includes(pesanLower)
+    ) {
+      return respond_(handleBatal_(ss, from));
+    }
+
+    // ── COMMAND: SALDO ──────────────────────────────────────────
+    if (pesanLower.startsWith("saldo")) {
+      return respond_(handleSaldo_(ss, pesan));
+    }
+
+    // ── COMMAND: LAPORAN ────────────────────────────────────────
+    if (pesanLower.startsWith("laporan")) {
+      return respond_(handleLaporan_(ss, pesan));
+    }
+
+    // ── COMMAND: HELP ───────────────────────────────────────────
+    if (pesanLower === "help" || pesanLower === "bantuan") {
+      return respond_(getHelpText_());
+    }
+
+    // ── PROSES TRANSAKSI VIA AI ──────────────────────────────────
+    // Jika key Groq sudah diatur melalui webapp, backend mengirim hasil AI
+    // yang telah diproses. Tanpa hasil tersebut, Apps Script memakai
+    // GROQ_API_KEY dari Script Properties sebagai fallback.
+    const ai = data.ai_result && isValidAiResult_(normalizeAiResult_(data.ai_result))
+      ? normalizeAiResult_(data.ai_result)
+      : panggilGroq_(pesan);
+
+    if (!isValidAiResult_(ai)) {
+      return respond_("⚠️ Tidak bisa mengklasifikasikan pesan. Coba format: 'Beli makan 25000 cash'");
+    }
+
+    if (ai.cat === "Umum") {
+      return respond_("ℹ️ Pesan tidak dikenali sebagai transaksi keuangan.\nKetik *help* untuk panduan.");
+    }
+
+    const rekening = normalizeRekening_(ai.rek || CONFIG.DEFAULT_REKENING);
+    ai.rek = rekening;
+
+    // Simpan ke History.
+    // Penting: Message ID wajib idempotent. Jika Google Apps Script sempat
+    // menulis row tetapi response ke backend/browser gagal, retry berikutnya
+    // tidak boleh append row dan tidak boleh mengubah saldo lagi.
+    const appendResult = appendTransaksi_(
+      ss,
+      session,
+      from,
+      pesan,
+      ai,
+      data.message_id || "",
+      data.source_timestamp || data.timestamp || data.created_at || ""
+    );
+    if (appendResult.duplicate) {
+      return respond_(
+        "ℹ️ *Transaksi sudah pernah diproses*\n" +
+        "━━━━━━━━━━━━━━━━━━\n" +
+        `📂 Kategori  : ${ai.cat}\n` +
+        `💰 Jumlah    : Rp ${fmt_(ai.amt)}\n` +
+        `💳 Rekening  : ${rekening}\n` +
+        `↔️ Tipe      : ${ai.type}\n` +
+        `🆔 Message ID : ${data.message_id || "-"}\n` +
+        "━━━━━━━━━━━━━━━━━━\n" +
+        "✅ Tidak dicatat ulang agar saldo tidak dobel"
+      );
+    }
+
+    // Update Saldo
+    updateSaldo_(ss, rekening, ai.amt, ai.type);
+
+    // Saldo terkini setelah transaksi
+    const saldoKini = getSaldo_(ss, rekening);
+
+    // Balasan
+    const balasan =
+      "📝 *Transaksi Tercatat*\n" +
+      "━━━━━━━━━━━━━━━━━━\n" +
+      `📂 Kategori  : ${ai.cat}\n` +
+      `💰 Jumlah    : Rp ${fmt_(ai.amt)}\n` +
+      `💳 Rekening  : ${rekening}\n` +
+      `↔️ Tipe      : ${ai.type}\n` +
+      `🆔 Message ID : ${data.message_id || "-"}\n` +
+      "━━━━━━━━━━━━━━━━━━\n" +
+      "✅ Berhasil disimpan";
+
+    return respond_(balasan);
+
+  } catch (err) {
+    logError_(err, pesan, session, from);
+    return respond_(`❌ Terjadi kesalahan: ${err.message}`);
+  } finally {
+    if (lock && lock.hasLock()) lock.releaseLock();
+  }
+}
+
+function doGet() {
+  let propertySpreadsheetId = "";
+  try {
+    propertySpreadsheetId = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID") || "";
+  } catch (_) {}
+  return respond_(
+    `${CONFIG.SCRIPT_VERSION}\n` +
+    `SPREADSHEET_ID=${propertySpreadsheetId || "-"}\n` +
+    `TIME=${new Date().toISOString()}`
+  );
+}
+
+
+/* ================================================================
+   COMMAND HANDLERS
+================================================================ */
+
+/** Handler: saldo [rekening?] */
+function handleSaldo_(ss, pesan) {
+  const parts = pesan.trim().split(/\s+/);
+  if (parts.length > 1) {
+    const rek   = normalizeRekening_(parts.slice(1).join(" "));
+    const saldo = getSaldo_(ss, rek);
+    return `💰 *Saldo ${rek}*\nRp ${fmt_(saldo)}`;
+  }
+  return getAllSaldo_(ss);
+}
+
+/** Handler: laporan [hari ini | minggu ini | bulan ini] */
+function handleLaporan_(ss, pesan) {
+  const parts   = pesan.trim().toLowerCase().split(/\s+/);
+  const periode = parts.slice(1).join(" ") || "bulan ini";
+  return getLaporan_(ss, periode);
+}
+
+/** Handler: New Recap / Tutup Periode
+ *  - Backup tab Transaksi dan Rekening aktif ke tab arsip.
+ *  - Reset tab Transaksi aktif agar periode baru mulai kosong.
+ *  - Reset tab Rekening aktif ke rekening default saldo 0.
+ */
+function handleNewRecap_(ss, data) {
+  const activeName = sanitizeSheetName_(data.active_recap_name || data.name || "Periode Baru");
+  const archiveName = sanitizeSheetName_(data.recap_name || `Arsip sebelum ${activeName}`);
+  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd HHmm");
+  const suffix = sanitizeSheetName_(`${archiveName} ${stamp}`);
+
+  const transaksi = getOrCreateSheet_(ss, CONFIG.SHEET_TRANSAKSI, [
+    "Timestamp", "Session", "From", "Pesan", "Kategori", "Jumlah", "Tipe", "Rekening", "Message ID", "Status", "Cancelled At"
+  ]);
+  const rekening = getOrCreateSheet_(ss, CONFIG.SHEET_REKENING, ["Rekening", "Saldo"]);
+
+  const transaksiRows = Math.max(transaksi.getLastRow() - 1, 0);
+  const rekeningRows = Math.max(rekening.getLastRow() - 1, 0);
+
+  archiveSheetCopy_(ss, transaksi, `Transaksi - ${suffix}`);
+  archiveSheetCopy_(ss, rekening, `Rekening - ${suffix}`);
+
+  resetSheet_(transaksi, [
+    "Timestamp", "Session", "From", "Pesan", "Kategori", "Jumlah", "Tipe", "Rekening", "Message ID", "Status", "Cancelled At"
+  ]);
+  resetSheet_(rekening, ["Rekening", "Saldo"]);
+  ensureDefaultRekening_(ss);
+
+  return (
+    "✅ *New Recap / Tutup Periode Berhasil*\n" +
+    "━━━━━━━━━━━━━━━━━━\n" +
+    `📦 Arsip      : ${archiveName}\n` +
+    `🆕 Periode    : ${activeName}\n` +
+    `📅 Mulai      : ${data.start_date || "-"}\n` +
+    `🧾 Transaksi  : ${transaksiRows} baris dibackup\n` +
+    `💳 Rekening   : ${rekeningRows} baris dibackup\n` +
+    "━━━━━━━━━━━━━━━━━━\n" +
+    "✅ Sheet aktif sudah fresh dan siap periode baru"
+  );
+}
+
+
+/* ================================================================
+   GROQ AI CLASSIFIER
+================================================================ */
+
+/**
+ * Kirim teks ke Groq AI, kembalikan objek {cat, amt, type, rek}.
+ * Otomatis retry jika gagal (MAX_RETRIES kali).
+ */
+function panggilGroq_(text) {
+  const url     = CONFIG.GROQ_URL;
+  const apiKey  = getConfig_("GROQ_API_KEY");
+
+  const systemPrompt =
+    "You are a precise Indonesian financial transaction extractor. " +
+    "Output ONLY valid JSON, no markdown, no explanation.";
+
+  const userPrompt =
+    `Analyze this Indonesian financial message: "${text}"\n\n` +
+    "Rules:\n" +
+    "1. cat: category in Bahasa. For expenses, use Belanja for any message containing 'belanja' (belanja sayuran, belanja beras, etc.) and for groceries like sayur/sayuran/beras. Use Makan for food/drinks including tahu kucek, risol, any roti variant, pisang, pisang goreng, gorengan, napong/nasi tempong, and mizone. ALWAYS use Tagihan for kos/kosan, bayar motor, XL/pulsa, banjar, internet, and every message containing cicil/cicilan/angsuran. For income, use Gaji ONLY if the message explicitly says gaji/salary/upah/payroll. For non-salary income use Pemasukan, Pembayaran, Bonus, or Transfer.\n" +
+    "2. amt: amount as integer (0 if unknown)\n" +
+    "3. type: exactly 'Masuk' or 'Keluar'\n" +
+    "4. rek: account name (BCA, GOPAY, QRIS, SUPERBANK, Transfer, Mandiri, BRI, OVO, Dana, Cash, dll.)\n\n" +
+    "Examples:\n" +
+    '- "masuk gaji 15500000 bca" => {"cat":"Gaji","amt":15500000,"type":"Masuk","rek":"BCA"}\n' +
+    '- "masuk uang 165000 qris" => {"cat":"Pemasukan","amt":165000,"type":"Masuk","rek":"QRIS"}\n\n' +
+    "Output format (PURE JSON only):\n" +
+    '{"cat":"string","amt":number,"type":"Masuk|Keluar","rek":"string"}\n\n' +
+    'If NOT a financial message: {"cat":"Umum","amt":0,"type":"-","rek":"Cash"}';
+
+  const payload = {
+    model:       CONFIG.MODEL_NAME,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user",   content: userPrompt   }
+    ],
+    temperature: 0,
+    max_tokens:  150,
+  };
+
+  const options = {
+    method:          "post",
+    contentType:     "application/json",
+    headers:         { Authorization: `Bearer ${apiKey}` },
+    payload:         JSON.stringify(payload),
+    muteHttpExceptions: true,
+  };
+
+  let lastErr;
+  for (let attempt = 1; attempt <= CONFIG.MAX_RETRIES + 1; attempt++) {
+    try {
+      const res          = UrlFetchApp.fetch(url, options);
+      const responseText = res.getContentText();
+      const result       = JSON.parse(responseText);
+
+      if (!result.choices || !result.choices[0]) {
+        throw new Error("Groq tidak mengembalikan pilihan (choices kosong).");
+      }
+
+      const raw      = result.choices[0].message.content.trim();
+      const jsonStr  = extractJson_(raw);
+      const parsed   = JSON.parse(jsonStr);
+
+      // Normalisasi tipe data
+      parsed.amt  = Math.abs(Number(parsed.amt) || 0);
+      parsed.type = parsed.type === "Masuk" ? "Masuk" : "Keluar";
+      parsed.cat  = parsed.cat  || "Lainnya";
+      parsed.rek  = normalizeRekening_(parsed.rek || CONFIG.DEFAULT_REKENING);
+
+      return parsed;
+
+    } catch (err) {
+      lastErr = err;
+      if (attempt <= CONFIG.MAX_RETRIES) Utilities.sleep(500 * attempt);
+    }
+  }
+
+  throw new Error(`Groq AI gagal setelah ${CONFIG.MAX_RETRIES + 1} percobaan: ${lastErr.message}`);
+}
+
+/** Ekstrak JSON dari string (toleran terhadap markdown fence & teks tambahan) */
+function extractJson_(text) {
+  // Hapus markdown fence
+  let clean = text.replace(/```json|```/gi, "").trim();
+  // Ambil bagian {...} pertama yang ditemukan
+  const match = clean.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error(`Tidak ditemukan JSON dalam respons AI: "${text}"`);
+  return match[0];
+}
+
+
+/* ================================================================
+   SPREADSHEET HELPERS
+================================================================ */
+
+/** Simpan baris transaksi baru */
+function appendTransaksi_(ss, session, from, pesan, ai, messageId, sourceTimestamp) {
+  const sheet = getOrCreateSheet_(ss, CONFIG.SHEET_TRANSAKSI, [
+    "Timestamp", "Session", "From", "Pesan", "Kategori", "Jumlah", "Tipe", "Rekening", "Message ID", "Status", "Cancelled At"
+  ]);
+  const normalizedMessageId = String(messageId || "").trim();
+  if (normalizedMessageId) {
+    const data = sheet.getDataRange().getValues();
+    const header = data[0].map(String);
+    const idxMessageId = header.indexOf("Message ID");
+    if (idxMessageId >= 0) {
+      for (let i = data.length - 1; i >= 1; i--) {
+        if (String(data[i][idxMessageId] || "").trim() === normalizedMessageId) {
+          return { appended: false, duplicate: true, rowNumber: i + 1 };
+        }
+      }
+    }
+  }
+
+  let timestamp = new Date();
+  if (sourceTimestamp) {
+    const parsedTimestamp = new Date(sourceTimestamp);
+    if (!Number.isNaN(parsedTimestamp.getTime())) timestamp = parsedTimestamp;
+  }
+
+  sheet.appendRow([
+    timestamp, session, from, pesan,
+    ai.cat, ai.amt, ai.type, ai.rek || CONFIG.DEFAULT_REKENING,
+    normalizedMessageId, "Tersimpan", ""
+  ]);
+  return { appended: true, duplicate: false };
+}
+
+/** Batalkan transaksi terakhir milik pengirim dan koreksi saldo */
+function handleBatal_(ss, from) {
+  const sheet = getOrCreateSheet_(ss, CONFIG.SHEET_TRANSAKSI, [
+    "Timestamp", "Session", "From", "Pesan", "Kategori", "Jumlah", "Tipe", "Rekening", "Message ID", "Status", "Cancelled At"
+  ]);
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return "ℹ️ Belum ada transaksi yang bisa dibatalkan.";
+
+  const header = data[0].map(String);
+  const idxFrom = header.indexOf("From");
+  const idxPesan = header.indexOf("Pesan");
+  const idxKategori = header.indexOf("Kategori");
+  const idxJumlah = header.indexOf("Jumlah");
+  const idxTipe = header.indexOf("Tipe");
+  const idxRekening = header.indexOf("Rekening");
+  const idxStatus = header.indexOf("Status");
+  const idxCancelledAt = header.indexOf("Cancelled At");
+
+  for (let i = data.length - 1; i >= 1; i--) {
+    const row = data[i];
+    const rowFrom = String(row[idxFrom] || "");
+    const status = String(row[idxStatus] || "");
+    if (rowFrom !== String(from || "") || ["Dibatalkan", "Cancelled", "Canceled"].includes(status)) continue;
+
+    const jumlah = Number(row[idxJumlah]) || 0;
+    const tipe = String(row[idxTipe] || "Keluar");
+    const rekening = String(row[idxRekening] || CONFIG.DEFAULT_REKENING);
+    const reverseType = tipe === "Masuk" ? "Keluar" : "Masuk";
+
+    updateSaldo_(ss, rekening, jumlah, reverseType);
+    sheet.getRange(i + 1, idxStatus + 1).setValue("Dibatalkan");
+    sheet.getRange(i + 1, idxCancelledAt + 1).setValue(new Date());
+
+    return (
+      "↩️ *Transaksi Dibatalkan*\n" +
+      "━━━━━━━━━━━━━━━━━━\n" +
+      `🧾 Pesan     : ${row[idxPesan] || "-"}\n` +
+      `📂 Kategori  : ${row[idxKategori] || "-"}\n` +
+      `💰 Jumlah    : Rp ${fmt_(jumlah)}\n` +
+      `💳 Rekening  : ${rekening}\n` +
+      `↔️ Tipe      : ${tipe}\n` +
+      "━━━━━━━━━━━━━━━━━━\n" +
+      "✅ Saldo sudah dikoreksi"
+    );
+  }
+
+  return "ℹ️ Tidak ada transaksi terakhir yang bisa dibatalkan untuk nomor Anda.";
+}
+
+/** Batalkan transaksi spesifik berdasarkan Message ID dan koreksi saldo */
+function handleBatalByMessageIds_(ss, messageIds) {
+  const ids = [...new Set((messageIds || []).map((item) => String(item || "").trim()).filter(Boolean))];
+  if (!ids.length) return "⚠️ Message ID belum diisi. Contoh: *batal id 3AA..., 3AB...*";
+
+  const sheet = getOrCreateSheet_(ss, CONFIG.SHEET_TRANSAKSI, [
+    "Timestamp", "Session", "From", "Pesan", "Kategori", "Jumlah", "Tipe", "Rekening", "Message ID", "Status", "Cancelled At"
+  ]);
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return "ℹ️ Belum ada transaksi yang bisa dibatalkan.";
+
+  const header = data[0].map(String);
+  const idxPesan = header.indexOf("Pesan");
+  const idxKategori = header.indexOf("Kategori");
+  const idxJumlah = header.indexOf("Jumlah");
+  const idxTipe = header.indexOf("Tipe");
+  const idxRekening = header.indexOf("Rekening");
+  const idxMessageId = header.indexOf("Message ID");
+  const idxStatus = header.indexOf("Status");
+  const idxCancelledAt = header.indexOf("Cancelled At");
+
+  if (idxMessageId < 0) return "⚠️ Kolom Message ID belum tersedia di Sheet Transaksi.";
+
+  const cancelled = [];
+  const alreadyCancelled = [];
+  const missing = [];
+
+  ids.forEach((id) => {
+    let found = false;
+    let cancelledForThisId = 0;
+    let alreadyCancelledForThisId = 0;
+    for (let i = data.length - 1; i >= 1; i--) {
+      const row = data[i];
+      if (String(row[idxMessageId] || "") !== id) continue;
+      found = true;
+
+      const status = String(row[idxStatus] || "");
+      if (["Dibatalkan", "Cancelled", "Canceled"].includes(status)) {
+        alreadyCancelledForThisId += 1;
+        continue;
+      }
+
+      const jumlah = Number(row[idxJumlah]) || 0;
+      const tipe = String(row[idxTipe] || "Keluar");
+      const rekening = String(row[idxRekening] || CONFIG.DEFAULT_REKENING);
+      const reverseType = tipe === "Masuk" ? "Keluar" : "Masuk";
+
+      updateSaldo_(ss, rekening, jumlah, reverseType);
+      sheet.getRange(i + 1, idxStatus + 1).setValue("Dibatalkan");
+      sheet.getRange(i + 1, idxCancelledAt + 1).setValue(new Date());
+
+      cancelled.push({
+        id,
+        pesan: row[idxPesan] || "-",
+        kategori: row[idxKategori] || "-",
+        jumlah,
+        rekening,
+        tipe,
+      });
+      cancelledForThisId += 1;
+    }
+    if (!found) missing.push(id);
+    if (found && !cancelledForThisId && alreadyCancelledForThisId) alreadyCancelled.push(id);
+  });
+
+  const lines = [
+    "↩️ *Pembatalan by Message ID*",
+    "━━━━━━━━━━━━━━━━━━",
+  ];
+
+  if (cancelled.length) {
+    cancelled.forEach((item) => {
+      lines.push(`✅ ${item.id}`);
+      lines.push(`   ${item.kategori} • ${item.tipe} • Rp ${fmt_(item.jumlah)} • ${item.rekening}`);
+    });
+  }
+
+  if (alreadyCancelled.length) lines.push(`ℹ️ Sudah dibatalkan: ${alreadyCancelled.join(", ")}`);
+  if (missing.length) lines.push(`⚠️ Tidak ditemukan: ${missing.join(", ")}`);
+  if (!cancelled.length && !alreadyCancelled.length && !missing.length) lines.push("ℹ️ Tidak ada transaksi yang diproses.");
+
+  lines.push("━━━━━━━━━━━━━━━━━━");
+  lines.push("✅ Saldo sudah dikoreksi untuk ID yang dibatalkan");
+  return lines.join("\n");
+}
+
+/** Update atau buat baris saldo rekening */
+function updateSaldo_(ss, rekening, amt, type) {
+  const sheet = getOrCreateSheet_(ss, CONFIG.SHEET_REKENING, ["Rekening", "Saldo"]);
+  const data  = sheet.getDataRange().getValues();
+  const normalizedRekening = normalizeRekening_(rekening);
+  const rekLower = normalizedRekening.toLowerCase();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString().toLowerCase() === rekLower) {
+      const current  = Number(data[i][1]) || 0;
+      const newSaldo = type === "Masuk" ? current + amt : current - amt;
+      sheet.getRange(i + 1, 2).setValue(newSaldo);
+      return;
+    }
+  }
+
+  // Rekening belum ada — buat baru
+  const initial = type === "Masuk" ? amt : -amt;
+  sheet.appendRow([normalizedRekening, initial]);
+}
+
+/** Ambil saldo satu rekening */
+function getSaldo_(ss, rekening) {
+  const sheet = ss.getSheetByName(CONFIG.SHEET_REKENING);
+  if (!sheet) return 0;
+
+  const data     = sheet.getDataRange().getValues();
+  const rekLower = normalizeRekening_(rekening).toLowerCase();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString().toLowerCase() === rekLower) {
+      return Number(data[i][1]) || 0;
+    }
+  }
+  return 0;
+}
+
+/** Ringkasan semua saldo */
+function getAllSaldo_(ss) {
+  const sheet = ss.getSheetByName(CONFIG.SHEET_REKENING);
+  if (!sheet) return "⚠️ Sheet Rekening tidak ditemukan.";
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return "ℹ️ Belum ada saldo tercatat.";
+
+  let output = "💰 *Ringkasan Saldo*\n━━━━━━━━━━━━━━━━━━\n";
+  let total  = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const nama  = data[i][0] || "-";
+    const saldo = Number(data[i][1]) || 0;
+    const icon  = saldo >= 0 ? "▪️" : "🔴";
+    output += `${icon} ${nama}: Rp ${fmt_(saldo)}\n`;
+    total  += saldo;
+  }
+
+  output += `━━━━━━━━━━━━━━━━━━\n💼 *Total: Rp ${fmt_(total)}*`;
+  return output;
+}
+
+/** Laporan transaksi berdasarkan periode */
+function getLaporan_(ss, periode) {
+  const sheet = ss.getSheetByName(CONFIG.SHEET_TRANSAKSI);
+  if (!sheet) return "⚠️ Sheet Transaksi tidak ditemukan.";
+
+  const data  = sheet.getDataRange().getValues();
+  if (data.length <= 1) return "ℹ️ Belum ada transaksi.";
+
+  const now   = new Date();
+  let cutoff  = new Date();
+
+  if (periode.includes("hari"))   cutoff.setHours(0, 0, 0, 0);
+  else if (periode.includes("minggu")) cutoff.setDate(now.getDate() - 7);
+  else { cutoff.setDate(1); cutoff.setHours(0, 0, 0, 0); } // bulan ini
+
+  let masuk = 0, keluar = 0;
+  const rows = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const tgl   = new Date(data[i][0]);
+    const tipe  = data[i][6];
+    const jumlah = Number(data[i][5]) || 0;
+    const status = String(data[i][9] || "");
+
+    if (tgl >= cutoff && !["Dibatalkan", "Cancelled", "Canceled"].includes(status)) {
+      if (tipe === "Masuk")  masuk  += jumlah;
+      if (tipe === "Keluar") keluar += jumlah;
+      rows.push(`• ${data[i][4]} (${tipe}): Rp ${fmt_(jumlah)}`);
+    }
+  }
+
+  if (!rows.length) return `ℹ️ Tidak ada transaksi untuk periode: ${periode}.`;
+
+  const recent = rows.slice(-5).reverse(); // 5 terbaru
+  return (
+    `📊 *Laporan ${periode}*\n━━━━━━━━━━━━━━━━━━\n` +
+    `📥 Total Masuk : Rp ${fmt_(masuk)}\n` +
+    `📤 Total Keluar: Rp ${fmt_(keluar)}\n` +
+    `💹 Selisih     : Rp ${fmt_(masuk - keluar)}\n` +
+    `━━━━━━━━━━━━━━━━━━\n` +
+    `📋 *5 Transaksi Terakhir:*\n${recent.join("\n")}`
+  );
+}
+
+/** Buat sheet baru dengan header jika belum ada */
+function getOrCreateSheet_(ss, name, headers) {
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length)
+         .setFontWeight("bold")
+         .setBackground("#4A90D9")
+         .setFontColor("#FFFFFF");
+  } else {
+    ensureColumns_(sheet, headers);
+  }
+  return sheet;
+}
+
+/** Tambahkan kolom header yang belum ada tanpa menghapus data lama */
+function ensureColumns_(sheet, headers) {
+  const lastColumn = Math.max(sheet.getLastColumn(), 1);
+  const current = sheet.getRange(1, 1, 1, lastColumn).getValues()[0].map(String);
+  headers.forEach((header) => {
+    if (!current.includes(header)) {
+      const nextColumn = sheet.getLastColumn() + 1;
+      sheet.getRange(1, nextColumn).setValue(header);
+      sheet.getRange(1, nextColumn)
+           .setFontWeight("bold")
+           .setBackground("#4A90D9")
+           .setFontColor("#FFFFFF");
+      current.push(header);
+    }
+  });
+}
+
+/** Reset sheet aktif tanpa menghapus sheet-nya */
+function resetSheet_(sheet, headers) {
+  sheet.clear();
+  sheet.appendRow(headers);
+  sheet.getRange(1, 1, 1, headers.length)
+       .setFontWeight("bold")
+       .setBackground("#4A90D9")
+       .setFontColor("#FFFFFF");
+  sheet.setFrozenRows(1);
+}
+
+/** Copy sheet untuk arsip dengan nama unik */
+function archiveSheetCopy_(ss, sourceSheet, desiredName) {
+  const copy = sourceSheet.copyTo(ss);
+  copy.setName(uniqueSheetName_(ss, desiredName, copy));
+  ss.setActiveSheet(copy);
+  ss.moveActiveSheet(ss.getNumSheets());
+  return copy;
+}
+
+function uniqueSheetName_(ss, desiredName, ignoreSheet) {
+  const base = sanitizeSheetName_(desiredName).slice(0, 92) || "Arsip";
+  let candidate = base;
+  let counter = 2;
+  while (true) {
+    const existing = ss.getSheetByName(candidate);
+    if (!existing || existing.getSheetId() === ignoreSheet.getSheetId()) return candidate;
+    const suffix = ` ${counter}`;
+    candidate = `${base.slice(0, Math.max(1, 100 - suffix.length))}${suffix}`;
+    counter += 1;
+  }
+}
+
+function sanitizeSheetName_(value) {
+  return String(value || "")
+    .replace(/[\[\]\*\/\\\?:]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 100);
+}
+
+/** Pastikan rekening utama tersedia sejak awal */
+function ensureDefaultRekening_(ss) {
+  const sheet = getOrCreateSheet_(ss, CONFIG.SHEET_REKENING, ["Rekening", "Saldo"]);
+  const data = sheet.getDataRange().getValues();
+  const existing = new Set();
+  for (let i = 1; i < data.length; i++) {
+    existing.add(String(data[i][0] || "").toLowerCase());
+  }
+  CONFIG.DEFAULT_REKENING_LIST.forEach((rekening) => {
+    if (!existing.has(String(rekening).toLowerCase())) {
+      sheet.appendRow([rekening, 0]);
+      existing.add(String(rekening).toLowerCase());
+    }
+  });
+}
+
+
+/* ================================================================
+   UTILITIES
+================================================================ */
+
+/** Format angka ke format Rupiah (1.000.000) */
+function fmt_(x) {
+  const n = Number(x) || 0;
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+/** Safe JSON parse — kembalikan null jika gagal */
+function safeParseJson_(str) {
+  try { return JSON.parse(str); }
+  catch (_) { return null; }
+}
+
+/** Validasi hasil AI */
+function isValidAiResult_(ai) {
+  return (
+    ai &&
+    typeof ai.cat === "string" &&
+    typeof ai.amt === "number" &&
+    (ai.type === "Masuk" || ai.type === "Keluar" || ai.cat === "Umum")
+  );
+}
+
+function normalizeAiResult_(ai) {
+  if (!ai) return ai;
+  const rek = normalizeRekening_(ai.rek || ai.payment_channel || CONFIG.DEFAULT_REKENING);
+  const typeText = String(ai.type || "").toLowerCase();
+  return {
+    cat: String(ai.cat || ai.category || "Lainnya"),
+    amt: Number(ai.amt != null ? ai.amt : ai.amount) || 0,
+    type: typeText === "masuk" || typeText === "income" ? "Masuk" : "Keluar",
+    rek,
+  };
+}
+
+function normalizeRekening_(value) {
+  const raw = String(value || CONFIG.DEFAULT_REKENING).trim();
+  const upper = raw.toUpperCase();
+  const aliases = {
+    "GO PAY": "GOPAY",
+    "GOPAY": "GOPAY",
+    "QR": "QRIS",
+    "QRIS": "QRIS",
+    "SUPER BANK": "SUPERBANK",
+    "SUPERBANK": "SUPERBANK",
+    "TRANSFER": "Transfer",
+    "TF": "Transfer",
+    "BCA": "BCA",
+    "CASH": "Cash",
+  };
+  return aliases[upper] || raw;
+}
+
+function extractCancelMessageIds_(text) {
+  const match = String(text || "").trim().match(/^(?:batal|cancel|hapus)\s+(?:id|message(?:\s+id)?|msg)?\s+([\s\S]+)$/i);
+  if (!match) return [];
+  const seen = {};
+  return match[1]
+    .split(/[\s,;]+/)
+    .map((item) => item.trim().replace(/[^a-zA-Z0-9._:-]/g, ""))
+    .filter((item) => {
+      if (!/^[a-zA-Z0-9._:-]{8,80}$/.test(item) || seen[item]) return false;
+      seen[item] = true;
+      return true;
+    });
+}
+
+function shortId_(id) {
+  const text = String(id || "");
+  if (text.length <= 12) return text;
+  return `${text.slice(0, 6)}...${text.slice(-6)}`;
+}
+
+/** Buat ContentService response */
+function respond_(text) {
+  return ContentService.createTextOutput(text);
+}
+
+/** Log error ke sheet tersendiri */
+function logError_(err, pesan, session, from) {
+  try {
+    const ss    = SpreadsheetApp.openById(getConfig_("SPREADSHEET_ID"));
+    const sheet = getOrCreateSheet_(ss, "ErrorLog", [
+      "Timestamp", "Session", "From", "Pesan", "Error"
+    ]);
+    sheet.appendRow([new Date(), session, from, pesan, err.toString()]);
+  } catch (_) { /* jangan sampai error di error handler */ }
+}
+
+/** Teks bantuan */
+function getHelpText_() {
+  return (
+    "🤖 *Panduan Bot Keuangan*\n" +
+    "━━━━━━━━━━━━━━━━━━\n" +
+    "💬 *Catat Transaksi:*\n" +
+    "  Ketik transaksi bebas, contoh:\n" +
+    "  • Beli makan siang 25000\n" +
+    "  • Terima gaji 5000000 BCA\n" +
+    "  • Bayar bensin 80rb gopay\n\n" +
+    "↩️ *Pembatalan:*\n" +
+    "  • batal          → batalkan transaksi terakhir\n\n" +
+    "  • batal id 3AA..., 3AB... → batalkan sesuai Message ID\n\n" +
+    "📊 *Cek Saldo:*\n" +
+    "  • saldo          → semua rekening\n" +
+    "  • saldo BCA      → saldo spesifik\n\n" +
+    "📋 *Laporan:*\n" +
+    "  • laporan hari ini\n" +
+    "  • laporan minggu ini\n" +
+    "  • laporan bulan ini\n\n" +
+    "━━━━━━━━━━━━━━━━━━\n" +
+    "ℹ️ Rekening otomatis dibuat jika belum ada."
+  );
+}
+
+/* ================================================================
+   TRIGGER IZIN (jalankan sekali untuk izinkan UrlFetch)
+================================================================ */
+function triggerIzin() {
+  UrlFetchApp.fetch("https://www.google.com");
+}

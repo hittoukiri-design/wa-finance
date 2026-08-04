@@ -1,0 +1,37 @@
+.DS_Store
+Icon?
+
+# Local Firebase/deploy cache
+.firebase/
+**/.firebase/
+
+# Dependencies and build outputs
+**/node_modules/
+**/dist/
+Vault/backend/public/
+
+# Secrets, credentials, local runtime data
+**/.env
+**/.env.*
+**/database.sqlite
+**/*.sqlite
+**/*.db
+**/sessions/
+*.log
+*service-account*.json
+service-account*.json
+*-????????????.json
+wa-finance-*.json
+*API*KEY*.png
+API KEY QROQ.png
+Vault/backend/clearFirestore.js
+
+# Local reports, screenshots, exports, backups
+Daily Report/
+Image/
+Images/
+Screenshot*.png
+*.zip
+*Backup*.txt
+V2.*SCRIPT INPUT DATA WA TO GOOGLE SHEET.txt
+v2.*SCRIPT INPUT DATA WA TO GOOGLE SHEET.txt

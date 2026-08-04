@@ -1,0 +1,15 @@
+# Local Firebase / Google Cloud credentials. Never commit these files.
+*-????????????.json
+*-service-account.json
+service-account*.json
+
+# Local runtime data and secrets.
+.env
+.env.*
+backend/database.sqlite
+backend/sessions/
+.firebase/
+
+# Dependency and build output.
+**/node_modules/
+frontend/dist/
