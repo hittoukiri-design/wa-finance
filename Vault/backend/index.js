@@ -206,7 +206,18 @@ function activeStatusWhere() {
 }
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', mode: 'multi-user' });
+    const publicDir = path.join(__dirname, 'public');
+    const staticAssets = fs.existsSync(publicDir)
+        ? fs.readdirSync(publicDir, { recursive: true })
+            .filter((item) => String(item).startsWith('assets/index-'))
+            .sort()
+        : [];
+    res.json({
+        status: 'ok',
+        mode: 'multi-user',
+        revision: process.env.K_REVISION || 'local',
+        staticAssets,
+    });
 });
 
 app.get('/api/settings', authenticate, async (req, res) => {
