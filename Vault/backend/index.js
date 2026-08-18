@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { initSession, getSessionStatus, deleteSession, resumeStoredSessions } = require('./waService');
 const db = require('./db');
+const { DEFAULT_AI_MODEL, normalizeAiModel } = require('./aiModels');
 const { getAdminAuth, getAdminFirestore } = require('./firebaseAdmin');
 const { getUserSettings, saveUserSettings } = require('./settingsStore');
 const { FieldValue } = require('firebase-admin/firestore');
@@ -67,7 +68,7 @@ function publicSettings(settings) {
         groq_api_key: settings.groq_key ? '••••••••••••••••' : '',
         has_groq_api_key: Boolean(settings.groq_key),
         spreadsheet_id: settings.spreadsheet_id || '',
-        ai_model: settings.ai_model || 'llama-3.3-70b-versatile',
+        ai_model: normalizeAiModel(settings.ai_model),
         system_prompt: settings.system_prompt || '',
         apps_script_status: appsScriptStatus,
         apps_script_last_tested_at: settings.apps_script_last_tested_at || null,
@@ -238,7 +239,7 @@ app.put('/api/settings', authenticate, async (req, res) => {
             apps_script_url: appsScriptUrl,
             groq_key: incomingGroqKey && !incomingGroqKey.includes('••••') ? incomingGroqKey : undefined,
             spreadsheet_id: nextSpreadsheetId,
-            ai_model: String(body.ai_model || 'llama-3.3-70b-versatile').trim(),
+            ai_model: normalizeAiModel(body.ai_model || DEFAULT_AI_MODEL),
             system_prompt: String(body.system_prompt || '').trim() || undefined,
             monthly_budget: monthlyBudget,
             budget_alert_thresholds: body.budget_alert_thresholds === undefined ? undefined : sanitizeBudgetThresholds(body.budget_alert_thresholds),

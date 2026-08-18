@@ -23,13 +23,28 @@ const DEFAULT_SETTINGS = {
   apps_script_url: '',
   groq_api_key: '',
   spreadsheet_id: '',
-  ai_model: 'llama-3.3-70b-versatile',
+  ai_model: 'openai/gpt-oss-120b',
   system_prompt: 'You are a precise Indonesian financial transaction extractor. Output ONLY valid JSON.',
   apps_script_status: 'not_configured',
   apps_script_last_tested_at: null,
   apps_script_last_status: null,
   apps_script_last_preview: '',
 };
+
+const AI_MODEL_OPTIONS = [
+  {
+    value: 'openai/gpt-oss-120b',
+    label: 'GPT OSS 120B (recommended)',
+  },
+  {
+    value: 'openai/gpt-oss-20b',
+    label: 'GPT OSS 20B (fast)',
+  },
+  {
+    value: 'qwen/qwen3.6-27b',
+    label: 'Qwen3.6 27B (preview)',
+  },
+];
 
 async function apiRequest(path, options = {}) {
   const currentUser = auth.currentUser;
@@ -161,7 +176,7 @@ export default function Settings() {
           <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-emerald-300">Tentang Aplikasi</h3>
           <div className="mt-5 space-y-4">
             <div>
-              <h4 className="text-xl font-bold tracking-tight text-white">WA Finance Gateway</h4>
+              <h4 className="text-xl font-bold tracking-tight text-white">WA Finance Gateway V.2.0</h4>
               <p className="mt-3 text-sm leading-6 text-slate-400">
                 Asisten keuangan berbasis WhatsApp yang membantu mencatat transaksi dari chat menjadi data yang rapi,
                 cepat, dan mudah dipantau.
@@ -188,7 +203,7 @@ export default function Settings() {
         </section>
         <section className="rounded-[28px] border border-slate-200 bg-white p-7 shadow-[0_18px_50px_rgba(15,23,42,0.08)] dark:border-slate-800 dark:bg-[#0b141c] md:p-10">
           <SectionTitle icon={Sparkles} title="AI Configuration" description="Key dipakai oleh backend WhatsApp dan disimpan di Google Secret Manager." />
-          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2"><div><FieldLabel>Groq API Key</FieldLabel><div className="relative"><KeyRound className="absolute left-4 top-4 h-4 w-4 text-slate-400" /><input type="password" value={settings.groq_api_key} onChange={(event) => setSettings((current) => ({ ...current, groq_api_key: event.target.value }))} placeholder={hasSavedKey ? 'API key tersimpan (isi untuk mengganti)' : 'gsk_...'} className="w-full rounded-xl border border-slate-200 bg-slate-50 py-4 pl-11 pr-4 text-sm text-slate-800 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-100" /></div></div><div><FieldLabel>AI Model</FieldLabel><select value={settings.ai_model} onChange={(event) => setSettings((current) => ({ ...current, ai_model: event.target.value }))} className="w-full rounded-xl border-2 border-violet-500 bg-slate-50 px-4 py-4 text-sm text-slate-800 outline-none dark:bg-slate-900/60 dark:text-slate-100"><option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option><option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option><option value="openai/gpt-oss-120b">GPT OSS 120B</option></select></div><div className="lg:col-span-2"><div className="flex items-center justify-between gap-3"><FieldLabel>Spreadsheet ID</FieldLabel>{settings.spreadsheet_id && <a href={sheetUrl(settings.spreadsheet_id)} target="_blank" rel="noreferrer" className="mb-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-500"><ExternalLink className="h-3.5 w-3.5" />Open configured Sheet</a>}</div><input value={settings.spreadsheet_id} onChange={(event) => setSettings((current) => ({ ...current, spreadsheet_id: event.target.value }))} placeholder="ID dari URL Google Spreadsheet" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 font-mono text-sm text-slate-800 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-100" />{settings.spreadsheet_id && <p className="mt-2 break-all text-xs text-slate-500 dark:text-slate-400">Sheet aktif: {settings.spreadsheet_id}</p>}</div><div className="lg:col-span-2"><FieldLabel>System Prompt</FieldLabel><textarea rows="4" value={settings.system_prompt} onChange={(event) => setSettings((current) => ({ ...current, system_prompt: event.target.value }))} className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-relaxed text-slate-800 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-100" /></div></div>
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2"><div><FieldLabel>Groq API Key</FieldLabel><div className="relative"><KeyRound className="absolute left-4 top-4 h-4 w-4 text-slate-400" /><input type="password" value={settings.groq_api_key} onChange={(event) => setSettings((current) => ({ ...current, groq_api_key: event.target.value }))} placeholder={hasSavedKey ? 'API key tersimpan (isi untuk mengganti)' : 'gsk_...'} className="w-full rounded-xl border border-slate-200 bg-slate-50 py-4 pl-11 pr-4 text-sm text-slate-800 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-100" /></div></div><div><FieldLabel>AI Model</FieldLabel><select value={settings.ai_model} onChange={(event) => setSettings((current) => ({ ...current, ai_model: event.target.value }))} className="w-full rounded-xl border-2 border-violet-500 bg-slate-50 px-4 py-4 text-sm text-slate-800 outline-none dark:bg-slate-900/60 dark:text-slate-100">{AI_MODEL_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">GPT OSS 120B paling aman untuk production. Qwen3.6 27B tersedia untuk eksperimen, tapi masih preview.</p></div><div className="lg:col-span-2"><div className="flex items-center justify-between gap-3"><FieldLabel>Spreadsheet ID</FieldLabel>{settings.spreadsheet_id && <a href={sheetUrl(settings.spreadsheet_id)} target="_blank" rel="noreferrer" className="mb-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-500"><ExternalLink className="h-3.5 w-3.5" />Open configured Sheet</a>}</div><input value={settings.spreadsheet_id} onChange={(event) => setSettings((current) => ({ ...current, spreadsheet_id: event.target.value }))} placeholder="ID dari URL Google Spreadsheet" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 font-mono text-sm text-slate-800 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-100" />{settings.spreadsheet_id && <p className="mt-2 break-all text-xs text-slate-500 dark:text-slate-400">Sheet aktif: {settings.spreadsheet_id}</p>}</div><div className="lg:col-span-2"><FieldLabel>System Prompt</FieldLabel><textarea rows="4" value={settings.system_prompt} onChange={(event) => setSettings((current) => ({ ...current, system_prompt: event.target.value }))} className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-relaxed text-slate-800 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-100" /></div></div>
           <button type="submit" disabled={busy} className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#111a31] px-5 py-4 font-semibold text-white transition hover:bg-[#1b2746] disabled:opacity-60"><Save className="h-4 w-4" />{busy ? 'Menyimpan...' : 'Save AI Configuration'}</button>
           <div className="mt-5 flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-slate-500 dark:text-slate-300"><Server className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" /><p>Key tidak disimpan di browser atau SQLite Cloud Run. Backend menggunakannya untuk memproses pesan, lalu mengirim hasil transaksi ke Apps Script dan Google Sheets.</p></div>
         </section>

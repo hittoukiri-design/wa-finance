@@ -1,5 +1,6 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const { DEFAULT_AI_MODEL } = require('./aiModels');
 
 const dbPath = path.join(__dirname, 'database.sqlite');
 const db = new Database(dbPath);
@@ -19,7 +20,7 @@ function initDB() {
             groq_key TEXT,
             apps_script_url TEXT,
             spreadsheet_id TEXT,
-            ai_model TEXT DEFAULT 'llama-3.3-70b-versatile',
+            ai_model TEXT DEFAULT '${DEFAULT_AI_MODEL}',
             system_prompt TEXT,
             monthly_budget REAL DEFAULT 0,
             budget_alert_thresholds TEXT,
@@ -97,7 +98,7 @@ function initDB() {
     // Migrate databases created by the earlier MVP without deleting user data.
     ensureColumn('users', 'apps_script_url', 'TEXT');
     ensureColumn('users', 'spreadsheet_id', 'TEXT');
-    ensureColumn('users', 'ai_model', "TEXT DEFAULT 'llama-3.3-70b-versatile'");
+    ensureColumn('users', 'ai_model', `TEXT DEFAULT '${DEFAULT_AI_MODEL}'`);
     ensureColumn('users', 'system_prompt', 'TEXT');
     ensureColumn('users', 'monthly_budget', 'REAL DEFAULT 0');
     ensureColumn('users', 'budget_alert_thresholds', 'TEXT');
@@ -165,7 +166,7 @@ function saveUserSettings(userId, settings) {
         next.apps_script_url || null,
         next.groq_key || null,
         next.spreadsheet_id || null,
-        next.ai_model || 'llama-3.3-70b-versatile',
+        next.ai_model || DEFAULT_AI_MODEL,
         next.system_prompt || null,
         Number(next.monthly_budget || 0),
         JSON.stringify(next.budget_alert_thresholds || [80, 90, 95, 100]),

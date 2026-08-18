@@ -8,6 +8,8 @@ import {
   CheckCircle2,
   ChevronRight,
   Edit3,
+  FileSpreadsheet,
+  FileText,
   MessageSquare,
   PieChart as PieChartIcon,
   Plus,
@@ -66,6 +68,11 @@ const formatDateTime = (date) => {
 
 const formatDay = (date) => new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short' }).format(date);
 const formatMonth = (date) => new Intl.DateTimeFormat('id-ID', { month: 'short', year: '2-digit' }).format(date);
+const formatLongDate = (date) => new Intl.DateTimeFormat('id-ID', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+}).format(date);
 
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 const startOfWeek = (date) => {
@@ -75,6 +82,7 @@ const startOfWeek = (date) => {
   return copy;
 };
 const startOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
+const endOfMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
 const addDays = (date, amount) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount);
 const addMonths = (date, amount) => new Date(date.getFullYear(), date.getMonth() + amount, 1);
 const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -198,6 +206,74 @@ function CategoryBadge({ children, color }) {
   );
 }
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 11) return 'Selamat pagi';
+  if (hour < 15) return 'Selamat siang';
+  if (hour < 18) return 'Selamat sore';
+  return 'Selamat malam';
+}
+
+function firstName(user) {
+  const source = user?.displayName || user?.email || 'teman';
+  return source.split('@')[0].split(/\s+/)[0] || 'teman';
+}
+
+function WelcomeHero({ user, startDate, endDate, onTransactions, onRecap }) {
+  return (
+    <section className="relative isolate mb-6 overflow-hidden rounded-[32px] border border-lime-200/80 bg-[#c9f598] px-7 py-7 text-[#123008] shadow-[0_24px_70px_rgba(63,98,18,0.16)] dark:border-lime-300/10 dark:bg-[#a9ed62] md:px-9 md:py-8">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <span className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-lime-600/20" />
+        <span className="absolute left-[45%] top-[-88px] h-64 w-64 rounded-full bg-lime-600/20" />
+        <span className="absolute bottom-[-110px] right-[8%] h-56 w-56 rounded-full bg-lime-700/18" />
+        <span className="absolute bottom-5 left-[35%] h-28 w-12 rounded-full bg-lime-600/25" />
+        <span className="absolute right-[34%] top-8 h-20 w-72 rounded-full border-[7px] border-white/85" />
+        <span className="absolute right-[24%] top-8 h-20 w-20 rounded-full border-[7px] border-white/85" />
+        <span className="absolute bottom-10 right-[28%] h-28 w-20 rounded-t-full border-l-[7px] border-t-[7px] border-[#226c13]" />
+        <span className="absolute left-[16%] bottom-0 h-28 w-36 rounded-t-full bg-lime-600/25" />
+      </div>
+
+      <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-3xl">
+          <div className="mb-5 inline-flex items-center gap-3 rounded-full bg-[#123008]/8 px-3 py-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#123008] text-xs font-black text-lime-200">
+              WA
+            </span>
+            <span className="text-xs font-black uppercase tracking-[0.16em] text-[#21490f]">
+              WA Finance
+            </span>
+          </div>
+          <h2 className="text-[34px] font-semibold leading-tight tracking-tight text-[#102a08] md:text-[46px]">
+            {getGreeting()}, {firstName(user)}
+          </h2>
+          <p className="mt-4 max-w-2xl text-sm font-medium leading-6 text-[#31591d] md:text-base">
+            Mulai hari dengan catatan yang rapi. Periode aktif: {formatLongDate(startDate)} - {formatLongDate(endDate)}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={onTransactions}
+            className="inline-flex items-center gap-2 rounded-full bg-[#135400] px-5 py-3 text-sm font-bold text-lime-50 shadow-[0_12px_30px_rgba(19,84,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[#0d3d00]"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Transaksi
+          </button>
+          <button
+            type="button"
+            onClick={onRecap}
+            className="inline-flex items-center gap-2 rounded-full bg-[#135400] px-5 py-3 text-sm font-bold text-lime-50 shadow-[0_12px_30px_rgba(19,84,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[#0d3d00]"
+          >
+            <FileText className="h-4 w-4" />
+            New Recap
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -245,6 +321,7 @@ export default function Dashboard() {
   }, [user.uid]);
 
   const activePeriodStart = useMemo(() => dateFromInput(activeRecapStartDate) || startOfMonth(new Date()), [activeRecapStartDate]);
+  const activePeriodEnd = useMemo(() => endOfMonth(activePeriodStart), [activePeriodStart]);
   const activePeriodExpenses = useMemo(() => expenses.filter((item) => {
     const date = getExpenseDate(item);
     return date ? date >= activePeriodStart : false;
@@ -438,6 +515,14 @@ export default function Dashboard() {
   return (
     <div className="mx-auto w-full max-w-[1450px]">
       <Header title="Dashboard" subtitle="Overview of your finance operations and AI insights." />
+
+      <WelcomeHero
+        user={user}
+        startDate={activePeriodStart}
+        endDate={activePeriodEnd}
+        onTransactions={() => navigate('/expenses')}
+        onRecap={() => setShowRecapModal(true)}
+      />
 
       {error && (
         <div className="mb-5 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">

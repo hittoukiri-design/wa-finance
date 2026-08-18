@@ -12,7 +12,7 @@
 ================================ */
 const CONFIG = {
   SCRIPT_VERSION: "WA_FINANCE_SCRIPT_V2_6_IDEMPOTENT_MESSAGE_ID",
-  MODEL_NAME:     "llama-3.3-70b-versatile",
+  MODEL_NAME:     "openai/gpt-oss-120b",
   GROQ_URL:       "https://api.groq.com/openai/v1/chat/completions",
   SHEET_TRANSAKSI: "Transaksi",
   SHEET_REKENING:  "Rekening",

@@ -1,5 +1,6 @@
 const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
 const db = require('./db');
+const { DEFAULT_AI_MODEL } = require('./aiModels');
 
 const SECRET_ID = process.env.USER_SETTINGS_SECRET_ID || 'wa-finance-user-settings';
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'wa-finance-bot-i729';
@@ -7,7 +8,7 @@ const DEFAULT_SETTINGS = {
     apps_script_url: '',
     groq_key: '',
     spreadsheet_id: '',
-    ai_model: 'llama-3.3-70b-versatile',
+    ai_model: DEFAULT_AI_MODEL,
     system_prompt: 'You are a precise Indonesian financial transaction extractor. Output ONLY valid JSON.',
     apps_script_status: 'not_configured',
     apps_script_last_tested_at: null,

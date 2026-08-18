@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('./db');
 const Groq = require('groq-sdk');
+const { DEFAULT_AI_MODEL, normalizeAiModel } = require('./aiModels');
 const { getUserSettings, saveUserSettings } = require('./settingsStore');
 const { restoreSession, backupSession, deleteStoredSession, listStoredSessionUserIds, listStoredPhoneSessionJids } = require('./sessionStore');
 const { FieldValue, getAdminFirestore } = require('./firebaseAdmin');
@@ -764,7 +765,7 @@ async function extractExpenseWithAI(text, settings = {}) {
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: `Pesan transaksi WhatsApp: ${text}` },
             ],
-            model: settings.ai_model || 'llama-3.3-70b-versatile',
+            model: normalizeAiModel(settings.ai_model || DEFAULT_AI_MODEL),
             temperature: 0.1,
         }), 8000, 'Groq extraction');
 
