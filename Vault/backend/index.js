@@ -521,11 +521,24 @@ app.post('/api/recaps/new', authenticate, async (req, res) => {
     const closedAt = new Date().toISOString();
     const recap = { id: recapId, name: recapName, start_date: startDate };
 
-    if (!endpoint) {
-        return res.status(400).json({ error: 'Apps Script endpoint belum dikonfigurasi. New Recap perlu backup Sheet terlebih dahulu.' });
-    }
-    if (!spreadsheetId) {
-        return res.status(400).json({ error: 'Spreadsheet ID belum dikonfigurasi. New Recap perlu backup Sheet terlebih dahulu.' });
+    let sheetReply = 'Backup native server berhasil';
+    if (endpoint && spreadsheetId) {
+        try {
+            sheetReply = await postAppsScript(endpoint, {
+                command: 'new_recap',
+                session: req.userId,
+                from: 'dashboard',
+                body: 'new recap',
+                recap_id: recapId,
+                recap_name: recapName,
+                active_recap_name: activeName,
+                start_date: startDate,
+                closed_at: closedAt,
+                spreadsheet_id: spreadsheetId,
+            }, 60000);
+        } catch (error) {
+            console.warn('Apps Script sync skipped or failed during recap:', error.message);
+        }
     }
 
     const activeWhere = activeStatusWhere();
@@ -545,30 +558,6 @@ app.post('/api/recaps/new', authenticate, async (req, res) => {
         WHERE user_id = ?
           AND COALESCE(recap_status, 'active') != 'archived'
     `).get(req.userId);
-
-    let sheetReply = '';
-    try {
-        sheetReply = await postAppsScript(endpoint, {
-            command: 'new_recap',
-            session: req.userId,
-            from: 'dashboard',
-            body: 'new recap',
-            recap_id: recapId,
-            recap_name: recapName,
-            active_recap_name: activeName,
-            start_date: startDate,
-            closed_at: closedAt,
-            spreadsheet_id: spreadsheetId,
-        }, 60000);
-        if (!/New Recap|Periode baru|Recap baru|Tutup Periode|backup sheet/i.test(sheetReply)) {
-            throw new Error('Apps Script belum mengenali command new_recap. Update template Apps Script terlebih dahulu.');
-        }
-    } catch (error) {
-        const message = error.name === 'AbortError'
-            ? 'Apps Script timeout saat membuat backup Sheet.'
-            : error.message;
-        return res.status(502).json({ error: message });
-    }
 
     try {
         const archivedExpenses = await archiveFirestoreCollection(req.userId, 'expenses', recap);

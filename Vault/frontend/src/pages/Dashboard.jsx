@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Archive,
+  ChevronLeft,
+  ChevronRight,
   BarChart3,
   CalendarDays,
   CreditCard,
@@ -161,6 +163,9 @@ export default function Dashboard() {
   const [activeRecapStartDate, setActiveRecapStartDate] = useState('');
   const [savedWallets, setSavedWallets] = useState([]);
   const [showRecapModal, setShowRecapModal] = useState(false);
+  const [showMonthCalendarModal, setShowMonthCalendarModal] = useState(false);
+  const [calendarViewDate, setCalendarViewDate] = useState(() => new Date());
+  const [selectedCalendarDateKey, setSelectedCalendarDateKey] = useState(null);
   const [recapBusy, setRecapBusy] = useState(false);
   const [showSavingsModal, setShowSavingsModal] = useState(false);
   const [savingsBusy, setSavingsBusy] = useState(false);
@@ -874,10 +879,10 @@ export default function Dashboard() {
           <button
             className="btn-hero-solid-green !bg-[#1b3b18] hover:!bg-[#244f20] dark:!bg-[#152e18] dark:hover:!bg-[#1d4222]"
             onClick={() => setShowRecapModal(true)}
-            title="Tutup Periode & Backup ke Google Sheets"
+            title="Tutup Buku & Backup Periode Berjalan"
           >
             <Archive width="13" height="13" />
-            Tutup Periode
+            Tutup Buku & Backup
           </button>
         </div>
       </div>
@@ -921,7 +926,14 @@ export default function Dashboard() {
             })}
           </div>
 
-          <button className="link-view-all-month" onClick={() => navigate('/expenses')}>
+          <button
+            type="button"
+            className="link-view-all-month"
+            onClick={() => {
+              setCalendarViewDate(new Date());
+              setShowMonthCalendarModal(true);
+            }}
+          >
             <CalendarDays width="12" height="12" />
             Lihat satu bulan
           </button>
@@ -1389,44 +1401,44 @@ export default function Dashboard() {
 
       </div>
 
-      {/* Recap Modal */}
+      {/* ════ MODAL: TUTUP BUKU & BACKUP (GAJIAN / NEW RECAP) ════ */}
       {showRecapModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-          <form onSubmit={submitNewRecap} className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-[#0b141c]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
+          <form onSubmit={submitNewRecap} className="w-full max-w-lg rounded-[22px] border border-[#2b4421] bg-[#101b12] p-6 shadow-2xl dark:border-[#2b4421] dark:bg-[#101b12]">
             <div className="flex items-start gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
                 <Archive className="h-6 w-6" />
               </span>
               <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">New Recap / Tutup Periode</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                  Sistem akan backup tab Google Sheet lama, arsipkan data aktif di webapp, lalu mulai periode baru dari kosong.
+                <h2 className="text-xl font-black text-white">Tutup Buku & Backup Periode</h2>
+                <p className="mt-1.5 text-xs leading-5 text-slate-400">
+                  Data periode ini akan otomatis diarsipkan & dibackup. Saldo pengeluaran di webapp akan kembali 0 untuk memulai pencatatan uang masuk/gaji periode baru.
                 </p>
               </div>
             </div>
-            <div className="mt-6 space-y-4">
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Nama periode baru</span>
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="mb-1 block text-[11px] font-bold text-slate-300">Nama Periode Baru</label>
                 <input
                   required
                   value={recapForm.name}
                   onChange={(e) => setRecapForm((c) => ({ ...c, name: e.target.value }))}
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                  placeholder="Contoh: Gaji Agustus 2026"
+                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  placeholder="Contoh: Periode September 2026 / Gajian Baru"
                 />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Tanggal mulai periode baru</span>
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-bold text-slate-300">Tanggal Mulai Periode Baru</label>
                 <input
                   required
                   type="date"
                   value={recapForm.start_date}
                   onChange={(e) => setRecapForm((c) => ({ ...c, start_date: e.target.value }))}
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
                 />
-              </label>
-              <div className="rounded-xl border border-amber-400/20 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-700 dark:bg-amber-500/10 dark:text-amber-100/80">
-                Data tidak dihapus. Tab Sheet lama dicopy ke arsip, tab aktif dikosongkan, data webapp lama diberi label arsip.
+              </div>
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs leading-5 text-emerald-200">
+                🛡️ <strong>Recall Data Lama:</strong> Data transaksi lama tetap tersimpan aman di database dan dapat dilihat kembali kapan saja lewat tombol <strong>Lihat satu bulan</strong>.
               </div>
             </div>
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -1434,21 +1446,163 @@ export default function Dashboard() {
                 type="button"
                 onClick={() => setShowRecapModal(false)}
                 disabled={recapBusy}
-                className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300"
+                className="rounded-full border border-slate-700 bg-transparent px-6 py-2 text-xs font-bold text-slate-300 hover:bg-white/5"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={recapBusy}
-                className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                className="rounded-full bg-[#76d446] px-7 py-2 text-xs font-black text-[#0d170a] shadow-lg transition hover:bg-[#64be36] disabled:opacity-50"
               >
-                {recapBusy ? 'Memproses backup...' : 'Backup & Mulai Baru'}
+                {recapBusy ? 'Memproses backup...' : 'Tutup Buku & Mulai Baru'}
               </button>
             </div>
           </form>
         </div>
       )}
+
+      {/* ════ MODAL: LIHAT SATU BULAN (FULL MONTH CALENDAR RECALL) ════ */}
+      {showMonthCalendarModal && (() => {
+        const calYear = calendarViewDate.getFullYear();
+        const calMonth = calendarViewDate.getMonth();
+        const firstDayOfWeek = new Date(calYear, calMonth, 1).getDay(); // 0: Min, 1: Sen, ...
+        const totalDaysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+        const monthTitle = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(calendarViewDate);
+
+        // Calculate daily expenses for the currently viewed month
+        const dailyExpenses = {};
+        let monthTotalSpend = 0;
+        let monthTxCount = 0;
+
+        [...expenses, ...incomes].forEach((item) => {
+          const d = getExpenseDate(item);
+          if (!d) return;
+          if (d.getFullYear() === calYear && d.getMonth() === calMonth) {
+            const k = dateKey(d);
+            monthTxCount += 1;
+            if (String(item.type || '').toLowerCase() !== 'income') {
+              const amt = Number(item.amount || 0);
+              dailyExpenses[k] = (dailyExpenses[k] || 0) + amt;
+              monthTotalSpend += amt;
+            }
+          }
+        });
+
+        const dayNames = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB'];
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
+            <div className="relative w-full max-w-md rounded-[28px] border border-[#a2c98a]/40 bg-[#ebf5dc] p-6 shadow-2xl dark:border-[#2b4421] dark:bg-[#101b12]">
+              
+              {/* Top Navigation */}
+              <div className="flex items-center justify-between border-b border-[#a2c98a]/30 pb-4 dark:border-[#21381a]">
+                <button
+                  type="button"
+                  onClick={() => setCalendarViewDate(new Date(calYear, calMonth - 1, 1))}
+                  className="rounded-full p-2 text-[#245c10] transition hover:bg-black/5 dark:text-[#76d446] dark:hover:bg-white/10"
+                  title="Bulan sebelumnya"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+
+                <h2 className="text-base font-black capitalize text-[#0e2a07] dark:text-[#f3ffe9]">
+                  {monthTitle}
+                </h2>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setCalendarViewDate(new Date(calYear, calMonth + 1, 1))}
+                    className="rounded-full p-2 text-[#245c10] transition hover:bg-black/5 dark:text-[#76d446] dark:hover:bg-white/10"
+                    title="Bulan berikutnya"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowMonthCalendarModal(false)}
+                    className="ml-1 rounded-full p-2 text-slate-400 transition hover:bg-black/5 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Day Headers (MIN, SEN, SEL, RAB, KAM, JUM, SAB) */}
+              <div className="mt-4 grid grid-cols-7 text-center text-[10.5px] font-black uppercase tracking-wider text-[#436d32] dark:text-[#8bb37a]">
+                {dayNames.map((d) => (
+                  <div key={d} className="py-1">{d}</div>
+                ))}
+              </div>
+
+              {/* Calendar Grid (Days 1..N) */}
+              <div className="mt-2 grid grid-cols-7 gap-y-3 text-center">
+                {/* Empty cells before day 1 */}
+                {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                  <div key={`empty-${i}`} className="h-14" />
+                ))}
+
+                {/* Days */}
+                {Array.from({ length: totalDaysInMonth }).map((_, i) => {
+                  const dayNum = i + 1;
+                  const dayDate = new Date(calYear, calMonth, dayNum);
+                  const k = dateKey(dayDate);
+                  const spend = dailyExpenses[k] || 0;
+                  const isToday = k === dateKey(new Date());
+                  const isSelected = selectedCalendarDateKey === k;
+
+                  return (
+                    <div
+                      key={k}
+                      onClick={() => {
+                        setSelectedCalendarDateKey(k);
+                        // Filter dashboard Recent Transactions to this day
+                        const dayIndex = weekDays.findIndex((w) => w.key === k);
+                        if (dayIndex !== -1) {
+                          setSelectedDayIndex(dayIndex);
+                        } else {
+                          setSelectedDayIndex(null);
+                        }
+                        setShowMonthCalendarModal(false);
+                      }}
+                      className="group flex flex-col items-center justify-start cursor-pointer select-none"
+                    >
+                      <div
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-black transition ${
+                          isToday
+                            ? 'bg-[#d9f99d] text-[#1a5611] ring-2 ring-[#84cc16] shadow-sm dark:bg-[#76d446] dark:text-[#0d170a]'
+                            : spend > 0
+                              ? 'bg-[#bbf7d0] text-[#14532d] dark:bg-[#1f421d] dark:text-[#86efac]'
+                              : isSelected
+                                ? 'bg-black/10 text-slate-800 dark:bg-white/10 dark:text-white'
+                                : 'text-slate-600 hover:bg-black/5 dark:text-slate-400 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        {dayNum}
+                      </div>
+
+                      {spend > 0 ? (
+                        <span className="mt-1 text-[9.5px] font-bold text-[#2d6e19] dark:text-[#86efac]">
+                          {shortCurrency(spend).replace('Rp ', '')}
+                        </span>
+                      ) : (
+                        <span className="mt-1 h-3" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Summary Bar */}
+              <div className="mt-6 flex items-center justify-between border-t border-[#a2c98a]/30 pt-3.5 text-xs font-bold text-[#245c10] dark:border-[#21381a] dark:text-[#86efac]">
+                <span>{monthTxCount} transaksi • {currency(monthTotalSpend)} keluar bulan ini</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
 
       {/* ════ MODAL: CATAT TABUNGAN / INVESTASI ════ */}
       {showSavingsModal && (
