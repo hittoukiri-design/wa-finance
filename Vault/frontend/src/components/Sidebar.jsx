@@ -3,8 +3,6 @@ import { NavLink } from 'react-router-dom';
 import {
   BarChart3,
   Bot,
-  ChevronLeft,
-  ChevronRight,
   CreditCard,
   FileCode2,
   FileText,
@@ -12,7 +10,6 @@ import {
   LayoutGrid,
   List,
   LogOut,
-  Menu,
   MessageSquare,
   MessageSquareWarning,
   Receipt,
@@ -50,7 +47,7 @@ const navGroups = [
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { isCollapsed } = useSidebar();
 
   return (
     <aside
@@ -63,7 +60,7 @@ export default function Sidebar() {
       {/* ── Top Header / Brand ── */}
       <div
         className={`flex items-center border-b border-[#e5eedc] dark:border-[#1d3517] ${
-          isCollapsed ? 'justify-center p-4' : 'justify-between px-5 py-4'
+          isCollapsed ? 'justify-center p-4' : 'px-5 py-4'
         }`}
       >
         <div className="flex items-center gap-3 min-w-0">
@@ -83,31 +80,7 @@ export default function Sidebar() {
             </div>
           )}
         </div>
-
-        {/* Toggle Collapse Button */}
-        {!isCollapsed && (
-          <button
-            onClick={toggleSidebar}
-            title="Sembunyikan menu"
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#dcebd0] bg-white/80 text-[#358219] shadow-sm transition hover:bg-white dark:border-[#263e1d] dark:bg-[#162914] dark:text-[#76d446]"
-          >
-            <ChevronLeft width="16" height="16" />
-          </button>
-        )}
       </div>
-
-      {/* When collapsed, small expand button under logo */}
-      {isCollapsed && (
-        <div className="flex justify-center pt-2">
-          <button
-            onClick={toggleSidebar}
-            title="Tampilkan menu"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-[#e4f2da] hover:text-[#1a5611] dark:text-slate-400 dark:hover:bg-[#162914] dark:hover:text-[#76d446]"
-          >
-            <ChevronRight width="16" height="16" />
-          </button>
-        </div>
-      )}
 
       {/* ── Navigation Menu Groups ── */}
       <nav className="mt-3 flex-1 space-y-4 overflow-y-auto px-3">

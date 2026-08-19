@@ -75,7 +75,8 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
     2. **Kartu 2 (Tengah)**: Kartu gelap (*Total Pengeluaran*, icon api 🔥, angka nominal besar, area jagged sparkline dengan gradient hijau, dan rata-rata per catatan).
     3. **Kartu 3 (Kanan)**: Kartu gelap (*Jumlah Transaksi*, icon dokumen 📄, angka total transaksi besar, mini bar chart vertikal dengan dotted future line, dan hari aktif/kategori).
   - Merapikan grid kategori di bawahnya menjadi 5 kolom x 2 baris (10 kartu ringkasan kategori interaktif) dengan sudut membulat elegan (*rounded-2xl*).
-- ✅ **Build production terbaru** (`index-DOT6RVFK.js` & `index-wrrFV8wu.css`) telah aktif dan live di container Mac mini.
+- ✅ **Pembersihan Header Sidebar (`Sidebar.jsx`)**: Menghilangkan tombol panah chevron `<` ganda di dalam header sidebar (sekarang hanya logo + nama brand WA Finance Gateway), sehingga kontrol hide/unhide sidebar sepenuhnya terpusat bersih pada tombol toggle `«`/`☰` di navbar atas samping judul.
+- ✅ **Build production terbaru** (`index-CyG4LsAZ.js` & `index-CUgcuq8K.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.
