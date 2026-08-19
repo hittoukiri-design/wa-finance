@@ -103,7 +103,10 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Background Light Mode**: Diubah menjadi `#f5faeb` yang lebih lembut dan nyaman dipandang.
   - **Card Containers**: Diubah menjadi `#eaf2da` (dengan border harmonis `#d6e4be`) pada seluruh dashboard, transaksi, dompet, analitik, dan pengaturan.
   - **Hero & Banner Green**: Diubah menjadi hijau cerah lembut `#c3ef92` pada banner arus kas transaksi, hero dashboard, dan tombol aksen utama.
-- ✅ **Build production terbaru** (`index-6ITs67Mr.js` & `index-C6VTT9RV.css`) telah aktif dan live di container Mac mini.
+- ✅ **Pembaruan Warna Tabel Transaksi ke Hijau Cerah `#87e33e` (`index.css`)**:
+  - Mengubah background putih pada container dan baris tabel transaksi aktivitas (`.tx-table-card`, `.full-data-table`, `tbody tr`) menjadi warna hijau cerah **`#87e33e`** di Light Mode.
+  - Teks, avatar inisial, badge kategori, tipe transaksi, status approved, dan tombol pagination diselaraskan dengan kontras tajam dan elegan di atas background hijau `#87e33e`.
+- ✅ **Build production terbaru** (`index-rnGzLqZf.js` & `index-DoQ0Jurz.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.
