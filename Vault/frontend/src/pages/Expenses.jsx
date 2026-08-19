@@ -580,70 +580,70 @@ export default function Expenses() {
           </div>
         </div>
 
-        {/* Card 2: Total Pengeluaran */}
-        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm flex flex-col justify-between min-h-[145px] dark:border-[#243e1c] dark:bg-[#121e14]">
+        {/* Card 2: Total Pengeluaran (Exact match to reference) */}
+        <div className="rounded-[22px] border border-[#243e1c] bg-[#121e14] p-5 shadow-sm flex flex-col justify-between min-h-[145px]">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#358219] dark:text-[#76d446]">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#76d446]">
                 TOTAL PENGELUARAN
               </span>
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#c3ef92] text-[#1a5611] dark:bg-[#1a3518] dark:text-[#76d446]">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1c3818] text-[#76d446] border border-[#285814] shadow-sm">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
               </div>
             </div>
-            <div className="text-2xl font-black text-[#0e2a07] dark:text-[#f3ffe9] mt-1">
+            <div className="text-2xl font-black text-[#f3ffe9] mt-1">
               {busy ? '...' : currency(totalExpenseAmount)}
             </div>
           </div>
 
-          <div className="h-7 my-1">
+          <div className="h-8 my-1">
             <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="txExpGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#4a8c2c" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#4a8c2c" stopOpacity="0.05" />
+                  <stop offset="0%" stopColor="#76d446" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#76d446" stopOpacity="0.02" />
                 </linearGradient>
               </defs>
-              <polygon points={`${expPoints} 100,24 0,24`} fill="url(#txExpGrad)" />
-              <polyline points={expPoints} fill="none" stroke="#4a8c2c" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+              <polygon points={expAreaPoints} fill="url(#txExpGrad)" />
+              <polyline points={expLinePoints} fill="none" stroke="#76d446" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
             </svg>
           </div>
 
-          <div className="text-[11px] font-semibold text-[#436d32] dark:text-[#8bb37a]">
+          <div className="text-[11px] font-semibold text-[#8bb37a]">
             Rata-rata {currency(averageExpense)} per catatan
           </div>
         </div>
 
-        {/* Card 3: Jumlah Transaksi */}
-        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm flex flex-col justify-between min-h-[145px] dark:border-[#243e1c] dark:bg-[#121e14]">
+        {/* Card 3: Jumlah Transaksi (Exact match to reference) */}
+        <div className="rounded-[22px] border border-[#243e1c] bg-[#121e14] p-5 shadow-sm flex flex-col justify-between min-h-[145px]">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#358219] dark:text-[#76d446]">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#76d446]">
                 JUMLAH TRANSAKSI
               </span>
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#c3ef92] text-[#1a5611] dark:bg-[#1a3518] dark:text-[#76d446]">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1c3818] text-[#76d446] border border-[#285814] shadow-sm">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
               </div>
             </div>
-            <div className="text-2xl font-black text-[#0e2a07] dark:text-[#f3ffe9] mt-1">
+            <div className="text-2xl font-black text-[#f3ffe9] mt-1">
               {busy ? '...' : expenseItems.length}
             </div>
           </div>
 
-          <div className="h-7 my-1 flex items-end">
+          <div className="h-8 my-1 flex items-end">
             <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
-              {txBarData.slice(0, 20).map((v, i, arr) => {
+              {txBarData.map((v, i, arr) => {
                 const bw = Math.max(2.2, 88 / Math.max(arr.length, 1) - 1.2);
                 const x = arr.length < 2 ? (i * 20) : (i / (arr.length - 1)) * (94 - bw);
                 const bh = v > 0 ? Math.max(4, (v / maxTxBar) * 20) : 2;
                 return <rect key={i} x={x} y={22 - bh} width={bw} height={bh} rx="1" fill={i === arr.length - 1 ? '#76d446' : '#4a8c2c'} opacity={v > 0 ? 0.95 : 0.25} />;
               })}
               {/* Dotted horizontal future line */}
-              <line x1="65" y1="21" x2="98" y2="21" stroke="#4a8c2c" strokeWidth="1.5" strokeDasharray="2 3" opacity="0.4" />
+              <line x1="65" y1="21" x2="98" y2="21" stroke="#76d446" strokeWidth="1.5" strokeDasharray="2 3" opacity="0.4" />
             </svg>
           </div>
 
-          <div className="text-[11px] font-semibold text-[#436d32] dark:text-[#8bb37a]">
+          <div className="text-[11px] font-semibold text-[#8bb37a]">
             {activeDaysCount} hari aktif • {totalCategoriesCount} kategori
           </div>
         </div>

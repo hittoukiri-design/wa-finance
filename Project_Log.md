@@ -106,7 +106,13 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
 - ✅ **Pembaruan Warna Tabel Transaksi ke Hijau Cerah `#87e33e` (`index.css`)**:
   - Mengubah background putih pada container dan baris tabel transaksi aktivitas (`.tx-table-card`, `.full-data-table`, `tbody tr`) menjadi warna hijau cerah **`#87e33e`** di Light Mode.
   - Teks, avatar inisial, badge kategori, tipe transaksi, status approved, dan tombol pagination diselaraskan dengan kontras tajam dan elegan di atas background hijau `#87e33e`.
-- ✅ **Build production terbaru** (`index-rnGzLqZf.js` & `index-DoQ0Jurz.css`) telah aktif dan live di container Mac mini.
+- ✅ **Penyelarasan 100% Grafik Sparkline Total Pengeluaran & Jumlah Transaksi (`Expenses.jsx`)**:
+  - **Grafik Total Pengeluaran (Card 2)**: Mengubah kurva sparkline agar 100% presisi dengan desain referensi:
+    - Sisi kiri (hari berjalan): Membentuk gelombang gunung zigzag berarsir hijau gradien (`#76d446` area polygon fill).
+    - Sisi kanan (sisa hari dalam bulan): Menjadi garis lurus horizontal datar (flat baseline) hijau tanpa arsir area.
+    - Card container diubah ke gaya dark `#121e14` dengan squircle badge api `🔥` hijau `#76d446` berbingkai rapi.
+  - **Grafik Jumlah Transaksi (Card 3)**: Diselaraskan dengan gaya dark `#121e14`, squircle badge dokumen 📄, mini vertical bars untuk hari aktif, dan garis titik-titik proyeksi sisa hari.
+- ✅ **Build production terbaru** (`index-B1lSNu8u.js` & `index-BHZQYheX.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.
