@@ -87,7 +87,12 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
     - **Menu Kategori (`/categories`)**: Halaman khusus **PROTEKSI BUDGET (Kategori)** (Makan, Belanja, Transportasi, Tagihan, Rumah, Kesehatan, Pendidikan, dll., Edit Budget Bulanan & Ambang WhatsApp Alert).
     - Menghilangkan duplikasi konten agar masing-masing menu memiliki fungsi yang jelas dan berdiri sendiri.
   - **Pembersihan Garis Sidebar (Collapsed Mode)**: Menghapus semua garis batas horizontal (`border-t` antar grup dan `border-b` di bawah logo) pada mode ikon ramping (collapsed sidebar), sehingga ikon menu mengalir bersih vertikal tanpa garis pemisah yang mengganggu.
-- ✅ **Build production terbaru** (`index-CQ32Y1v8.js` & `index-ssnLAAa3.css`) telah aktif dan live di container Mac mini.
+- ✅ **Perbaikan Total: Integrasi Real Data 100% & Penggabungan Kategori ke Menu Dompet (`Dompet.jsx`, `Sidebar.jsx`, `App.jsx`)**:
+  - **Pembersihan Dummy/Mock Data**: Menghapus seluruh angka fallback palsu (seperti 8.795.000, 387.000, 712.500, dll.). Saldo setiap dompet (Bank, Cash, Utama, BCA, dll.) dihitung 100% murni dan real-time dari data transaksi Firestore milik pengguna: `(saldo_awal || 0) + total_pemasukan - total_pengeluaran`.
+  - **Penggabungan Cards Kategori ke dalam Menu Dompet**: Menu sidebar dikembalikan rapi (hanya `Dashboard`, `Transaksi`, dan `Dompet` di bawah grup `APLIKASI`). Menu **Dompet** (`/dompet`) memuat langsung 2 section lengkap:
+    1. **SUMBER DANA (Dompet)**: Daftar rekening & dompet nyata dengan saldo real-time dari transaksi, tombol `+ Buat dompet`, edit penyesuaian saldo awal, dan alert threshold.
+    2. **PROTEKSI BUDGET (Kategori)**: 12 kategori keuangan lengkap dengan pengeluaran riil periode aktif (`terpakai Rp ...`), persentase budget, form edit limit bulanan, dan toggle limit.
+- ✅ **Build production terbaru** (`index-ByHqiZmf.js` & `index-ssnLAAa3.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

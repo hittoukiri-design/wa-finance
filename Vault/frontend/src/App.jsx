@@ -55,7 +55,7 @@ function ProtectedApp() {
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/dompet" element={<Dompet />} />
             <Route path="/wallets" element={<Dompet />} />
-            <Route path="/categories" element={<Categories />} />
+            <Route path="/categories" element={<Dompet />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/m3-demo" element={<WaFinanceM3Demo />} />
             <Route path="/setup" element={<SetupGuide />} />

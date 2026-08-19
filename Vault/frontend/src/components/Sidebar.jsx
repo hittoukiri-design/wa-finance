@@ -2,21 +2,13 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   BarChart3,
-  Bot,
-  CreditCard,
   FileCode2,
-  FileText,
-  LayoutDashboard,
   LayoutGrid,
-  List,
   LogOut,
   MessageSquare,
-  MessageSquareWarning,
   Receipt,
   Settings,
-  Sliders,
   Smartphone,
-  Tag,
   Wallet,
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
@@ -30,7 +22,6 @@ const navGroups = [
       { name: 'Dashboard', icon: LayoutGrid, path: '/' },
       { name: 'Transaksi', icon: Receipt, path: '/expenses' },
       { name: 'Dompet', icon: Wallet, path: '/dompet' },
-      { name: 'Kategori', icon: Tag, path: '/categories' },
     ],
   },
   {
