@@ -42,7 +42,7 @@ function ProtectedApp() {
 
   return (
     <BrowserRouter>
-      <div className="app-shell flex min-h-screen overflow-hidden bg-[#f4faef] font-sans text-slate-800 dark:bg-[#071019] dark:text-slate-200">
+      <div className="app-shell flex min-h-screen overflow-hidden bg-[#f5faeb] font-sans text-slate-800 dark:bg-[#071019] dark:text-slate-200">
 
         <Sidebar />
 

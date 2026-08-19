@@ -121,7 +121,11 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Direct Firestore Write (`waService.js`)**: Bot WhatsApp kini menulis langsung ke Firestore (`users/{userId}/expenses`) seketika saat menerima pesan keuangan tanpa dependensi eksternal Google Apps Script. Webapp (Dashboard, Transaksi, Dompet, Analytics) langsung terupdate real-time.
   - **Format Balasan WA Finance Asli**: Tetap mempertahankan format balasan resmi WA Finance yang rapi dengan detail Kategori, Jumlah, Rekening, Tipe, Message ID, serta notifikasi threshold budget.
   - **Master Template Excel `Redesign WA_Finance_Reporting_Dashboard.xlsx`**: Diangkat menjadi template acuan utama di backend (`templates/wa-finance-main-template.xlsx`). Saat user klik download Excel di webapp, sistem melakukan kompilasi instan (on-the-fly) mengisi transaksi riil dan saldo dompet dengan formula dan grafik yang utuh 100%.
-- ✅ **Build production terbaru** (`index-kBeyYxAc.js` & `index-Dh8PcUA3.css`) telah aktif dan live di container Mac mini.
+- ✅ **Perbaikan Bug Render Layar Putih pada Menu Transaksi & Dompet (`Expenses.jsx` & `App.jsx`)**:
+  - **Penyebab**: Variabel koordinat sparkline SVG `expLinePoints` dan `expAreaPoints` pada Card 2 (*Total Pengeluaran*) sempat belum terdefinisi lengkap di `useMemo`, menyebabkan React mengalami crash runtime saat beralih ke halaman transaksi.
+  - **Solusi**: Menghitung `expLinePoints` dan `expAreaPoints` secara presisi untuk kurva SVG dan area polygon gradien hijau.
+  - Menambahkan alias route `/setup` di `App.jsx` agar link Sidebar Setup Guide bekerja mulus.
+- ✅ **Build production terbaru** (`index-DWHg9BUq.js` & `index-CFO5nEs1.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

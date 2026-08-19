@@ -316,9 +316,10 @@ export default function Expenses() {
   }, [expenseItems, periodStartDate, totalDaysInMonth]);
 
   const maxExpSpark = Math.max(...expenseSparkline, 1);
-  const expPoints = useMemo(() => {
-    const totalSlots = Math.min(totalDaysInMonth, 31);
-    const dataLen = expenseSparkline.length;
+  const totalSlots = Math.min(totalDaysInMonth, 31);
+  const dataLen = expenseSparkline.length;
+
+  const { expLinePoints, expAreaPoints } = useMemo(() => {
     const pts = [];
     for (let i = 0; i < totalSlots; i++) {
       const x = totalSlots <= 1 ? 50 : (i / (totalSlots - 1)) * 100;
@@ -327,10 +328,12 @@ export default function Expenses() {
         const val = expenseSparkline[i] || 0;
         y = 22 - (val / maxExpSpark) * 18;
       }
-      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+      pts.push({ x: Number(x.toFixed(1)), y: Number(y.toFixed(1)) });
     }
-    return pts.join(' ');
-  }, [expenseSparkline, maxExpSpark, totalDaysInMonth]);
+    const lineStr = pts.map((p) => `${p.x},${p.y}`).join(' ');
+    const areaStr = `0,24 ${lineStr} 100,24`;
+    return { expLinePoints: lineStr, expAreaPoints: areaStr };
+  }, [expenseSparkline, maxExpSpark, totalSlots, dataLen]);
 
   // Sparkline data for Card 3 (Transaction Count Bars)
   const txBarData = useMemo(() => {
