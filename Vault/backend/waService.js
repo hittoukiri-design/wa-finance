@@ -6,6 +6,7 @@ const db = require('./db');
 const Groq = require('groq-sdk');
 const { DEFAULT_AI_MODEL, normalizeAiModel } = require('./aiModels');
 const { getUserSettings, saveUserSettings } = require('./settingsStore');
+const { buildCategoryPrompt, matchCategoryForText } = require('./categoryRules');
 const { restoreSession, backupSession, deleteStoredSession, listStoredSessionUserIds, listStoredPhoneSessionJids } = require('./sessionStore');
 const { FieldValue, getAdminFirestore } = require('./firebaseAdmin');
 require('dotenv').config();
@@ -421,7 +422,7 @@ async function saveExpenseRecord(userId, phoneNumber, extracted, source = 'Whats
 }
 
 function findLatestActiveExpenseRecord(userId, phoneNumber) {
-    const activeStatusWhere = `COALESCE(status, 'Saved') NOT IN ('Cancelled', 'Canceled', 'Dibatalkan')`;
+    const activeStatusWhere = `LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')`;
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
     let row = null;
 
@@ -447,7 +448,7 @@ function findLatestActiveExpenseRecord(userId, phoneNumber) {
 }
 
 async function cancelLastExpenseRecord(userId, phoneNumber, cancelMessageId = null) {
-    const activeStatusWhere = `COALESCE(status, 'Saved') NOT IN ('Cancelled', 'Canceled', 'Dibatalkan')`;
+    const activeStatusWhere = `LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')`;
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
     let row = null;
     let firestoreCancelled = null;
@@ -573,7 +574,7 @@ async function cancelExpenseRecordsByMessageIds(userId, messageIds = [], cancelM
     const rows = db.prepare(`
         SELECT * FROM expenses
         WHERE user_id = ? AND source_message_id IN (${placeholders})
-          AND COALESCE(status, 'Saved') NOT IN ('Cancelled', 'Canceled', 'Dibatalkan')
+          AND LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')
     `).all(userId, ...ids);
     const foundLocal = new Set(rows.map((row) => row.source_message_id));
 
@@ -656,7 +657,11 @@ function detectForcedExpenseCategory(lowerText) {
     return null;
 }
 
-function detectCategory(lowerText) {
+function detectCategory(lowerText, userId = '') {
+    if (userId) {
+        const customCategory = matchCategoryForText(userId, lowerText, 'expense');
+        if (customCategory?.name) return customCategory.name;
+    }
     const forcedCategory = detectForcedExpenseCategory(lowerText);
     if (forcedCategory) return forcedCategory;
     const categoryMap = [
@@ -670,7 +675,11 @@ function detectCategory(lowerText) {
     return found ? found[0] : 'Lainnya';
 }
 
-function detectIncomeCategory(lowerText) {
+function detectIncomeCategory(lowerText, userId = '') {
+    if (userId) {
+        const customCategory = matchCategoryForText(userId, lowerText, 'income');
+        if (customCategory?.name) return customCategory.name;
+    }
     if (/\b(gaji|salary|upah|payroll)\b/.test(lowerText)) return 'Gaji';
     if (/\b(pembayaran|bayaran|dibayar|pelunasan|invoice|tagihan dibayar)\b/.test(lowerText)) return 'Pembayaran';
     if (/\b(bonus|thr|komisi|fee)\b/.test(lowerText)) return 'Bonus';
@@ -687,7 +696,7 @@ function detectPaymentChannel(text) {
     return afterKeyword[1].trim().split(/\s+/).slice(0, 2).join(' ').toUpperCase();
 }
 
-function parseLocalTransaction(text) {
+function parseLocalTransaction(text, userId = '') {
     const trimmed = String(text || '').trim();
     const lowerText = trimmed.toLowerCase();
     if (!trimmed || ['help', 'bantuan'].includes(lowerText) || lowerText.startsWith('saldo') || lowerText.startsWith('laporan')) return null;
@@ -703,7 +712,7 @@ function parseLocalTransaction(text) {
         type,
         merchant: trimmed.replace(amountMatch[0], '').replace(/\b(dari|pake|pakai|via|rekening|rek)\b.*$/i, '').trim() || trimmed,
         amount,
-        category: type === 'income' ? detectIncomeCategory(lowerText) : detectCategory(lowerText),
+        category: type === 'income' ? detectIncomeCategory(lowerText, userId) : detectCategory(lowerText, userId),
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         payment_channel: detectPaymentChannel(trimmed),
         confidence: 'High',
@@ -733,7 +742,7 @@ function isRecentAppendMessage(message) {
     return ageMs > -120000 && ageMs < 10 * 60 * 1000;
 }
 
-async function extractExpenseWithAI(text, settings = {}) {
+async function extractExpenseWithAI(text, settings = {}, userId = '') {
     const apiKey = settings.groq_key || fallbackGroqKey;
     if (!apiKey) {
         console.warn('GROQ_API_KEY belum diatur; pemrosesan lokal Groq dilewati.');
@@ -742,6 +751,8 @@ async function extractExpenseWithAI(text, settings = {}) {
 
     try {
         const groq = new Groq({ apiKey });
+        const expenseCategories = userId ? buildCategoryPrompt(userId, 'expense') : '';
+        const incomeCategories = userId ? buildCategoryPrompt(userId, 'income') : '';
         const defaultSystemPrompt = `
         You are an AI assistant that extracts expense data from casual WhatsApp messages in Indonesian.
         Users will use informal formats like "75rb" (means 75,000), "120k" (means 120,000), "pake" (means using), "grab" etc.
@@ -749,13 +760,19 @@ async function extractExpenseWithAI(text, settings = {}) {
         - type (string: "expense" if they spent money, or "income" if they received money like salary/gaji)
         - merchant (string, e.g., "Nasi Padang", "Shopee", "Kantor", "Gaji")
         - amount (number, the true numerical value, e.g., if user says "75rb", output 75000)
-        - category (string: for expenses, use "Belanja" if the text contains "belanja" (like belanja sayuran, belanja beras) and for groceries like sayur/sayuran/beras; use "Makan" for food/drinks including tahu kucek, risol, any roti variant, pisang, pisang goreng, gorengan, napong/nasi tempong, mizone; use "Tagihan" for bills, kos, motor, cicilan, internet, pulsa; otherwise use "Transport", "Tagihan", or "Lainnya"; for income use "Gaji" only when the text explicitly mentions salary/gaji/upah/payroll, otherwise use "Pembayaran", "Bonus", or "Pemasukan")
+        - category (string: choose the best category from the user's configured category rules below. Prefer exact keyword/item matches. If the message says "gorengan" and Snack exists, use "Snack", not "Makan".)
         - date (string, formatted as "MMM DD, YYYY". If relative like "today", use today's date)
         - payment_channel (string: extract the bank or payment method used, e.g., "SUPERBANK", "BCA", "GOPAY", "QRIS", "TRANSFER", "OVO", "Cash". If not mentioned, default to "Cash")
 
+        User expense categories:
+        ${expenseCategories || '- Belanja, Tagihan, Makan, Snack, Transportasi, Keluarga, Rumah, Hiburan, Perawatan, Sosial, Kesehatan, Tabungan, Lainnya'}
+
+        User income categories:
+        ${incomeCategories || '- Gaji, Pembayaran, Bonus, Pemasukan'}
+
         Respond ONLY with a valid JSON object. Do not include markdown formatting or explanations.
         Example 1: {"type": "expense", "merchant": "Belanja Sayuran", "amount": 50000, "category": "Belanja", "date": "May 21, 2024", "payment_channel": "BCA", "confidence": "High"}
-        Example 2: {"type": "expense", "merchant": "Roti Matcha", "amount": 20000, "category": "Makan", "date": "May 21, 2024", "payment_channel": "Cash", "confidence": "High"}
+        Example 2: {"type": "expense", "merchant": "Gorengan", "amount": 20000, "category": "Snack", "date": "May 21, 2024", "payment_channel": "Cash", "confidence": "High"}
         Example 3: {"type": "income", "merchant": "Gaji Bulanan", "amount": 5000000, "category": "Gaji", "date": "May 21, 2024", "payment_channel": "BCA", "confidence": "High"}
         `;
         const systemPrompt = settings.system_prompt || defaultSystemPrompt;
@@ -775,11 +792,13 @@ async function extractExpenseWithAI(text, settings = {}) {
         const parsed = JSON.parse(cleanJsonString);
         const rawType = String(parsed.type || '').toLowerCase();
         const transactionType = rawType === 'income' || rawType === 'masuk' ? 'income' : 'expense';
+        const lowerText = String(text || '').toLowerCase();
+        const customCategory = userId ? matchCategoryForText(userId, lowerText, transactionType) : null;
         return {
             ...parsed,
             category: transactionType === 'expense'
-                ? detectForcedExpenseCategory(text) || parsed.category || parsed.cat || 'Lainnya'
-                : parsed.category || parsed.cat || 'Pemasukan',
+                ? customCategory?.name || detectForcedExpenseCategory(lowerText) || parsed.category || parsed.cat || 'Lainnya'
+                : customCategory?.name || parsed.category || parsed.cat || 'Pemasukan',
             amount: Number(parsed.amount ?? parsed.amt) || 0,
             type: transactionType,
             payment_channel: parsed.payment_channel || parsed.rek || 'Cash',
@@ -1147,7 +1166,7 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
     console.log(`[${userId}] Received WhatsApp ${eventType} message ${messageId || 'no-id'} from ${maskJid(remoteJid)}`);
 
     const startedAt = Date.now();
-    const appsScriptEndpoint = userSettings.apps_script_url || process.env.APPS_SCRIPT_URL;
+    const appsScriptEndpoint = '';
     const cmd = text.trim().toLowerCase();
     const isPingCommand = cmd === 'ping';
     const isHelpCommand = cmd === 'help' || cmd === 'bantuan';
@@ -1255,11 +1274,11 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
             const command = cmd;
         if (!command.startsWith('saldo') && !command.startsWith('laporan') && !isCancelCommand) {
                 const extractStartedAt = Date.now();
-                extracted = parseLocalTransaction(text);
+                extracted = parseLocalTransaction(text, userId);
                 if (extracted) {
                     console.log(`[${userId}] Local transaction parser completed for ${messageId || 'no-id'} in ${Date.now() - extractStartedAt}ms`);
                 } else {
-                    extracted = await extractExpenseWithAI(text, userSettings);
+                    extracted = await extractExpenseWithAI(text, userSettings, userId);
                     console.log(`[${userId}] AI extraction completed for ${messageId || 'no-id'} in ${Date.now() - extractStartedAt}ms`);
                 }
                 if (extracted?.amount && extracted?.type) {
@@ -1271,23 +1290,27 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
                     };
                 }
             }
-            const scriptStartedAt = Date.now();
-            const sheetFrom = getSheetSenderIdentity(userId, remoteJid, senderPhoneJid, userSettings);
-            const reply = await forwardMessageToAppsScriptWithRecovery(appsScriptEndpoint, {
-                session: userId,
-                from: sheetFrom,
-                from_jid: remoteJid,
-                body: text,
-                message_id: messageId || undefined,
-                ai_result: aiResult,
-                spreadsheet_id: userSettings.spreadsheet_id || undefined,
-            }, { timeoutMs: 45000, recoveryDelayMs: 6000, recoveryTimeoutMs: 70000, label: `transaction:${messageId || 'no-id'}` });
-            console.log(`[${userId}] Apps Script completed for ${messageId || 'no-id'} in ${Date.now() - scriptStartedAt}ms (from ${maskJid(remoteJid)} → sheet ${sheetFrom})`);
+            let reply = '';
+            if (appsScriptEndpoint) {
+                const scriptStartedAt = Date.now();
+                const sheetFrom = getSheetSenderIdentity(userId, remoteJid, senderPhoneJid, userSettings);
+                reply = await forwardMessageToAppsScriptWithRecovery(appsScriptEndpoint, {
+                    session: userId,
+                    from: sheetFrom,
+                    from_jid: remoteJid,
+                    body: text,
+                    message_id: messageId || undefined,
+                    ai_result: aiResult,
+                    spreadsheet_id: userSettings.spreadsheet_id || undefined,
+                }, { timeoutMs: 45000, recoveryDelayMs: 6000, recoveryTimeoutMs: 70000, label: `transaction:${messageId || 'no-id'}` });
+                console.log(`[${userId}] Apps Script completed for ${messageId || 'no-id'} in ${Date.now() - scriptStartedAt}ms (from ${maskJid(remoteJid)} → sheet ${sheetFrom})`);
+            }
+
             const savedTransaction = extracted?.amount
                 ? await saveExpenseRecord(userId, conversationPhone, extracted, 'WhatsApp', messageId)
                 : null;
             const budgetAlert = await buildMonthlyBudgetAlertIfNeeded(userId, userSettings, savedTransaction);
-            const safeReply = getSafeTransactionReply(reply, extracted, messageId);
+            const safeReply = reply ? getSafeTransactionReply(reply, extracted, messageId) : buildTransactionReplyFromExtracted(extracted, messageId);
             await sendReply(`${safeReply || '✅ Transaksi berhasil diproses.'}${budgetAlert}`);
             console.log(`[${userId}] WhatsApp flow completed for ${messageId || 'no-id'} in ${Date.now() - startedAt}ms`);
         } catch (error) {
@@ -1387,7 +1410,7 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
             const rows = db.prepare(`
                 SELECT DISTINCT UPPER(payment_channel) as channel
                 FROM expenses
-                WHERE user_id = ? AND COALESCE(status, 'Saved') NOT IN ('Cancelled', 'Canceled', 'Dibatalkan')
+                WHERE user_id = ? AND LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')
             `).all(userId);
             channels = rows.map(r => r.channel);
             if (channels.length === 0) channels = DEFAULT_REKENING_CHANNELS;
@@ -1403,8 +1426,8 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
                 baseBalance = manual.manual_balance;
                 dateCondition = `AND created_at >= '${manual.last_updated}'`;
             }
-            const expenses = db.prepare(`SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND UPPER(payment_channel) = ? AND type = 'expense' AND COALESCE(status, 'Saved') NOT IN ('Cancelled', 'Canceled', 'Dibatalkan') AND COALESCE(recap_status, 'active') != 'archived' ${dateCondition}`).get(userId, bank);
-            const incomes = db.prepare(`SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND UPPER(payment_channel) = ? AND type = 'income' AND COALESCE(status, 'Saved') NOT IN ('Cancelled', 'Canceled', 'Dibatalkan') AND COALESCE(recap_status, 'active') != 'archived' ${dateCondition}`).get(userId, bank);
+            const expenses = db.prepare(`SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND UPPER(payment_channel) = ? AND type = 'expense' AND LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal') AND COALESCE(recap_status, 'active') != 'archived' ${dateCondition}`).get(userId, bank);
+            const incomes = db.prepare(`SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND UPPER(payment_channel) = ? AND type = 'income' AND LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal') AND COALESCE(recap_status, 'active') != 'archived' ${dateCondition}`).get(userId, bank);
             const currentSaldo = baseBalance + (incomes.total || 0) - (expenses.total || 0);
             totalAll += currentSaldo;
             reply += `• *${bank}:* Rp${currentSaldo.toLocaleString('id-ID')}\n`;
@@ -1431,7 +1454,7 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
             dateFilter = "1=1";
         }
 
-        const activeStatusWhere = `COALESCE(status, 'Saved') NOT IN ('Cancelled', 'Canceled', 'Dibatalkan') AND COALESCE(recap_status, 'active') != 'archived'`;
+        const activeStatusWhere = `LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal') AND COALESCE(recap_status, 'active') != 'archived'`;
         const expRow = db.prepare(`SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND type = 'expense' AND ${activeStatusWhere} AND ${dateFilter}`).get(userId);
         const incRow = db.prepare(`SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND type = 'income' AND ${activeStatusWhere} AND ${dateFilter}`).get(userId);
         let reply = `📋 *Laporan ${title}*\n\n`;
@@ -1445,26 +1468,12 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
     }
 
     console.log(`[${userId}] Extracting fallback AI for ${messageId || 'no-id'}`);
-    const extracted = parseLocalTransaction(text) || await extractExpenseWithAI(text, userSettings);
+    const extracted = parseLocalTransaction(text, userId) || await extractExpenseWithAI(text, userSettings, userId);
     if (extracted && extracted.amount && extracted.merchant && extracted.type) {
         const dateStr = extracted.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         const paymentChannel = extracted.payment_channel || 'Cash';
         const transactionType = extracted.type.toLowerCase() === 'income' ? 'income' : 'expense';
         const savedTransaction = await saveExpenseRecord(userId, remoteJid, { ...extracted, date: dateStr, payment_channel: paymentChannel, type: transactionType }, 'WhatsApp', messageId);
-        try {
-            const { addExpenseToSheet } = require('./googleSheets');
-            await addExpenseToSheet({
-                date: dateStr,
-                merchant: extracted.merchant,
-                category: extracted.category || 'Other',
-                amount: extracted.amount,
-                payment_channel: paymentChannel,
-                confidence: extracted.confidence || 'High',
-                type: transactionType
-            });
-        } catch (sheetError) {
-            console.error("Failed to sync to Google Sheets:", sheetError);
-        }
         const icon = transactionType === 'income' ? '🟢' : '🔴';
         const typeLabel = transactionType === 'income' ? 'Pemasukan' : 'Pengeluaran';
         const budgetAlert = await buildMonthlyBudgetAlertIfNeeded(userId, userSettings, savedTransaction);
