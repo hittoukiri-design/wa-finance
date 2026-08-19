@@ -114,7 +114,10 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Grafik Jumlah Transaksi (Card 3)**: Diselaraskan dengan gaya dark `#121e14`, squircle badge dokumen 📄, mini vertical bars untuk hari aktif, dan garis titik-titik proyeksi sisa hari.
 - ✅ **Pembersihan Icon Pojok Kanan Atas Kartu (`Expenses.jsx`)**:
   - Menghapus icon badge di pojok kanan atas kartu *Total Pengeluaran* dan *Jumlah Transaksi* agar tampilan kartu lebih minimalis, bersih, dan fokus pada data utama.
-- ✅ **Build production terbaru** (`index-C30ouJl6.js` & `index-AFhe7qhc.css`) telah aktif dan live di container Mac mini.
+- ✅ **Penerapan Palet Warna Cerah & Kontras pada Grafik Donut Analytics (`Analytics.jsx`)**:
+  - **Grafik Pengeluaran per Rekening**: Mengganti palet warna serba hijau monokrom dengan palet kontras yang kaya (*BCA = Hijau Hutan `#2f781c`, Cash = Coral Orange `#f77132`, SUPERBANK = Ungu Indigo `#6952ec`, GOPAY = Biru Muda `#00aed6`, QRIS = Merah `#ea1d2c`, DANA = Biru `#118eea`*).
+  - **Grafik Spend by Category**: Tiap kategori kini memiliki warna pembeda dinamis dan progress bar bergradasi warna yang cocok dengan legend-nya.
+- ✅ **Build production terbaru** (`index-kBeyYxAc.js` & `index-Dh8PcUA3.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

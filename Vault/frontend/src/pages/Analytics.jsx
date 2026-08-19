@@ -31,16 +31,27 @@ import { useAuth } from '../context/useAuth';
 import { listExpenses } from '../lib/firestore';
 import { getBackendSettings } from '../lib/whatsapp-api';
 
-const BOTANICAL_COLORS = [
-  '#76d446',
-  '#4a8c2c',
-  '#8ce851',
-  '#285813',
-  '#a3e878',
-  '#358219',
-  '#1b3e10',
-  '#5da934',
+const VIBRANT_CHART_COLORS = [
+  '#2f781c', // Forest Green
+  '#6952ec', // Indigo / Purple
+  '#f77132', // Coral / Orange
+  '#f59e0b', // Amber / Gold
+  '#16b896', // Emerald / Teal
+  '#389ef2', // Sky Blue
+  '#e11d48', // Crimson Rose
+  '#8b5cf6', // Violet
 ];
+
+const ACCOUNT_COLORS = {
+  BCA: '#2f781c',
+  CASH: '#f77132',
+  SUPERBANK: '#6952ec',
+  GOPAY: '#00aed6',
+  QRIS: '#ea1d2c',
+  DANA: '#118eea',
+  SHOPEEPAY: '#ee4d2d',
+  TRANSFER: '#f59e0b',
+};
 
 const TREND_OPTIONS = [
   { value: 'daily', label: 'Harian' },
@@ -264,7 +275,7 @@ export default function Analytics() {
       .map(([name, value], index) => ({
         name,
         value,
-        color: BOTANICAL_COLORS[index % BOTANICAL_COLORS.length],
+        color: VIBRANT_CHART_COLORS[index % VIBRANT_CHART_COLORS.length],
         percent: categoryTotal ? (value / categoryTotal) * 100 : 0,
       }));
 
@@ -275,12 +286,16 @@ export default function Analytics() {
     });
     const sources = Object.entries(sourceMap)
       .sort((a, b) => b[1] - a[1])
-      .map(([name, value], index) => ({
-        name,
-        value,
-        color: BOTANICAL_COLORS[index % BOTANICAL_COLORS.length],
-        percent: currentTotal ? (value / currentTotal) * 100 : 0,
-      }));
+      .map(([name, value], index) => {
+        const normalized = String(name || '').trim().toUpperCase();
+        const color = ACCOUNT_COLORS[normalized] || VIBRANT_CHART_COLORS[index % VIBRANT_CHART_COLORS.length];
+        return {
+          name,
+          value,
+          color,
+          percent: currentTotal ? (value / currentTotal) * 100 : 0,
+        };
+      });
 
     const trend = trendRange === 'weekly'
       ? Array.from({ length: 8 }, (_, index) => {
@@ -429,8 +444,8 @@ export default function Analytics() {
               {analytics.categories.slice(0, 6).map((item) => (
                 <div key={item.name} className="grid grid-cols-[105px_1fr_95px_45px] items-center gap-3 text-xs font-bold">
                   <span className="truncate text-[#0e2a07] dark:text-[#f3ffe9]">{item.name}</span>
-                  <span className="h-2.5 overflow-hidden rounded-full bg-[#c3ef92] dark:bg-[#1c3818]">
-                    <span className="block h-full rounded-full bg-gradient-to-r from-[#76d446] to-[#4a8c2c]" style={{ width: `${Math.max(4, item.percent)}%` }} />
+                  <span className="h-2.5 overflow-hidden rounded-full bg-[#c3ef92]/60 dark:bg-[#1c3818]">
+                    <span className="block h-full rounded-full" style={{ width: `${Math.max(4, item.percent)}%`, backgroundColor: item.color }} />
                   </span>
                   <span className="text-right text-[#1a5611] dark:text-[#76d446]">{currency(item.value)}</span>
                   <span className="text-right text-slate-500 dark:text-slate-400">{item.percent.toFixed(1)}%</span>
