@@ -6,6 +6,7 @@ import Settings from './pages/Settings';
 import Conversations from './pages/Conversations';
 import Expenses from './pages/Expenses';
 import Dompet from './pages/Dompet';
+import Categories from './pages/Categories';
 import Analytics from './pages/Analytics';
 import WaFinanceM3Demo from './pages/WaFinanceM3Demo';
 import SetupGuide from './pages/SetupGuide';
@@ -54,7 +55,7 @@ function ProtectedApp() {
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/dompet" element={<Dompet />} />
             <Route path="/wallets" element={<Dompet />} />
-            <Route path="/categories" element={<Dompet />} />
+            <Route path="/categories" element={<Categories />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/m3-demo" element={<WaFinanceM3Demo />} />
             <Route path="/setup" element={<SetupGuide />} />

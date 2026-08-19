@@ -81,7 +81,13 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Conversations & Format Balasan**: Membersihkan container hardcoded dark, message bubbles hijau WhatsApp bot, chat item hover, search bar dan status badge harmonis pada Light & Dark mode.
   - **WhatsApp Gateway**: Redesign form Quick Send, status QR code, dan disconnect button dengan palet hijau botanical.
   - **Pengaturan & Setup Guide**: Form AI Groq, Apps Script legacy, system info, dan pre code snippet diselaraskan dengan kontras sempurna di Light & Dark mode.
-- ✅ **Build production terbaru** (`index-C8qOFvaP.js` & `index-ME4T7zMv.css`) telah aktif dan live di container Mac mini.
+- ✅ **Pemisahan Halaman Spesifik & Pembersihan Garis Sidebar (`Sidebar.jsx`, `Dompet.jsx`, `Categories.jsx`, `App.jsx`)**:
+  - **Pemisahan Halaman Berkelanjutan**:
+    - **Menu Dompet (`/dompet`)**: Halaman khusus **SUMBER DANA (Dompet)** (Bank, Cash, Utama, + Buat dompet, Edit Saldo & Ambang pengingat).
+    - **Menu Kategori (`/categories`)**: Halaman khusus **PROTEKSI BUDGET (Kategori)** (Makan, Belanja, Transportasi, Tagihan, Rumah, Kesehatan, Pendidikan, dll., Edit Budget Bulanan & Ambang WhatsApp Alert).
+    - Menghilangkan duplikasi konten agar masing-masing menu memiliki fungsi yang jelas dan berdiri sendiri.
+  - **Pembersihan Garis Sidebar (Collapsed Mode)**: Menghapus semua garis batas horizontal (`border-t` antar grup dan `border-b` di bawah logo) pada mode ikon ramping (collapsed sidebar), sehingga ikon menu mengalir bersih vertikal tanpa garis pemisah yang mengganggu.
+- ✅ **Build production terbaru** (`index-CQ32Y1v8.js` & `index-ssnLAAa3.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

@@ -59,8 +59,10 @@ export default function Sidebar() {
     >
       {/* ── Top Header / Brand ── */}
       <div
-        className={`flex items-center border-b border-[#e5eedc] dark:border-[#1d3517] ${
-          isCollapsed ? 'justify-center p-4' : 'px-5 py-4'
+        className={`flex items-center ${
+          isCollapsed
+            ? 'justify-center py-5'
+            : 'border-b border-[#e5eedc] px-5 py-4 dark:border-[#1d3517]'
         }`}
       >
         <div className="flex items-center gap-3 min-w-0">
@@ -82,16 +84,14 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* ── Navigation Menu Groups ── */}
-      <nav className="mt-3 flex-1 space-y-4 overflow-y-auto px-3">
+      {/* ── Navigation Menu ── */}
+      <nav className={`flex-1 overflow-y-auto px-3 ${isCollapsed ? 'space-y-2 mt-1' : 'space-y-4 mt-3'}`}>
         {navGroups.map((grp) => (
-          <div key={grp.group} className="space-y-1">
-            {!isCollapsed ? (
+          <div key={grp.group} className={isCollapsed ? 'space-y-2' : 'space-y-1'}>
+            {!isCollapsed && (
               <div className="px-3 pb-1 text-[9.5px] font-black uppercase tracking-wider text-[#436d32] dark:text-[#76d446]/80">
                 {grp.group}
               </div>
-            ) : (
-              <div className="my-1 border-t border-[#e2edd8] dark:border-[#1d3517]" />
             )}
 
             {grp.items.map((item) => (
@@ -111,7 +111,7 @@ export default function Sidebar() {
                   }`
                 }
               >
-                <item.icon className={isCollapsed ? 'h-[19px] w-[19px]' : 'h-[17px] w-[17px] shrink-0'} />
+                <item.icon className={isCollapsed ? 'h-[20px] w-[20px]' : 'h-[17px] w-[17px] shrink-0'} />
                 {!isCollapsed && <span className="truncate">{item.name}</span>}
               </NavLink>
             ))}
@@ -120,9 +120,9 @@ export default function Sidebar() {
       </nav>
 
       {/* ── Bottom Profile Card ── */}
-      <div className="mt-auto border-t border-[#e5eedc] p-3 dark:border-[#1d3517]">
+      <div className={`mt-auto p-3 ${isCollapsed ? '' : 'border-t border-[#e5eedc] dark:border-[#1d3517]'}`}>
         {isCollapsed ? (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2 pb-2">
             <div
               title={user?.displayName || user?.email || 'User'}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a5611] text-xs font-black text-white shadow-sm dark:bg-[#76d446] dark:text-[#0d170a]"
