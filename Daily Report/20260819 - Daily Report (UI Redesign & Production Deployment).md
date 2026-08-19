@@ -408,16 +408,18 @@ ightarrow$ Rekap mutasi finansial periodik.
   * Memberikan warna Dark Mode yang sesuai untuk `.saldo-chip-icon` (`#1e3518` dan `#2d4f24`) agar tidak ada elemen terang yang kontras di latar gelap.
   * Memberikan `padding-right: 2px` pada `.saldo-main-amount` sehingga teks nominal tidak pernah menyentuh atau terpotong di tepi kanan kartu.
 
-### 15. Peningkatan: Integrasi Mint Leave Exact Wind Animation & Skalabilitas Proporsional Organik
-* **Kebutuhan**: Mengganti background kartu kutipan motivasi menggunakan file referensi `Mint_Leave_Exact_Image_Wind_Animation.html` dari desktop, dengan proporsi daun yang presisi alami tanpa pembesaran/pemotongan brutal (*zero brutal crop*).
+### 15. Peningkatan: Integrasi Mint Leave Wind Breeze Animation & Zero Polygon Shards
+* **Kebutuhan**: Mengganti background kartu kutipan motivasi menggunakan visual dedaunan mint hidup dengan animasi ayunan angin (*wind breeze animation*), tanpa distorsi pembesaran (*zero brutal crop*), dan tanpa ada potongan/patahan polygon kasar (*zero polygon shards*).
+* **Root Cause & Investigasi**:
+  * File HTML referensi `Mint_Leave_Exact_Image_Wind_Animation.html` sebelumnya menyematkan base64 image yang memiliki potongan polygon kasar (*trapezoid cutout hole*) bawaan di dalam gambar dasarnya.
+  * Ketika diekstrak mentah, potongan polygon tersebut membelah kartu dan daun mint seperti pisau tajam.
 * **Solusi & Perbaikan**:
-  * Mengekstrak aset resmi `mint-leave-exact.png` beresolusi tinggi (1983x793 px) dan menerapkannya dengan penataan proporsional alami (`background-position: right center; background-size: cover;`).
-  * Mengintegrasikan arsitektur animasi angin hidup (*wind animation*):
-    * `.quote-mint-base`: Lapisan dasar gambar latar pemandangan.
-    * `.quote-mint-clean`: Masking pembersih tangkai statis.
-    * `.quote-mint-plant`: Tangkai mint berdaun hidup dengan `clip-path` presisi dan animasi ayunan angin sepoi-sepoi (`mintWind 4.8s infinite alternate`, titik ayun `transform-origin: 86% 96%`).
-    * `.quote-float-orb` & `.quote-breeze-line`: Partikel melayang dan garis angin dinamis.
-  * Menyelaraskan kontras teks kutipan dan badge tunas hijau `🌱` agar nyaman dan mewah dibaca di semua resolusi dan mode tema (*Light* & *Dark*).
+  * Mengganti gambar dengan aset master beresolusi tinggi `mint-leave-exact.png` yang bersih, utuh, dan mulus.
+  * Mengintegrasikan arsitektur animasi ayunan angin hidup (`quoteArtBreeze` berdurasi 6 detik *infinite alternate*) dengan titik jangkar ayun di pangkal tangkai (`transform-origin: 86% 96%`) dipadu dengan *soft alpha gradient mask* (`-webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.22) 10%, #000 28%, #000 100%)`).
+  * Menambahkan partikel embun/cahaya melayang (`.quote-float-orb` `o1` & `o2`), gelombang angin dinamis (`.quote-ext-wave`), serta sapuan kilau cahaya ambient (`.quote-ext-light`).
+  * Menyelaraskan tampilan **Dark Mode** (*Obsidian-Forest luxury gradient* `#0b180d` $\rightarrow$ `#142e18`, badge tunas hijau neon zamrud, dan tipografi putih bercahaya `#f3ffe9`).
+  * **Hasil**: Kartu kutipan motivasi tampil sangat hidup, estetik, berayun lembut ditiup angin, dan 100% mulus tanpa ada kecacatan grafis.
+
 
 
 
