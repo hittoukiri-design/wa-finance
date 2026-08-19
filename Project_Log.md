@@ -125,7 +125,11 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Penyebab**: Variabel koordinat sparkline SVG `expLinePoints` dan `expAreaPoints` pada Card 2 (*Total Pengeluaran*) sempat belum terdefinisi lengkap di `useMemo`, menyebabkan React mengalami crash runtime saat beralih ke halaman transaksi.
   - **Solusi**: Menghitung `expLinePoints` dan `expAreaPoints` secara presisi untuk kurva SVG dan area polygon gradien hijau.
   - Menambahkan alias route `/setup` di `App.jsx` agar link Sidebar Setup Guide bekerja mulus.
-- ✅ **Build production terbaru** (`index-DWHg9BUq.js` & `index-CFO5nEs1.css`) telah aktif dan live di container Mac mini.
+- ✅ **Penyelarasan Warna Tabel Transaksi & Kontras Angka Kartu Header (`Expenses.jsx` & `index.css`)**:
+  - **Tabel Transaksi**: Menghapus background hijau neon mentereng `#87e33e` dan mengembalikannya ke tema Botanical yang lembut, bersih, dan elegan (kontainer card `#eaf2da`, baris tabel `#f5faeb`, teks `#0e2a07`, badge putih rapi).
+  - **Angka Total Pengeluaran & Jumlah Transaksi (Card 2 & Card 3)**: Memperbaiki warna angka nominal besar menjadi hitam-hijau pekat berteks tajam `text-[#0e2a07]` di Light Mode (dan `text-[#f3ffe9]` di Dark Mode) sehingga 100% terbaca dengan sangat jelas dan tidak lagi putih/samar.
+  - **Sparklines & Header Card**: Menggunakan warna hijau herbal `#245c10` / `#1a5611` untuk header, kurva gunung, dan mini vertical bars.
+- ✅ **Build production terbaru** (`index-22seL3ze.js` & `index-BwNdYPGl.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.
