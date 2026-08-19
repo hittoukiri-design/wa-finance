@@ -7549,12 +7549,21 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   min-height: 125px;
   width: 100%;
   box-shadow: 0 4px 14px rgba(36, 92, 16, 0.04);
+  transition: all 0.3s ease;
 }
 
+/* ── Dark Mode Luxury Styling (Matching Hero Header Perfection) ── */
 [data-theme="dark"] .quote-motivational-card, html.dark .quote-motivational-card {
-  background-color: #12250d;
-  border-color: #244618;
-  background-blend-mode: overlay;
+  background-color: #0b180d;
+  background-image:
+    radial-gradient(circle at 18% 50%, rgba(36, 70, 24, 0.5) 0 25%, transparent 26%),
+    linear-gradient(105deg, rgba(11, 24, 13, 0.95) 0%, rgba(15, 35, 18, 0.88) 42%, rgba(20, 46, 24, 0.76) 100%),
+    url('/quote-banner-bg.png');
+  background-position: center center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border: 1px solid #244618;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(118, 212, 70, 0.18);
 }
 
 .quote-left-block {
@@ -7563,7 +7572,7 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   gap: 16px;
   position: relative;
   z-index: 2;
-  max-width: 68%;
+  max-width: 72%;
 }
 
 .quote-icon-leaf {
@@ -7577,11 +7586,13 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(214, 228, 190, 0.7);
+  transition: all 0.3s ease;
 }
 
 [data-theme="dark"] .quote-icon-leaf, html.dark .quote-icon-leaf {
-  background-color: #1c3816;
-  border-color: #2b4421;
+  background: linear-gradient(135deg, #1c3520 0%, #12250d 100%);
+  border: 1px solid rgba(118, 212, 70, 0.5);
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.22), 0 4px 10px rgba(0, 0, 0, 0.5);
 }
 
 .quote-text-p {
@@ -7593,7 +7604,8 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
 }
 
 [data-theme="dark"] .quote-text-p, html.dark .quote-text-p {
-  color: #dcfce7;
+  color: #f3ffe9;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
 }
 
 
