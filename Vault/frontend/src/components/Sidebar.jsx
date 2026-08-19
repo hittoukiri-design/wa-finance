@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  BarChart3, FileCode2, LayoutDashboard, LogOut, MessageSquare, Settings, Smartphone, Wallet,
+  BarChart3, FileCode2, LayoutDashboard, LogOut, MessageSquare, Settings, Smartphone, Tag, Wallet,
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import waFinanceLogo from '../assets/wa-finance-logo.png';
@@ -10,6 +10,8 @@ const navItems = [
   { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { name: 'Analytic', icon: BarChart3, path: '/analytics' },
   { name: 'Transaction', icon: Wallet, path: '/expenses' },
+  { name: 'Dompet', icon: Wallet, path: '/dompet' },
+  { name: 'Kategori', icon: Tag, path: '/categories' },
   { name: 'Conversation', icon: MessageSquare, path: '/conversations' },
   { name: 'Whatsapp', icon: Smartphone, path: '/whatsapp' },
   { name: 'Settings', icon: Settings, path: '/settings' },

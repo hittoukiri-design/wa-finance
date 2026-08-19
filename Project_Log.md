@@ -57,7 +57,11 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - Aktivitas Transaksi Table lengkap: Merchant (avatar inisial + nama merchant + rekening subtext), Kategori pill, Type pill (`↘ Pengeluaran` / `↗ Pemasukan`), Nominal (`- Rp ...` / `+ Rp ...`), Date, Source (WhatsApp icon + ID), Status (`● Approved`), dan Actions (Hapus).
   - Search live input, filter baris (10/25/50), pagination lengkap, dan modal Tambah Transaksi manual.
 - ✅ **Fitur Edit Transaksi Interaktif (`Expenses.jsx` & `firestore.js`)**: Menambahkan tombol edit pensil `✏️` di setiap baris tabel transaksi yang membuka popup modal **Edit Transaksi** (Deskripsi/Merchant, Nominal, Tanggal, Dompet dropdown, Kategori dropdown, tombol Batal & Simpan) dan tersinkronisasi langsung ke Firestore (`updateExpense`).
-- ✅ **Build production terbaru** (`index-DV94JCK4.js` & `index-DQGN374V.css`) telah aktif dan live di container Mac mini.
+- ✅ **Menu Dompet & Proteksi Budget Kategori (`/dompet` & `/categories`)**: Menambahkan halaman pengelolaan sumber dana dan batas limit kategori 100% identik dengan gambar referensi:
+  - **Section SUMBER DANA (Dompet)**: Header bar `SUMBER DANA`, jumlah total dompet, rows selector, tombol `+ Buat dompet`, kartu item dompet (Bank, Cash, Utama) lengkap dengan threshold alert (*Ingatkan di 15%/20%/30%*), saldo rupiah, modal **Edit Dompet**, dan tombol toggle aktif/nonaktif `🚫`/`👁️`.
+  - **Section PROTEKSI BUDGET (Kategori)**: Header bar `PROTEKSI BUDGET`, total kategori, rows selector, kartu proteksi kategori (Makan, Belanja, Transportasi, Tagihan, Rumah, Kesehatan, Pendidikan, dll.) lengkap dengan budget bulanan & alert threshold (*Budget Rp ... / bulanan · Ingatkan di 80%*), modal **Edit Budget Kategori**, dan tombol toggle aktif/nonaktif `🚫`/`👁️`.
+  - Terkoneksi real-time ke database Firestore (`getSettings` & `saveSettings`).
+- ✅ **Build production terbaru** (`index-NIezN_BJ.js` & `index-gjNQGyZO.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.
