@@ -1,22 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
-  AlertCircle,
-  Cloud,
   Database,
   Download,
-  CheckCircle2,
-  ExternalLink,
-  FileCode2,
   Gauge,
   KeyRound,
-  LockKeyhole,
   LogOut,
-  RefreshCw,
   Save,
   Server,
   ShieldCheck,
   Sparkles,
-  Wifi,
 } from 'lucide-react';
 import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
@@ -24,16 +16,11 @@ import { auth } from '../lib/firebase';
 
 const API_BASE = import.meta.env.VITE_API_URL
   || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'https://wa-finance-bot-i729.web.app' : '');
+
 const DEFAULT_SETTINGS = {
-  apps_script_url: '',
   groq_api_key: '',
-  spreadsheet_id: '',
   ai_model: 'openai/gpt-oss-120b',
   system_prompt: 'You are a precise Indonesian financial transaction extractor. Output ONLY valid JSON.',
-  apps_script_status: 'not_configured',
-  apps_script_last_tested_at: null,
-  apps_script_last_status: null,
-  apps_script_last_preview: '',
 };
 
 const AI_MODEL_OPTIONS = [
@@ -88,23 +75,10 @@ function SectionTitle({ icon: Icon, title, description, children }) {
   );
 }
 
-function sheetUrl(spreadsheetId) {
-  return spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : '';
-}
-
-function formatTestedAt(value) {
-  if (!value) return '';
-  return new Intl.DateTimeFormat('id-ID', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
 export default function Settings() {
   const { user, signOut } = useAuth();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [hasSavedKey, setHasSavedKey] = useState(false);
-  const [status, setStatus] = useState('not_configured');
   const [backendStatus, setBackendStatus] = useState('checking');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -121,7 +95,6 @@ export default function Settings() {
         const [saved, health] = await Promise.all([apiRequest('/api/settings'), apiRequest('/api/health')]);
         setSettings((current) => ({ ...current, ...saved, groq_api_key: '' }));
         setHasSavedKey(Boolean(saved.has_groq_api_key));
-        setStatus(saved.apps_script_status || (saved.apps_script_url ? 'configured' : 'not_configured'));
         setBackendStatus(health.status === 'ok' ? 'ok' : 'error');
       } catch (error) {
         setBackendStatus('offline');
@@ -141,8 +114,7 @@ export default function Settings() {
       });
       setSettings((current) => ({ ...current, ...result.settings, groq_api_key: '' }));
       setHasSavedKey(Boolean(result.settings.has_groq_api_key));
-      setStatus(result.settings.apps_script_status || (result.settings.apps_script_url ? 'configured' : 'not_configured'));
-      notify('success', 'Pengaturan berhasil disimpan.');
+      notify('success', 'Pengaturan AI berhasil disimpan.');
     } catch (error) {
       notify('error', error.message);
     } finally {
@@ -173,43 +145,11 @@ export default function Settings() {
     }
   };
 
-  const handleTest = async () => {
-    if (!settings.apps_script_url) {
-      notify('warning', 'Masukkan Web App Endpoint URL terlebih dahulu.');
-      return;
-    }
-    setBusy(true);
-    setStatus('testing');
-    try {
-      const result = await apiRequest('/api/apps-script/test', {
-        method: 'POST',
-        body: JSON.stringify({ apps_script_url: settings.apps_script_url }),
-      });
-      if (result.settings) setSettings((current) => ({ ...current, ...result.settings, groq_api_key: '' }));
-      setStatus(result.settings?.apps_script_status || 'connected');
-      notify('success', `Apps Script terhubung. HTTP ${result.status}.`);
-    } catch (error) {
-      setStatus('error');
-      notify('error', error.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const statusLabel = {
-    connected: 'CONNECTED', configured: 'CONFIGURED', testing: 'TESTING', error: 'CHECK FAILED', not_configured: 'NOT CONFIGURED',
-  }[status];
-  const statusClass = status === 'connected'
-    ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
-    : status === 'error'
-      ? 'border-red-500/30 bg-red-500/15 text-red-800 dark:text-red-300'
-      : 'border-amber-500/30 bg-amber-500/15 text-amber-800 dark:text-amber-300';
-
   return (
     <div className="mx-auto w-full max-w-[1450px] space-y-6">
       <Header
         title="Pengaturan"
-        subtitle="Atur integrasi AI, konfigurasi Google Sheets, dan profil akun WA Finance Anda."
+        subtitle="Atur integrasi AI Groq dan kelola keamanan database server WA Finance Anda."
       />
 
       {notice && (
@@ -258,7 +198,11 @@ export default function Settings() {
               </div>
               <div className="flex items-center justify-between rounded-xl border border-[#d6e4be] bg-white/70 px-3.5 py-2.5 dark:border-[#263e1d] dark:bg-[#162718]">
                 <span className="text-xs font-bold text-[#436d32] dark:text-[#8bb37a]">Database</span>
-                <span className="text-xs font-black text-[#1a5611] dark:text-[#76d446]">Firestore Multi-User</span>
+                <span className="text-xs font-black text-[#1a5611] dark:text-[#76d446]">Server Mac mini & Firestore</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-[#d6e4be] bg-white/70 px-3.5 py-2.5 dark:border-[#263e1d] dark:bg-[#162718]">
+                <span className="text-xs font-bold text-[#436d32] dark:text-[#8bb37a]">Auto-Backup</span>
+                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">AKTIF (Cron 03:15) 🟢</span>
               </div>
             </div>
           </div>
@@ -324,66 +268,6 @@ export default function Settings() {
             </button>
           </section>
 
-          {/* Google Sheets / Drive Cloud Sync */}
-          <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
-            <SectionTitle
-              icon={Cloud}
-              title="Google Sheets & Cloud Sync"
-              description="Koneksi Google Apps Script untuk sinkronisasi otomatis dan backup ke Google Drive / Google Sheets."
-            >
-              <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase ${statusClass}`}>
-                {statusLabel}
-              </span>
-            </SectionTitle>
-
-            <div className="mt-6 space-y-4">
-              <div>
-                <FieldLabel>Web App Endpoint URL (Google Apps Script)</FieldLabel>
-                <input
-                  type="url"
-                  value={settings.apps_script_url}
-                  onChange={(event) => setSettings((current) => ({ ...current, apps_script_url: event.target.value }))}
-                  placeholder="https://script.google.com/macros/s/.../exec"
-                  className="w-full rounded-xl border border-[#d6e4be] bg-white px-3.5 py-2.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
-                />
-              </div>
-
-              <div>
-                <FieldLabel>Spreadsheet ID</FieldLabel>
-                <input
-                  type="text"
-                  value={settings.spreadsheet_id}
-                  onChange={(event) => setSettings((current) => ({ ...current, spreadsheet_id: event.target.value }))}
-                  placeholder="Contoh: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
-                  className="w-full rounded-xl border border-[#d6e4be] bg-white px-3.5 py-2.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleTest}
-                  disabled={busy}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#358219] bg-white px-5 py-2 text-xs font-bold text-[#1a5611] shadow-sm transition hover:bg-[#e4f2da] disabled:opacity-50 dark:border-[#76d446] dark:bg-[#162718] dark:text-[#76d446]"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${status === 'testing' ? 'animate-spin' : ''}`} />
-                  Test Koneksi Apps Script
-                </button>
-                {sheetUrl(settings.spreadsheet_id) && (
-                  <a
-                    href={sheetUrl(settings.spreadsheet_id)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[#d6e4be] bg-white/70 px-4 py-2 text-xs font-bold text-[#436d32] hover:text-[#1a5611] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#8bb37a]"
-                  >
-                    <span>Buka Spreadsheet</span>
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                )}
-              </div>
-            </div>
-          </section>
-
           {/* Server Auto-Backup & Data Safety */}
           <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
             <SectionTitle
@@ -429,7 +313,7 @@ export default function Settings() {
                   Download Full Database Snapshot (.json)
                 </button>
                 <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">
-                  Cadangan lengkap berisi semua data transaksi, dompet, pagu anggaran, dan konfigurasi yang dapat kamu simpan di Google Drive.
+                  Cadangan lengkap berisi semua data transaksi, dompet, pagu anggaran, dan konfigurasi yang dapat kamu simpan di Google Drive pribadi.
                 </p>
               </div>
             </div>
