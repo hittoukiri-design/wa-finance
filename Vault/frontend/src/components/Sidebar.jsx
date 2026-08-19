@@ -116,7 +116,7 @@ export default function Sidebar() {
           <div className="flex flex-col items-center gap-2 pb-2">
             <div
               title={user?.displayName || user?.email || 'User'}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a5611] text-xs font-black text-white shadow-sm dark:bg-[#76d446] dark:text-[#0d170a]"
+              className="user-avatar-pill flex h-9 w-9 items-center justify-center rounded-full bg-white border border-[#d6e4be] text-xs font-black text-[#1a5611] shadow-sm dark:bg-[#1c3520] dark:border-[#263e1d] dark:text-[#76d446]"
             >
               {(user?.displayName || user?.email || 'CH').slice(0, 2).toUpperCase()}
             </div>
@@ -131,7 +131,7 @@ export default function Sidebar() {
         ) : (
           <div className="flex items-center justify-between rounded-xl border border-[#d6e4be] bg-[#eaf2da] p-2.5 dark:border-[#263e1d] dark:bg-[#132212]">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a5611] text-xs font-black text-white dark:bg-[#76d446] dark:text-[#0d170a]">
+              <div className="user-avatar-pill flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white border border-[#d6e4be] text-xs font-black text-[#1a5611] shadow-sm dark:bg-[#1c3520] dark:border-[#263e1d] dark:text-[#76d446]">
                 {(user?.displayName || user?.email || 'CH').slice(0, 2).toUpperCase()}
               </div>
               <div className="flex flex-col min-w-0">

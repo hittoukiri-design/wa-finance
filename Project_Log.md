@@ -129,7 +129,10 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Tabel Transaksi**: Menghapus background hijau neon mentereng `#87e33e` dan mengembalikannya ke tema Botanical yang lembut, bersih, dan elegan (kontainer card `#eaf2da`, baris tabel `#f5faeb`, teks `#0e2a07`, badge putih rapi).
   - **Angka Total Pengeluaran & Jumlah Transaksi (Card 2 & Card 3)**: Memperbaiki warna angka nominal besar menjadi hitam-hijau pekat berteks tajam `text-[#0e2a07]` di Light Mode (dan `text-[#f3ffe9]` di Dark Mode) sehingga 100% terbaca dengan sangat jelas dan tidak lagi putih/samar.
   - **Sparklines & Header Card**: Menggunakan warna hijau herbal `#245c10` / `#1a5611` untuk header, kurva gunung, dan mini vertical bars.
-- ✅ **Build production terbaru** (`index-22seL3ze.js` & `index-BwNdYPGl.css`) telah aktif dan live di container Mac mini.
+- ✅ **Penyempurnaan Desain Avatar Profil Pengguna (`Sidebar.jsx`, `Header.jsx`, `index.css`)**:
+  - Menghapus lingkaran hijau tua pekat yang mengelilingi inisial "CH" dan menggantinya dengan **lingkaran putih bersih (`bg-white`)** berbingkai halus (`border-[#d6e4be]`) dan teks inisial hijau emerald tajam berbobot tebal (`text-[#1a5611] font-black`).
+  - Menambahkan kelas khusus `.user-avatar-pill` sehingga avatar profil di Sidebar dan Header tampil elegan, kontras tinggi, dan estetik di Light Mode maupun Dark Mode.
+- ✅ **Build production terbaru** (`index-UQpT3Anp.js` & `index-D3V078JI.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

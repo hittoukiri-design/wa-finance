@@ -8104,3 +8104,18 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   color: #ffffff !important;
   border-color: #1a5611 !important;
 }
+
+/* ── User Avatar Pill (Clean White & Crisp Green) ── */
+.user-avatar-pill {
+  background-color: #ffffff !important;
+  color: #1a5611 !important;
+  border: 1px solid #d6e4be !important;
+  font-weight: 900 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+}
+
+html.dark .user-avatar-pill, [data-theme="dark"] .user-avatar-pill {
+  background-color: #1c3520 !important;
+  color: #76d446 !important;
+  border: 1px solid #263e1d !important;
+}

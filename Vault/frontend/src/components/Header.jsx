@@ -254,7 +254,7 @@ export default function Header({ title, subtitle }) {
         {/* User Initials Circle */}
         <div
           title={user?.displayName || user?.email || 'User'}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-[#c3ef92] text-xs font-black text-[#1a5611] shadow-sm dark:bg-[#1b3816] dark:text-[#76d446]"
+          className="user-avatar-pill flex h-9 w-9 items-center justify-center rounded-full bg-white border border-[#d6e4be] text-xs font-black text-[#1a5611] shadow-sm dark:bg-[#1c3520] dark:border-[#263e1d] dark:text-[#76d446]"
         >
           {userInitials}
         </div>
