@@ -783,74 +783,81 @@ export default function Dashboard() {
             <ChevronRight width="14" height="14" />
           </button>
 
-          {/* Carousel Slide Track */}
-          <div
-            className="flex transition-transform duration-500 ease-out h-full"
-            style={{ transform: `translateX(-${currentCardSlide * 100}%)` }}
-          >
-            {walletSlides.map((slide) => (
-              <div key={slide.id} className="min-w-full flex flex-col justify-between h-full px-0.5">
-                <div>
-                  <div className="saldo-card-head">
-                    <div className="saldo-card-label" style={{ color: slide.badgeColor }}>
-                      <Wallet width="14" height="14" />
-                      {slide.title}
+          {/* Viewport Wrapper */}
+          <div className="w-full overflow-hidden flex-1 flex flex-col justify-between">
+            {/* Carousel Slide Track */}
+            <div
+              className="flex transition-transform duration-500 ease-out h-full w-full"
+              style={{ transform: `translateX(-${currentCardSlide * 100}%)` }}
+            >
+              {walletSlides.map((slide) => (
+                <div
+                  key={slide.id}
+                  className="w-full min-w-full max-w-full shrink-0 flex-shrink-0 flex flex-col justify-between h-full"
+                  style={{ width: '100%', minWidth: '100%', maxWidth: '100%' }}
+                >
+                  <div>
+                    <div className="saldo-card-head">
+                      <div className="saldo-card-label" style={{ color: slide.badgeColor }}>
+                        <Wallet width="14" height="14" />
+                        {slide.title}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {slide.type === 'total' && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setBudgetEditing((v) => !v); }}
+                            className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            title="Edit budget"
+                          >
+                            <Edit3 width="13" height="13" />
+                          </button>
+                        )}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={slide.badgeColor} strokeWidth="2">
+                          <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+                        </svg>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      {slide.type === 'total' && (
+
+                    <div className="saldo-chip-icon">
+                      <div></div><div></div><div></div><div></div>
+                    </div>
+
+                    {slide.type === 'total' && budgetEditing ? (
+                      <div className="my-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          value={budgetInput}
+                          onChange={(e) => setBudgetInput(e.target.value)}
+                          inputMode="numeric"
+                          placeholder="Budget bulanan..."
+                          className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                        />
                         <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setBudgetEditing((v) => !v); }}
-                          className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                          title="Edit budget"
+                          onClick={saveBudget}
+                          disabled={budgetBusy}
+                          className="flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1 text-white hover:bg-emerald-500 disabled:opacity-60"
                         >
-                          <Edit3 width="13" height="13" />
+                          <Save width="14" height="14" />
                         </button>
-                      )}
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={slide.badgeColor} strokeWidth="2">
-                        <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
-                      </svg>
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="saldo-main-amount">
+                        {loading ? '...' : currency(slide.amount)}
+                      </div>
+                    )}
+
+                    <div className="saldo-card-number">{slide.cardNumber}</div>
                   </div>
 
-                  <div className="saldo-chip-icon">
-                    <div></div><div></div><div></div><div></div>
-                  </div>
-
-                  {slide.type === 'total' && budgetEditing ? (
-                    <div className="my-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        value={budgetInput}
-                        onChange={(e) => setBudgetInput(e.target.value)}
-                        inputMode="numeric"
-                        placeholder="Budget bulanan..."
-                        className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                      />
-                      <button
-                        onClick={saveBudget}
-                        disabled={budgetBusy}
-                        className="flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1 text-white hover:bg-emerald-500 disabled:opacity-60"
-                      >
-                        <Save width="14" height="14" />
-                      </button>
+                  <div>
+                    <div className="saldo-card-bottom">
+                      <span className="saldo-wallet-name">{slide.bottomLeft}</span>
+                      <span className="saldo-wallet-sub">{slide.bottomRight}</span>
                     </div>
-                  ) : (
-                    <div className="saldo-main-amount">
-                      {loading ? '...' : currency(slide.amount)}
-                    </div>
-                  )}
-
-                  <div className="saldo-card-number">{slide.cardNumber}</div>
-                </div>
-
-                <div>
-                  <div className="saldo-card-bottom">
-                    <span className="saldo-wallet-name">{slide.bottomLeft}</span>
-                    <span className="saldo-wallet-sub">{slide.bottomRight}</span>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
           {/* Clickable Pagination Dots */}
