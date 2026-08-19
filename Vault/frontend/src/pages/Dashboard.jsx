@@ -1698,8 +1698,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Motivational Quote Banner */}
+        {/* Motivational Quote Banner with Exact Mint Leave Wind Animation */}
         <div className="box-card quote-motivational-card">
+          <div className="quote-animated-wrap">
+            <div className="quote-mint-base" />
+            <div className="quote-mint-clean" />
+            <div className="quote-mint-plant" />
+            <div className="quote-float-orb o1" />
+            <div className="quote-float-orb o2" />
+            <div className="quote-breeze-line" />
+          </div>
+
           <div className="quote-left-block">
             <div className="quote-icon-leaf">🌱</div>
             <p className="quote-text-p">
