@@ -421,12 +421,12 @@ export default function Dashboard() {
       slides.push({
         id: w.name,
         type: 'wallet',
-        title: `DOMPET • ${w.name.toUpperCase()}`,
+        title: w.name.toUpperCase(),
         amount: w.balance,
         isBudget: false,
         cardNumber: `•••• •••• •••• ${w.last4}`,
-        bottomLeft: `Saldo aktif dompet`,
-        bottomRight: `${w.txCount} transaksi dicatat`,
+        bottomLeft: `${w.txCount} transaksi dicatat`,
+        bottomRight: 'Kanal Pembayaran',
         badgeColor: w.badgeColor,
       });
     });
