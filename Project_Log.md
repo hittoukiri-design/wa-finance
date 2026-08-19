@@ -61,7 +61,11 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Section SUMBER DANA (Dompet)**: Header bar `SUMBER DANA`, jumlah total dompet, rows selector, tombol `+ Buat dompet`, kartu item dompet (Bank, Cash, Utama) lengkap dengan threshold alert (*Ingatkan di 15%/20%/30%*), saldo rupiah, modal **Edit Dompet**, dan tombol toggle aktif/nonaktif `🚫`/`👁️`.
   - **Section PROTEKSI BUDGET (Kategori)**: Header bar `PROTEKSI BUDGET`, total kategori, rows selector, kartu proteksi kategori (Makan, Belanja, Transportasi, Tagihan, Rumah, Kesehatan, Pendidikan, dll.) lengkap dengan budget bulanan & alert threshold (*Budget Rp ... / bulanan · Ingatkan di 80%*), modal **Edit Budget Kategori**, dan tombol toggle aktif/nonaktif `🚫`/`👁️`.
   - Terkoneksi real-time ke database Firestore (`getSettings` & `saveSettings`).
-- ✅ **Build production terbaru** (`index-NIezN_BJ.js` & `index-gjNQGyZO.css`) telah aktif dan live di container Mac mini.
+- ✅ **Fitur Sidebar Expand / Collapse Interaktif (`Sidebar.jsx`, `Header.jsx`, `SidebarContext.jsx`)**:
+  - **Mode Diperluas (Expanded)**: Menampilkan brand `FINO / WA Finance`, tombol `«` untuk mengecilkan, pengelompokan menu rapi (`APLIKASI` & `OPERASIONAL`), icon & label teks lengkap, serta user profile card.
+  - **Mode Dikecilkan (Collapsed / Icon-Only)**: Strip ramping 76px dengan logo melingkar, tombol `»` di bawah logo, icon menu terpusat dengan tooltip dan rounded capsule highlight saat aktif, serta tombol hamburger `☰` di navbar atas (`Header.jsx`) untuk membuka kembali kapan saja.
+  - State tersimpan otomatis di `localStorage` (`sidebar_collapsed`).
+- ✅ **Build production terbaru** (`index-CpTFj0nW.js` & `index-hmwuqdkS.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

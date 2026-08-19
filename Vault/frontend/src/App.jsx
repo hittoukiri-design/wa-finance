@@ -5,7 +5,6 @@ import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Conversations from './pages/Conversations';
 import Expenses from './pages/Expenses';
-import Categories from './pages/Categories';
 import Dompet from './pages/Dompet';
 import Analytics from './pages/Analytics';
 import WaFinanceM3Demo from './pages/WaFinanceM3Demo';
@@ -15,6 +14,7 @@ import Login from './pages/Login';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/useAuth';
 import { ThemeProvider } from './context/ThemeContext';
+import { SidebarProvider } from './context/SidebarContext';
 
 function ProtectedApp() {
   const { user, loading } = useAuth();
@@ -41,7 +41,7 @@ function ProtectedApp() {
 
   return (
     <BrowserRouter>
-      <div className="app-shell flex min-h-screen overflow-hidden bg-[#071019] font-sans text-slate-200">
+      <div className="app-shell flex min-h-screen overflow-hidden bg-[#f4faef] font-sans text-slate-800 dark:bg-[#071019] dark:text-slate-200">
 
         <Sidebar />
 
@@ -67,7 +67,15 @@ function ProtectedApp() {
 }
 
 function App() {
-  return <ThemeProvider><AuthProvider><ProtectedApp /></AuthProvider></ThemeProvider>;
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <SidebarProvider>
+          <ProtectedApp />
+        </SidebarProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
 }
 
 export default App;
