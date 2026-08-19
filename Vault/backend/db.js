@@ -93,6 +93,32 @@ function initDB() {
             last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
+
+        CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            emoji TEXT DEFAULT '🏷️',
+            type TEXT DEFAULT 'expense',
+            is_active INTEGER DEFAULT 1,
+            sort_order INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, name),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS category_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            category_id INTEGER NOT NULL,
+            keyword TEXT NOT NULL,
+            normalized_keyword TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, normalized_keyword),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+        );
     `);
 
     // Migrate databases created by the earlier MVP without deleting user data.
@@ -124,6 +150,11 @@ function initDB() {
     ensureColumn('conversations', 'recap_name', 'TEXT');
     ensureColumn('conversations', 'recap_status', "TEXT DEFAULT 'active'");
     ensureColumn('conversations', 'archived_at', 'DATETIME');
+    ensureColumn('categories', 'emoji', "TEXT DEFAULT '🏷️'");
+    ensureColumn('categories', 'type', "TEXT DEFAULT 'expense'");
+    ensureColumn('categories', 'is_active', 'INTEGER DEFAULT 1');
+    ensureColumn('categories', 'sort_order', 'INTEGER DEFAULT 0');
+    ensureColumn('categories', 'updated_at', 'DATETIME');
 }
 
 initDB();

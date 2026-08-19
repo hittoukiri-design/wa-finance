@@ -8,6 +8,15 @@ const db = require('./db');
 const { DEFAULT_AI_MODEL, normalizeAiModel } = require('./aiModels');
 const { getAdminAuth, getAdminFirestore } = require('./firebaseAdmin');
 const { getUserSettings, saveUserSettings } = require('./settingsStore');
+const {
+    addCategoryItem,
+    createCategory,
+    deleteCategory,
+    deleteCategoryItem,
+    listCategories,
+    updateCategory,
+} = require('./categoryRules');
+const { EXCEL_MIME, createWorkbook } = require('./excelReport');
 const { FieldValue } = require('firebase-admin/firestore');
 
 dotenv.config();
@@ -202,7 +211,7 @@ async function archiveFirestoreCollection(userId, collectionName, recap) {
 }
 
 function activeStatusWhere() {
-    return `COALESCE(status, 'Saved') NOT IN ('Cancelled', 'Canceled', 'Dibatalkan')`;
+    return `LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')`;
 }
 
 app.get('/api/health', (req, res) => {
@@ -315,6 +324,85 @@ app.post('/api/apps-script/test', authenticate, async (req, res) => {
             apps_script_last_preview: message,
         }).catch((saveError) => console.error('Failed to persist Apps Script test failure:', saveError.message));
         res.status(502).json({ connected: false, error: message });
+    }
+});
+
+app.get('/api/categories', authenticate, (req, res) => {
+    try {
+        res.json({ categories: listCategories(req.userId) });
+    } catch (error) {
+        console.error('Category list error:', error.message);
+        res.status(500).json({ error: 'Kategori tidak dapat dibaca.' });
+    }
+});
+
+app.post('/api/categories', authenticate, (req, res) => {
+    try {
+        const category = createCategory(req.userId, req.body || {});
+        res.status(201).json({ category });
+    } catch (error) {
+        console.error('Category create error:', error.message);
+        res.status(400).json({ error: error.message || 'Kategori tidak dapat dibuat.' });
+    }
+});
+
+app.put('/api/categories/:id', authenticate, (req, res) => {
+    try {
+        const category = updateCategory(req.userId, Number(req.params.id), req.body || {});
+        res.json({ category });
+    } catch (error) {
+        console.error('Category update error:', error.message);
+        res.status(400).json({ error: error.message || 'Kategori tidak dapat diperbarui.' });
+    }
+});
+
+app.delete('/api/categories/:id', authenticate, (req, res) => {
+    try {
+        const category = deleteCategory(req.userId, Number(req.params.id));
+        res.json({ category });
+    } catch (error) {
+        console.error('Category delete error:', error.message);
+        res.status(400).json({ error: error.message || 'Kategori tidak dapat dinonaktifkan.' });
+    }
+});
+
+app.post('/api/categories/:id/items', authenticate, (req, res) => {
+    try {
+        const category = addCategoryItem(req.userId, Number(req.params.id), req.body?.keyword);
+        res.status(201).json({ category });
+    } catch (error) {
+        console.error('Category item create error:', error.message);
+        res.status(400).json({ error: error.message || 'Item kategori tidak dapat dibuat.' });
+    }
+});
+
+app.delete('/api/categories/:categoryId/items/:itemId', authenticate, (req, res) => {
+    try {
+        const category = deleteCategoryItem(req.userId, Number(req.params.itemId));
+        res.json({ category });
+    } catch (error) {
+        console.error('Category item delete error:', error.message);
+        res.status(400).json({ error: error.message || 'Item kategori tidak dapat dihapus.' });
+    }
+});
+
+app.get('/api/reports/excel', authenticate, async (req, res) => {
+    try {
+        const report = await createWorkbook(req.userId, {
+            recapId: String(req.query?.recapId || 'active'),
+            startDate: String(req.query?.startDate || ''),
+            endDate: String(req.query?.endDate || ''),
+            type: String(req.query?.type || 'all'),
+            category: String(req.query?.category || 'all'),
+            search: String(req.query?.search || ''),
+        });
+        res.setHeader('Content-Type', EXCEL_MIME);
+        res.setHeader('Content-Disposition', `attachment; filename="${report.fileName}"`);
+        res.setHeader('Cache-Control', 'no-store');
+        res.send(report.buffer);
+    } catch (error) {
+        console.error('Excel report export error:', error.message);
+        res.status(500).json({ error: error.message || 'Laporan Excel tidak dapat dibuat.' });
     }
 });
 
@@ -560,7 +648,7 @@ app.post('/api/recaps/new', authenticate, async (req, res) => {
 app.get('/api/expenses', authenticate, (req, res) => {
     const expenses = db.prepare(`
         SELECT * FROM expenses
-        WHERE user_id = ? AND COALESCE(status, 'Saved') NOT IN ('Cancelled', 'Canceled', 'Dibatalkan')
+        WHERE user_id = ? AND ${activeStatusWhere()}
           AND COALESCE(recap_status, 'active') != 'archived'
         ORDER BY created_at DESC
     `).all(req.userId);
@@ -580,7 +668,7 @@ app.get('/api/conversations', authenticate, (req, res) => {
 app.get('/api/analytics', authenticate, (req, res) => {
     const expenses = db.prepare(`
         SELECT * FROM expenses
-        WHERE user_id = ? AND COALESCE(status, 'Saved') NOT IN ('Cancelled', 'Canceled', 'Dibatalkan')
+        WHERE user_id = ? AND ${activeStatusWhere()}
           AND COALESCE(recap_status, 'active') != 'archived'
     `).all(req.userId);
 
