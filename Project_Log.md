@@ -132,7 +132,10 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
 - ✅ **Penyempurnaan Desain Avatar Profil Pengguna (`Sidebar.jsx`, `Header.jsx`, `index.css`)**:
   - Menghapus lingkaran hijau tua pekat yang mengelilingi inisial "CH" dan menggantinya dengan **lingkaran putih bersih (`bg-white`)** berbingkai halus (`border-[#d6e4be]`) dan teks inisial hijau emerald tajam berbobot tebal (`text-[#1a5611] font-black`).
   - Menambahkan kelas khusus `.user-avatar-pill` sehingga avatar profil di Sidebar dan Header tampil elegan, kontras tinggi, dan estetik di Light Mode maupun Dark Mode.
-- ✅ **Build production terbaru** (`index-UQpT3Anp.js` & `index-D3V078JI.css`) telah aktif dan live di container Mac mini.
+- ✅ **Penghapusan Badge Aether Family Finance pada Hero Banner Dashboard (`Dashboard.jsx`)**:
+  - Menghapus badge pill placeholder `"AETHER FAMILY FINANCE"` di atas sapaan pengguna pada Hero Banner Dashboard.
+  - Tampilan Hero Banner kini langsung menyajikan sapaan nama pengguna (*"Selamat siang, Chris"*) dan subtext tanggal periode aktif secara clean dan minimalis.
+- ✅ **Build production terbaru** (`index-DjArFdOf.js` & `index-D3V078JI.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.
