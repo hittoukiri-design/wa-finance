@@ -4,6 +4,8 @@ import {
   ArrowUp,
   BarChart3,
   Brain,
+  CheckCircle2,
+  ChevronDown,
   Info,
   LockKeyhole,
   PieChart as PieIcon,
@@ -29,17 +31,29 @@ import { useAuth } from '../context/useAuth';
 import { listExpenses } from '../lib/firestore';
 import { getBackendSettings } from '../lib/whatsapp-api';
 
-const COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#eab308', '#ec4899', '#f97316'];
-const TREND_OPTIONS = [
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'last30', label: 'Last 30 Days' },
+const BOTANICAL_COLORS = [
+  '#76d446',
+  '#4a8c2c',
+  '#8ce851',
+  '#285813',
+  '#a3e878',
+  '#358219',
+  '#1b3e10',
+  '#5da934',
 ];
+
+const TREND_OPTIONS = [
+  { value: 'daily', label: 'Harian' },
+  { value: 'weekly', label: 'Mingguan' },
+  { value: 'last30', label: '30 Hari Terakhir' },
+];
+
 const CATEGORY_OPTIONS = [
   { value: 'day', label: 'Hari ini' },
   { value: 'week', label: 'Minggu ini' },
   { value: 'month', label: 'Periode aktif' },
 ];
+
 const categoryPeriodLabel = (value) => CATEGORY_OPTIONS.find((item) => item.value === value)?.label.toLowerCase() || 'periode terpilih';
 
 const currency = (amount) => new Intl.NumberFormat('id-ID', {
@@ -134,16 +148,16 @@ function getAccount(item) {
 function AnalyticsTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#07111a] px-3 py-2 text-xs shadow-2xl">
-      <p className="font-semibold text-slate-200">{label}</p>
-      <p className="mt-1 text-emerald-300">{currency(payload[0].value)}</p>
+    <div className="rounded-xl border border-[#dcebd0] bg-[#eef7e6] px-3.5 py-2 text-xs shadow-xl dark:border-[#263e1d] dark:bg-[#112013]">
+      <p className="font-bold text-[#0e2a07] dark:text-[#f3ffe9]">{label}</p>
+      <p className="mt-0.5 font-extrabold text-[#1a5611] dark:text-[#76d446]">{currency(payload[0].value)}</p>
     </div>
   );
 }
 
 function EmptyAnalytics({ text }) {
   return (
-    <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-slate-800 text-center text-sm text-slate-500">
+    <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-[#dcebd0] text-center text-xs font-semibold text-slate-500 dark:border-[#263e1d] dark:text-slate-400">
       {text}
     </div>
   );
@@ -153,21 +167,21 @@ function MetricCard({ icon: Icon, label, value, detail, delta, neutral = false }
   const isDown = delta < 0;
   const DeltaIcon = isDown ? ArrowDown : ArrowUp;
   return (
-    <section className="rounded-xl border border-slate-800 bg-[linear-gradient(135deg,rgba(15,23,42,.96),rgba(2,17,26,.96))] px-4 py-4 shadow-[0_14px_38px_rgba(0,0,0,.13)]">
-      <div className="flex items-center gap-3">
-        <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-xl bg-emerald-500/13 text-emerald-400 shadow-inner shadow-emerald-500/10">
+    <section className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm transition hover:border-[#b8dc9f] dark:border-[#243e1c] dark:bg-[#121e14] dark:hover:border-[#38642a]">
+      <div className="flex items-center gap-3.5">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#d8f0c4] text-[#1a5611] shadow-sm dark:bg-[#1b3816] dark:text-[#76d446]">
           <Icon className="h-6 w-6" />
         </span>
         <div className="min-w-0">
-          <p className="text-[13px] text-slate-400">{label}</p>
-          <p className="mt-0.5 truncate text-[22px] font-black leading-tight tracking-tight text-white">{value}</p>
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#358219] dark:text-[#76d446]">{label}</p>
+          <p className="mt-0.5 truncate text-xl font-black text-[#0e2a07] dark:text-[#f3ffe9]">{value}</p>
           {neutral ? (
-            <p className="mt-1.5 text-[13px] text-slate-400">{detail}</p>
+            <p className="mt-1 text-[11px] font-semibold text-[#436d32] dark:text-[#8bb37a]">{detail}</p>
           ) : (
-            <p className={`mt-1.5 inline-flex items-center gap-1 text-[13px] ${isDown ? 'text-red-300' : 'text-emerald-300'}`}>
-              <DeltaIcon className="h-3.5 w-3.5" />
-              <span className="font-bold">{Math.abs(delta || 0).toFixed(1)}%</span>
-              <span className="text-slate-400">{detail}</span>
+            <p className={`mt-1 inline-flex items-center gap-1 text-[11px] font-bold ${isDown ? 'text-red-500 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              <DeltaIcon className="h-3 w-3" />
+              <span>{Math.abs(delta || 0).toFixed(1)}%</span>
+              <span className="text-slate-500 dark:text-slate-400">{detail}</span>
             </p>
           )}
         </div>
@@ -178,11 +192,11 @@ function MetricCard({ icon: Icon, label, value, detail, delta, neutral = false }
 
 function InsightItem({ icon: Icon, children }) {
   return (
-    <div className="flex gap-4">
-      <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/13 text-emerald-400">
+    <div className="flex gap-3.5">
+      <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d8f0c4] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
         <Icon className="h-5 w-5" />
       </span>
-      <p className="text-sm leading-6 text-slate-300">{children}</p>
+      <p className="text-xs font-medium leading-relaxed text-[#1e3c15] dark:text-[#cde8bd]">{children}</p>
     </div>
   );
 }
@@ -192,7 +206,7 @@ function SelectPill({ value, onChange, options }) {
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="rounded-lg border border-slate-800 bg-[#09131c] px-3 py-1.5 text-xs font-semibold text-slate-300 outline-none transition hover:border-slate-700 focus:border-emerald-500"
+      className="rounded-full border border-[#dcebd0] bg-white px-3.5 py-1.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>{option.label}</option>
@@ -250,7 +264,7 @@ export default function Analytics() {
       .map(([name, value], index) => ({
         name,
         value,
-        color: COLORS[index % COLORS.length],
+        color: BOTANICAL_COLORS[index % BOTANICAL_COLORS.length],
         percent: categoryTotal ? (value / categoryTotal) * 100 : 0,
       }));
 
@@ -264,7 +278,7 @@ export default function Analytics() {
       .map(([name, value], index) => ({
         name,
         value,
-        color: COLORS[index % COLORS.length],
+        color: BOTANICAL_COLORS[index % BOTANICAL_COLORS.length],
         percent: currentTotal ? (value / currentTotal) * 100 : 0,
       }));
 
@@ -322,18 +336,19 @@ export default function Analytics() {
   }, [expenses, trendRange, categoryRange, activeRecapStartDate]);
 
   return (
-    <div className="mx-auto w-full max-w-[1450px] space-y-5">
+    <div className="mx-auto w-full max-w-[1450px] space-y-6">
       <Header
         title="Analytics"
         subtitle="Lacak tren pengeluaran, temukan insight, dan optimalkan pengelolaan keuangan Anda."
       />
 
       {notice && (
-        <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
           {notice}
         </div>
       )}
 
+      {/* ── Metric Cards Row ── */}
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={Wallet}
@@ -365,29 +380,33 @@ export default function Analytics() {
         />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-        <div className="rounded-xl border border-slate-800 bg-[#0b141c] p-5 shadow-[0_18px_50px_rgba(0,0,0,.16)]">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 font-bold text-white">
-              Spending Trend <Info className="h-4 w-4 text-slate-500" />
+      {/* ── Main Charts Row ── */}
+      <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        
+        {/* Spending Trend Area Chart */}
+        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
+              Spending Trend <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
             </h2>
             <SelectPill value={trendRange} onChange={setTrendRange} options={TREND_OPTIONS} />
           </div>
+
           {analytics.trend.some((item) => item.amount > 0) ? (
             <div className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={analytics.trend} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="analyticsTrend" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#22c55e" stopOpacity={0.48} />
-                      <stop offset="100%" stopColor="#22c55e" stopOpacity={0.03} />
+                    <linearGradient id="analyticsTrend" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#76d446" stopOpacity={0.55} />
+                      <stop offset="100%" stopColor="#76d446" stopOpacity={0.03} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 12 }} tickLine={false} axisLine={false} minTickGap={18} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={shortCurrency} tickLine={false} axisLine={false} width={64} />
+                  <CartesianGrid stroke="#dcebd0" strokeDasharray="3 3" vertical={false} opacity={0.5} />
+                  <XAxis dataKey="label" tick={{ fill: '#436d32', fontSize: 11, fontWeight: 600 }} tickLine={false} axisLine={false} minTickGap={18} />
+                  <YAxis tick={{ fill: '#436d32', fontSize: 11, fontWeight: 600 }} tickFormatter={shortCurrency} tickLine={false} axisLine={false} width={64} />
                   <Tooltip content={<AnalyticsTooltip />} />
-                  <Area type="monotone" dataKey="amount" stroke="#22c55e" strokeWidth={3} fill="url(#analyticsTrend)" dot={{ r: 3, fill: '#22c55e' }} activeDot={{ r: 5 }} />
+                  <Area type="monotone" dataKey="amount" stroke="#4a8c2c" strokeWidth={2.5} fill="url(#analyticsTrend)" dot={{ r: 3, fill: '#76d446' }} activeDot={{ r: 5 }} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -396,82 +415,95 @@ export default function Analytics() {
           )}
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-[#0b141c] p-5 shadow-[0_18px_50px_rgba(0,0,0,.16)]">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 font-bold text-white">
-              Spend by Category <Info className="h-4 w-4 text-slate-500" />
+        {/* Spend by Category Progress Breakdown */}
+        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
+              Spend by Category <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
             </h2>
             <SelectPill value={categoryRange} onChange={setCategoryRange} options={CATEGORY_OPTIONS} />
           </div>
+
           {analytics.categories.length ? (
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               {analytics.categories.slice(0, 6).map((item) => (
-                <div key={item.name} className="grid grid-cols-[110px_1fr_92px_54px] items-center gap-3 text-sm">
-                  <span className="truncate text-slate-300">{item.name}</span>
-                  <span className="h-3 overflow-hidden rounded-full bg-slate-800">
-                    <span className="block h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-300" style={{ width: `${Math.max(4, item.percent)}%` }} />
+                <div key={item.name} className="grid grid-cols-[105px_1fr_95px_45px] items-center gap-3 text-xs font-bold">
+                  <span className="truncate text-[#0e2a07] dark:text-[#f3ffe9]">{item.name}</span>
+                  <span className="h-2.5 overflow-hidden rounded-full bg-[#d8f0c4] dark:bg-[#1c3818]">
+                    <span className="block h-full rounded-full bg-gradient-to-r from-[#76d446] to-[#4a8c2c]" style={{ width: `${Math.max(4, item.percent)}%` }} />
                   </span>
-                  <span className="text-right text-slate-300">{currency(item.value)}</span>
-                  <span className="text-right text-slate-500">{item.percent.toFixed(1)}%</span>
+                  <span className="text-right text-[#1a5611] dark:text-[#76d446]">{currency(item.value)}</span>
+                  <span className="text-right text-slate-500 dark:text-slate-400">{item.percent.toFixed(1)}%</span>
                 </div>
               ))}
-              <div className="flex items-center justify-between border-t border-slate-800 pt-4 text-sm">
-                <span className="text-slate-300">Total</span>
-                <strong className="text-white">{currency(analytics.categoryTotal)}</strong>
+              <div className="flex items-center justify-between border-t border-[#dcebd0] pt-3 text-xs font-black dark:border-[#243e1c]">
+                <span className="text-[#0e2a07] dark:text-[#f3ffe9]">Total Kategori</span>
+                <strong className="text-[#1a5611] dark:text-[#76d446]">{currency(analytics.categoryTotal)}</strong>
               </div>
             </div>
           ) : (
             <EmptyAnalytics text="Kategori akan muncul setelah transaksi pada periode terpilih tersedia." />
           )}
         </div>
+
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[0.95fr_0.85fr]">
-        <div className="rounded-xl border border-violet-500/20 bg-[linear-gradient(135deg,rgba(46,16,101,.45),rgba(11,20,28,.96)_45%)] p-5 shadow-[0_18px_50px_rgba(0,0,0,.16)]">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 font-bold text-white">
-              <Sparkles className="h-5 w-5 text-violet-300" /> AI Insights
+      {/* ── Lower Section: AI Insights & Sources Breakdown ── */}
+      <section className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
+        
+        {/* AI Insights Card */}
+        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
+              <Sparkles className="h-4 w-4 text-[#358219] dark:text-[#76d446]" /> AI Insights
             </h2>
-            <span className="rounded-full bg-violet-500/20 px-3 py-1 text-xs font-bold text-violet-200">Data-driven</span>
+            <span className="rounded-full bg-[#d8f0c4] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#1a5611] dark:bg-[#1a3816] dark:text-[#76d446]">
+              Data-driven
+            </span>
           </div>
-          <div className="space-y-5">
+
+          <div className="space-y-4">
             <InsightItem icon={TrendingUp}>{analytics.insights[0]}</InsightItem>
             <InsightItem icon={BarChart3}>{analytics.insights[1]}</InsightItem>
             <InsightItem icon={Brain}>{analytics.insights[2]}</InsightItem>
           </div>
-          <div className="mt-6 flex items-center justify-between border-t border-slate-800 pt-4 text-xs text-slate-500">
-            <span>Insight dibuat dari data transaksi tersimpan dan bisa berubah saat data bertambah.</span>
-            <span className="font-semibold text-emerald-400">AI-ready</span>
+
+          <div className="mt-5 flex items-center justify-between border-t border-[#dcebd0] pt-3 text-[11px] text-[#436d32] dark:border-[#243e1c] dark:text-[#8bb37a]">
+            <span>Insight dibuat dari data transaksi tersimpan real-time.</span>
+            <span className="font-bold text-[#1a5611] dark:text-[#76d446]">AI-Ready</span>
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-[#0b141c] p-5 shadow-[0_18px_50px_rgba(0,0,0,.16)]">
-          <h2 className="mb-5 flex items-center gap-2 font-bold text-white">
-            Pengeluaran per Rekening <Info className="h-4 w-4 text-slate-500" />
+        {/* Pengeluaran per Rekening Donut Breakdown */}
+        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <h2 className="mb-4 flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
+            Pengeluaran per Rekening <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
           </h2>
+
           {analytics.sources.length ? (
-            <div className="grid items-center gap-5 md:grid-cols-[220px_1fr]">
-              <div className="relative h-56">
+            <div className="grid items-center gap-4 md:grid-cols-[190px_1fr]">
+              <div className="relative h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={analytics.sources} dataKey="value" nameKey="name" innerRadius={64} outerRadius={96} paddingAngle={2} stroke="none">
+                    <Pie data={analytics.sources} dataKey="value" nameKey="name" innerRadius={55} outerRadius={82} paddingAngle={2} stroke="none">
                       {analytics.sources.map((item) => <Cell key={item.name} fill={item.color} />)}
                     </Pie>
                     <Tooltip formatter={(value) => currency(value)} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-xs text-slate-400">Total</span>
-                  <strong className="text-sm text-white">{shortCurrency(analytics.currentTotal)}</strong>
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Total</span>
+                  <strong className="text-xs font-black text-[#0e2a07] dark:text-[#f3ffe9]">{shortCurrency(analytics.currentTotal)}</strong>
                 </div>
               </div>
-              <div className="space-y-4">
+
+              <div className="space-y-2.5">
                 {analytics.sources.map((item) => (
-                  <div key={item.name} className="flex items-center gap-3 text-sm">
-                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="flex-1 text-slate-300">{item.name}</span>
-                    <span className="text-slate-400">{currency(item.value)}</span>
-                    <span className="w-12 text-right text-slate-500">{item.percent.toFixed(1)}%</span>
+                  <div key={item.name} className="flex items-center gap-2.5 text-xs font-bold">
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                    <span className="flex-1 truncate text-[#0e2a07] dark:text-[#f3ffe9]">{item.name}</span>
+                    <span className="text-[#1a5611] dark:text-[#76d446]">{currency(item.value)}</span>
+                    <span className="w-10 text-right text-slate-500 dark:text-slate-400">{item.percent.toFixed(1)}%</span>
                   </div>
                 ))}
               </div>
@@ -479,19 +511,21 @@ export default function Analytics() {
           ) : (
             <EmptyAnalytics text="Rekening/metode pembayaran akan muncul setelah ada transaksi." />
           )}
-          <p className="mt-4 text-xs text-slate-500">Data berdasarkan rekening/metode pembayaran transaksi pada periode aktif.</p>
+          <p className="mt-3 text-[10px] text-[#436d32] dark:text-[#8bb37a]">Data berdasarkan rekening/metode pembayaran transaksi pada periode aktif.</p>
         </div>
+
       </section>
 
-      <section className="flex flex-col gap-3 rounded-xl border border-emerald-500/15 bg-[#0b141c] px-5 py-4 text-sm text-slate-300 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+      {/* ── Security Banner ── */}
+      <section className="flex flex-col gap-3 rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-4 text-xs text-[#285814] dark:border-[#243e1c] dark:bg-[#121e14] dark:text-[#b8d8a7] md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-2.5">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#1a5611] dark:text-[#76d446]" />
           <p>
-            Data Anda bersifat privat dan aman. WA Finance hanya menyimpan data finansial yang berhasil diekstrak untuk membantu Anda memantau pengeluaran; akses tetap dibatasi oleh autentikasi Firebase dan izin akun.
+            Data Anda bersifat privat dan aman. WA Finance hanya menyimpan data finansial yang berhasil diekstrak untuk membantu Anda memantau pengeluaran.
           </p>
         </div>
-        <span className="inline-flex items-center gap-2 whitespace-nowrap text-xs font-bold text-emerald-400">
-          <LockKeyhole className="h-4 w-4" /> Firebase Security
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-black text-[#1a5611] dark:text-[#76d446]">
+          <LockKeyhole className="h-3.5 w-3.5" /> Firebase Security
         </span>
       </section>
 

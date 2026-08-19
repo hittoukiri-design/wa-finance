@@ -18,6 +18,7 @@ import {
   Sparkles,
   Tag,
 } from 'lucide-react';
+import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
 import { listConversations } from '../lib/firestore';
 import { getBackendSettings, saveJidMapping } from '../lib/whatsapp-api';
@@ -83,36 +84,36 @@ function isExpenseLike(message = '') {
 
 function WhatsAppAvatar() {
   return (
-    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-green-600 text-white shadow-[0_0_24px_rgba(34,197,94,0.22)] ring-2 ring-white/70">
-      <MessageCircle className="h-7 w-7 fill-white/20" />
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-green-600 text-white shadow-md">
+      <MessageCircle className="h-5 w-5 fill-white/20" />
     </span>
   );
 }
 
 function StatusBadge({ children, tone = 'emerald' }) {
   const tones = {
-    emerald: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300',
-    amber: 'border-amber-500/30 bg-amber-500/15 text-amber-300',
-    slate: 'border-slate-700 bg-slate-800/70 text-slate-300',
+    emerald: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
+    amber: 'border-amber-500/30 bg-amber-500/15 text-amber-800 dark:text-amber-300',
+    slate: 'border-[#dcebd0] bg-[#eef7e6] text-slate-600 dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-400',
   };
-  return <span className={`rounded-md border px-2 py-1 text-[10px] font-bold ${tones[tone] || tones.slate}`}>{children}</span>;
+  return <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${tones[tone] || tones.slate}`}>{children}</span>;
 }
 
 function TimelineItem({ icon: Icon, title, detail, tone = 'emerald' }) {
   const tones = {
-    emerald: 'bg-emerald-500/20 text-emerald-300',
-    blue: 'bg-sky-500/20 text-sky-300',
-    violet: 'bg-violet-500/20 text-violet-300',
+    emerald: 'bg-[#d8f0c4] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]',
+    blue: 'bg-sky-500/20 text-sky-700 dark:text-sky-300',
+    violet: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300',
   };
   return (
-    <div className="relative flex gap-3 pb-6 last:pb-0">
-      <span className="absolute left-4 top-9 h-[calc(100%-36px)] w-px bg-slate-800 last:hidden" />
-      <span className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tones[tone] || tones.emerald}`}>
-        <Icon className="h-4 w-4" />
+    <div className="relative flex gap-3 pb-5 last:pb-0">
+      <span className="absolute left-3.5 top-8 h-[calc(100%-28px)] w-px bg-[#dcebd0] dark:bg-[#243e1c] last:hidden" />
+      <span className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${tones[tone] || tones.emerald}`}>
+        <Icon className="h-3.5 w-3.5" />
       </span>
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-slate-100">{title}</p>
-        <p className="mt-1 text-xs leading-relaxed text-slate-500">{detail}</p>
+        <p className="text-xs font-bold text-[#0e2a07] dark:text-[#f3ffe9]">{title}</p>
+        <p className="mt-0.5 text-[11px] leading-relaxed text-[#436d32] dark:text-[#8bb37a]">{detail}</p>
       </div>
     </div>
   );
@@ -236,70 +237,72 @@ export default function Conversations() {
   };
 
   return (
-    <div className="mx-auto flex h-full max-w-[1540px] flex-col">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-white">Conversations</h1>
-        <p className="mt-1 text-sm text-slate-400">Chat WhatsApp antara Anda dan bot, diperbarui otomatis.</p>
-      </header>
+    <div className="mx-auto flex h-full max-w-[1540px] flex-col space-y-6">
+      <Header
+        title="Format Balasan & Chat"
+        subtitle="Riwayat percakapan WhatsApp antara Anda dan bot, diperbarui otomatis secara real-time."
+      />
 
       {notice && (
-        <div className="mb-5 rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
           {notice}
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[335px_minmax(0,1fr)_285px]">
-        <section className="flex min-h-[560px] flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0b141c] shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-          <div className="border-b border-slate-800 p-4">
-            <div className="flex gap-3">
-              <div className="relative min-w-0 flex-1">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search conversations..."
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950/40 py-2.5 pl-9 pr-3 text-sm text-white outline-none transition focus:border-emerald-400"
-                />
-              </div>
-              <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-700 bg-slate-950/40 text-slate-300">
-                <Filter className="h-4 w-4" />
-              </button>
+      <div className="grid min-h-0 flex-1 gap-5 xl:grid-cols-[330px_minmax(0,1fr)_300px]">
+        
+        {/* Contact List Pane */}
+        <section className="flex min-h-[560px] flex-col overflow-hidden rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <div className="border-b border-[#dcebd0] p-4 dark:border-[#243e1c]">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari chat..."
+                className="w-full rounded-full border border-[#dcebd0] bg-white py-2 pl-9 pr-3 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+              />
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-1.5">
               {[
-                ['all', 'All'],
-                ['unread', 'Unread'],
-                ['review', 'Needs Review'],
+                ['all', 'Semua'],
+                ['unread', 'Belum Dibaca'],
+                ['review', 'Perlu Review'],
               ].map(([key, label]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setFilterMode(key)}
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${filterMode === key ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300' : 'border-slate-700 bg-[#101b26] text-slate-400 hover:text-white'}`}
+                  className={`rounded-full px-3 py-1 text-[11px] font-black transition ${
+                    filterMode === key
+                      ? 'bg-[#1a5611] text-white dark:bg-[#76d446] dark:text-[#0d170a]'
+                      : 'border border-[#dcebd0] bg-white text-slate-600 hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-300'
+                  }`}
                 >
                   {label}
                 </button>
               ))}
-              <button type="button" className="ml-auto inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-[#101b26] px-3 py-1.5 text-xs text-slate-400">
-                Filter <ChevronDown className="h-3 w-3" />
-              </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {threads.map((thread) => (
               <button
                 key={thread.phone}
                 onClick={() => setSelectedPhone(thread.phone)}
-                className={`mb-2 flex w-full gap-3 rounded-xl border p-3 text-left transition ${selected?.phone === thread.phone ? 'border-emerald-500/70 bg-emerald-500/10' : 'border-transparent hover:border-slate-800 hover:bg-slate-900/60'}`}
+                className={`flex w-full gap-3 rounded-2xl border p-3 text-left transition ${
+                  selected?.phone === thread.phone
+                    ? 'border-[#76d446] bg-[#d8f0c4] dark:border-[#76d446] dark:bg-[#1b3816]'
+                    : 'border-transparent bg-white/60 hover:bg-white dark:bg-white/5 dark:hover:bg-white/10'
+                }`}
               >
                 <WhatsAppAvatar />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center justify-between gap-2">
-                    <strong className="truncate text-sm text-slate-100">{thread.phone}</strong>
-                    <small className="shrink-0 text-xs text-slate-500">{clock(thread.latest?.timestamp)}</small>
+                    <strong className="truncate text-xs font-black text-[#0e2a07] dark:text-[#f3ffe9]">{thread.phone}</strong>
+                    <small className="shrink-0 text-[10px] text-slate-500 dark:text-slate-400">{clock(thread.latest?.timestamp)}</small>
                   </span>
-                  <small className="mt-1 block truncate text-xs text-slate-400">
+                  <small className="mt-1 block truncate text-[11px] font-semibold text-[#436d32] dark:text-[#8bb37a]">
                     {thread.latest?.is_from_me ? 'Bot: ' : 'User: '}
                     {thread.latest?.message || ''}
                   </small>
@@ -311,165 +314,134 @@ export default function Conversations() {
             ))}
 
             {!busy && !threads.length && (
-              <div className="p-8 text-center text-sm text-slate-500">Belum ada percakapan.</div>
+              <div className="p-8 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">Belum ada percakapan.</div>
             )}
           </div>
-          <div className="border-t border-slate-800 px-4 py-3 text-xs text-slate-500">
-            Showing {threads.length ? `1 to ${threads.length}` : '0'} of {threads.length} conversations
+          <div className="border-t border-[#dcebd0] px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:border-[#243e1c] dark:text-slate-400">
+            Menampilkan {threads.length} percakapan
           </div>
         </section>
 
-        <section className="flex min-h-[560px] flex-col overflow-hidden rounded-xl border border-slate-800 bg-[#0b141c] shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+        {/* Chat Message Pane */}
+        <section className="flex min-h-[560px] flex-col overflow-hidden rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
           {selected ? (
             <>
-              <div className="flex items-center justify-between gap-4 border-b border-slate-800 p-5">
+              <div className="flex items-center justify-between gap-4 border-b border-[#dcebd0] p-4 dark:border-[#243e1c]">
                 <div className="flex min-w-0 items-center gap-3">
                   <WhatsAppAvatar />
                   <div className="min-w-0">
-                    <h2 className="truncate font-semibold text-white">{selected.phone}</h2>
-                    <p className="text-xs text-emerald-400">WhatsApp bot</p>
+                    <h2 className="truncate text-sm font-black text-[#0e2a07] dark:text-[#f3ffe9]">{selected.phone}</h2>
+                    <p className="text-[11px] font-bold text-[#1a5611] dark:text-[#76d446]">WhatsApp Bot Connected</p>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-800 bg-[#101b26] text-slate-300"><Search className="h-4 w-4" /></button>
-                  <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-800 bg-[#101b26] text-slate-300"><Tag className="h-4 w-4" /></button>
-                  <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-800 bg-[#101b26] text-slate-300"><MoreVertical className="h-4 w-4" /></button>
                 </div>
               </div>
 
               {selectedNeedsMapping && (
-                <div className="border-b border-amber-500/20 bg-amber-500/10 p-4">
-                  <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
-                    <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-2 text-sm font-semibold text-amber-200">
-                        <Link2 className="h-4 w-4" />
-                        Mapping nomor pengirim diperlukan
-                      </p>
-                      <p className="mt-1 text-xs leading-relaxed text-amber-100/70">
-                        WhatsApp mengirim chat ini sebagai <span className="font-mono">{selected.rawPhone}</span>, bukan nomor HP.
-                        Isi nomor HP pribadi pengirim agar bot bisa membalas ke WhatsApp.
-                      </p>
-                    </div>
-                    <div className="flex w-full gap-2 xl:w-[430px]">
-                      <input
-                        value={mappingPhone}
-                        onChange={(event) => setMappingPhone(event.target.value)}
-                        placeholder="6281234567890"
-                        className="min-w-0 flex-1 rounded-lg border border-amber-400/30 bg-[#09131c] px-3 py-2 text-sm text-white outline-none focus:border-amber-300"
-                      />
-                      <button
-                        type="button"
-                        disabled={mappingBusy || !mappingPhone.trim()}
-                        onClick={saveMapping}
-                        className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-bold text-slate-950 disabled:opacity-50"
-                      >
-                        {mappingBusy ? '...' : 'Simpan'}
-                      </button>
-                    </div>
+                <div className="border-b border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-800 dark:text-amber-200">
+                  <p className="font-bold">Mapping nomor pengirim diperlukan</p>
+                  <p className="mt-0.5 text-[11px]">WhatsApp mengirim chat ini sebagai <span className="font-mono font-bold">{selected.rawPhone}</span>.</p>
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      value={mappingPhone}
+                      onChange={(event) => setMappingPhone(event.target.value)}
+                      placeholder="6281234567890"
+                      className="rounded-xl border border-amber-400/30 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 outline-none dark:bg-[#162718] dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      disabled={mappingBusy || !mappingPhone.trim()}
+                      onClick={saveMapping}
+                      className="rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-black text-slate-950"
+                    >
+                      Simpan
+                    </button>
                   </div>
                 </div>
               )}
 
-              <div className="flex flex-1 flex-col gap-5 overflow-y-auto bg-[radial-gradient(circle_at_80%_12%,rgba(16,185,129,.08),transparent_28%)] p-6">
+              <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
                 {selectedDate && (
-                  <div className="self-center rounded-full bg-slate-800/70 px-4 py-1 text-xs text-slate-400">{dateLabel(selectedDate)}</div>
+                  <div className="self-center rounded-full bg-[#d8f0c4] px-4 py-1 text-[10px] font-black uppercase tracking-wider text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
+                    {dateLabel(selectedDate)}
+                  </div>
                 )}
                 {selected.items.map((item) => {
-                  const extractedAmount = !item.is_from_me ? parseAmount(item.message) : null;
-                  const extractedCategory = !item.is_from_me ? parseCategory(item.message) : null;
-                  const extractedAccount = !item.is_from_me ? parseAccount(item.message) : null;
+                  const isBot = item.is_from_me;
                   return (
-                    <div key={item.id} className={`flex ${item.is_from_me ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[78%] rounded-2xl p-4 text-sm shadow-lg ${item.is_from_me ? 'rounded-br-sm bg-emerald-500 text-[#062617]' : 'rounded-bl-sm border border-slate-800 bg-[#111a23] text-slate-200'}`}>
-                        <p className="whitespace-pre-wrap leading-relaxed">{item.message}</p>
-                        {!item.is_from_me && extractedAmount && (
-                          <div className="mt-5 rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4">
-                            <p className="flex items-center gap-2 text-sm font-semibold text-slate-100">
-                              <Sparkles className="h-4 w-4 text-violet-300" />
-                              I've extracted the expense details below.
-                            </p>
-                            <div className="mt-4 grid gap-4 rounded-xl border border-slate-800 bg-[#0b141c] p-4 md:grid-cols-3">
-                              <div><small className="text-slate-500">Category</small><p className="mt-1 font-semibold text-white">{extractedCategory}</p></div>
-                              <div><small className="text-slate-500">Amount</small><p className="mt-1 font-semibold text-white">{currency(extractedAmount)}</p></div>
-                              <div><small className="text-slate-500">Account</small><p className="mt-1 font-semibold text-white">{extractedAccount}</p></div>
-                            </div>
-                          </div>
-                        )}
-                        <p className={`mt-2 text-right text-[10px] ${item.is_from_me ? 'text-emerald-950/70' : 'text-slate-500'}`}>
-                          {clock(item.timestamp)}
-                        </p>
+                    <div
+                      key={item.id || item.timestamp}
+                      className={`flex flex-col max-w-[80%] ${isBot ? 'self-end items-end' : 'self-start items-start'}`}
+                    >
+                      <div
+                        className={`rounded-2xl px-4 py-2.5 text-xs font-medium shadow-sm leading-relaxed ${
+                          isBot
+                            ? 'bg-[#1a5611] text-white dark:bg-[#76d446] dark:text-[#0d170a]'
+                            : 'border border-[#dcebd0] bg-white text-[#0e2a07] dark:border-[#263e1d] dark:bg-[#18291a] dark:text-[#f3ffe9]'
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap">{item.message}</p>
                       </div>
+                      <span className="mt-1 text-[9.5px] font-bold text-slate-400">
+                        {clock(item.timestamp)}
+                      </span>
                     </div>
                   );
                 })}
               </div>
-
-              <div className="border-t border-slate-800 p-4">
-                <div className="flex items-center gap-2">
-                  <button type="button" className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-800 bg-[#101b26] text-slate-300"><Paperclip className="h-5 w-5" /></button>
-                  <div className="flex h-12 min-w-0 flex-1 items-center rounded-xl border border-slate-800 bg-slate-950/40 px-4 text-sm text-slate-500">Type a message...</div>
-                  <button type="button" className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-300"><Send className="h-5 w-5" /></button>
-                </div>
-                <p className="mt-3 text-center text-xs text-slate-600">All messages are encrypted end-to-end.</p>
-              </div>
             </>
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-              <Smartphone className="h-14 w-14 text-slate-700" />
-              <h2 className="mt-5 text-lg font-semibold text-white">Belum ada percakapan</h2>
-              <p className="mt-2 max-w-sm text-sm text-slate-500">
-                Hubungkan WhatsApp. Pesan Anda dan balasan bot akan muncul seperti WhatsApp Web.
-              </p>
+            <div className="flex flex-1 items-center justify-center text-xs font-bold text-slate-400">
+              Pilih salah satu percakapan di sebelah kiri.
             </div>
           )}
         </section>
 
-        <aside className="hidden min-h-[560px] flex-col gap-4 xl:flex">
-          <section className="rounded-xl border border-slate-800 bg-[#0b141c] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-            <h2 className="text-base font-bold text-white">Conversation Details</h2>
-            {selected ? (
-              <div className="mt-5 space-y-4">
-                <div><p className="text-xs text-slate-500">Phone Number</p><p className="mt-1 text-sm font-semibold text-white">{selected.phone}</p></div>
-                <div><p className="text-xs text-slate-500">First Seen</p><p className="mt-1 text-sm font-semibold text-white">{dateLabel(selected.first?.timestamp) || '-'}</p></div>
-                <div><p className="text-xs text-slate-500">Total Expenses</p><p className="mt-1 text-sm font-semibold text-white">{selected.expenseCount}</p></div>
-                <div><p className="text-xs text-slate-500">Last Message</p><p className="mt-1 text-sm font-semibold text-white">{clock(selected.latest?.timestamp) || '-'}</p></div>
-              </div>
-            ) : (
-              <p className="mt-4 text-sm text-slate-500">Belum ada detail.</p>
-            )}
-          </section>
+        {/* Transaction Extraction Preview Pane */}
+        <section className="flex min-h-[560px] flex-col rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <div className="mb-4 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-[#1a5611] dark:text-[#76d446]" />
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#358219] dark:text-[#76d446]">
+              Ekstraksi Transaksi
+            </h3>
+          </div>
 
-          <section className="flex-1 rounded-xl border border-slate-800 bg-[#0b141c] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-            <h2 className="text-base font-bold text-white">Activity Timeline</h2>
-            {selected ? (
-              <div className="mt-6">
-                <TimelineItem
-                  icon={Sparkles}
-                  title="Expense extracted"
-                  detail={selectedExpense ? `${dateLabel(selectedExpense.timestamp)} ${clock(selectedExpense.timestamp)} · ${selectedCategory} • ${currency(selectedAmount)}` : 'Menunggu transaksi dari chat.'}
-                  tone="violet"
-                />
-                <TimelineItem
-                  icon={MessageSquare}
-                  title="Message received"
-                  detail={selected.latest ? `${dateLabel(selected.latest.timestamp)} ${clock(selected.latest.timestamp)} · ${selected.latest.message}` : 'Belum ada pesan.'}
-                  tone="blue"
-                />
-                <TimelineItem
-                  icon={CheckCircle2}
-                  title="Expense saved"
-                  detail={selectedExpense ? `${selectedCategory} siap dipantau dari dashboard.` : 'Belum ada transaksi tersimpan.'}
-                  tone="emerald"
-                />
+          {selectedExpense ? (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-[#dcebd0] bg-white/80 p-4 shadow-sm dark:border-[#263e1d] dark:bg-[#162718]">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pesan Asli</span>
+                <p className="mt-1 text-xs font-bold text-[#0e2a07] dark:text-[#f3ffe9] italic">
+                  “{selectedExpense.message}”
+                </p>
               </div>
-            ) : (
-              <p className="mt-4 text-sm text-slate-500">Timeline akan muncul setelah chat masuk.</p>
-            )}
-            <button type="button" className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-700 bg-[#101b26] px-4 py-3 text-sm font-medium text-slate-300 transition hover:border-emerald-500/40 hover:text-white">
-              View Full History <Clock3 className="h-4 w-4" />
-            </button>
-          </section>
-        </aside>
+
+              <div className="space-y-3">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-[#358219] dark:text-[#76d446]">Nominal Terdeteksi</span>
+                  <div className="text-xl font-black text-[#1a5611] dark:text-[#76d446]">{currency(selectedAmount)}</div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-black uppercase text-[#358219] dark:text-[#76d446]">Kategori Otomatis</span>
+                  <div className="text-xs font-black text-[#0e2a07] dark:text-[#f3ffe9]">{selectedCategory}</div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-black uppercase text-[#358219] dark:text-[#76d446]">Sumber Dompet</span>
+                  <div className="text-xs font-black text-[#0e2a07] dark:text-[#f3ffe9]">{selectedAccount}</div>
+                </div>
+              </div>
+
+              <div className="mt-4 border-t border-[#dcebd0] pt-4 dark:border-[#243e1c]">
+                <TimelineItem icon={CheckCircle2} title="Terekstraksi AI" detail="Format transaksi valid dan tersimpan di database." />
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-1 items-center justify-center text-center text-xs font-semibold text-slate-400">
+              Belum ada transaksi terdeteksi pada chat ini.
+            </div>
+          )}
+        </section>
+
       </div>
     </div>
   );
