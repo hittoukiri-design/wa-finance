@@ -6,6 +6,7 @@ import Settings from './pages/Settings';
 import Conversations from './pages/Conversations';
 import Expenses from './pages/Expenses';
 import Analytics from './pages/Analytics';
+import WaFinanceM3Demo from './pages/WaFinanceM3Demo';
 import SetupGuide from './pages/SetupGuide';
 import WhatsApp from './pages/WhatsApp';
 import Login from './pages/Login';
@@ -13,10 +14,22 @@ import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/useAuth';
 import { ThemeProvider } from './context/ThemeContext';
 
-// This App was build by Chris Tambayong - Fumakill4
-
 function ProtectedApp() {
   const { user, loading } = useAuth();
+  const isPublicDemo = window.location.pathname === '/m3-demo';
+
+  if (isPublicDemo) {
+    return (
+      <BrowserRouter>
+        <main className="min-h-screen bg-[#071019]">
+          <Routes>
+            <Route path="/m3-demo" element={<WaFinanceM3Demo />} />
+            <Route path="*" element={<Navigate to="/m3-demo" replace />} />
+          </Routes>
+        </main>
+      </BrowserRouter>
+    );
+  }
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center bg-[#071019] text-sm text-slate-400">Memeriksa sesi...</div>;
@@ -38,6 +51,7 @@ function ProtectedApp() {
             <Route path="/conversations" element={<Conversations />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/m3-demo" element={<WaFinanceM3Demo />} />
             <Route path="/setup" element={<SetupGuide />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
