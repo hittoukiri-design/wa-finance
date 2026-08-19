@@ -151,6 +151,12 @@ export default function Sidebar() {
             </button>
           </div>
         )}
+
+        {!isCollapsed && (
+          <div className="mt-2.5 px-1 text-center text-[9.5px] font-semibold leading-tight text-[#436d32]/75 dark:text-[#8bb37a]/60">
+            © 2026 WA Finance App created by Chris Tambayong
+          </div>
+        )}
       </div>
     </aside>
   );

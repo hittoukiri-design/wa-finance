@@ -220,6 +220,12 @@ export default function Settings() {
             </h3>
             <div className="mt-4 space-y-3">
               <div className="flex items-center justify-between rounded-xl border border-[#d6e4be] bg-white/70 px-3.5 py-2.5 dark:border-[#263e1d] dark:bg-[#162718]">
+                <span className="text-xs font-bold text-[#436d32] dark:text-[#8bb37a]">App Version</span>
+                <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-black text-emerald-700 dark:bg-emerald-500/20 dark:text-[#76d446]">
+                  v.2.0
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-[#d6e4be] bg-white/70 px-3.5 py-2.5 dark:border-[#263e1d] dark:bg-[#162718]">
                 <span className="text-xs font-bold text-[#436d32] dark:text-[#8bb37a]">Backend API</span>
                 <span className={`rounded-full px-2.5 py-0.5 text-[9.5px] font-black uppercase ${
                   backendStatus === 'ok' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-red-500/20 text-red-700 dark:text-red-300'
