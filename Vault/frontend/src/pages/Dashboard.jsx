@@ -865,25 +865,33 @@ export default function Dashboard() {
           <p className="hero-desc-exact">
             Mulai hari dengan catatan yang rapi. · {formatLongDate(activePeriodStart)} - {isFiltered ? formatLongDate(activePeriodEnd) : 'Sekarang (Periode Aktif)'}
           </p>
-        </div>
 
-        <div className="hero-buttons-exact flex items-center gap-2">
-          <button className="btn-hero-solid-green" onClick={exportExcel} title="Download Laporan Excel (.xlsx)">
-            <FileSpreadsheet width="13" height="13" />
-            Excel
-          </button>
-          <button className="btn-hero-solid-green" onClick={() => window.print()} title="Cetak / Simpan ke PDF">
-            <FileText width="13" height="13" />
-            Cetak PDF
-          </button>
-          <button
-            className="btn-hero-solid-green !bg-[#1b3b18] hover:!bg-[#244f20] dark:!bg-[#152e18] dark:hover:!bg-[#1d4222]"
-            onClick={() => setShowRecapModal(true)}
-            title="Tutup Buku & Backup Periode Berjalan"
-          >
-            <Archive width="13" height="13" />
-            Tutup Buku & Backup
-          </button>
+          <div className="mt-3.5 flex flex-wrap items-center gap-2">
+            <button
+              onClick={exportExcel}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#2d5f1e]/30 bg-[#245c10]/90 px-3 py-1 text-[11px] font-bold text-white shadow-sm backdrop-blur-sm transition hover:bg-[#1a460b] dark:border-[#38642a] dark:bg-[#1a3816]/90 dark:text-[#a3e635] dark:hover:bg-[#234e1e]"
+              title="Download Laporan Excel (.xlsx)"
+            >
+              <FileSpreadsheet width="11" height="11" />
+              Excel
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#2d5f1e]/30 bg-[#245c10]/90 px-3 py-1 text-[11px] font-bold text-white shadow-sm backdrop-blur-sm transition hover:bg-[#1a460b] dark:border-[#38642a] dark:bg-[#1a3816]/90 dark:text-[#a3e635] dark:hover:bg-[#234e1e]"
+              title="Cetak / Simpan ke PDF"
+            >
+              <FileText width="11" height="11" />
+              Cetak PDF
+            </button>
+            <button
+              onClick={() => setShowRecapModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#1b3b18]/40 bg-[#163614] px-3 py-1 text-[11px] font-black text-[#dcfce7] shadow-sm backdrop-blur-sm transition hover:bg-[#0e240c] dark:border-[#4d7c0f]/40 dark:bg-[#132a11] dark:text-[#86efac] dark:hover:bg-[#1c3d19]"
+              title="Tutup Buku & Backup Periode Berjalan"
+            >
+              <Archive width="11" height="11" />
+              Tutup Buku & Backup
+            </button>
+          </div>
         </div>
       </div>
 
