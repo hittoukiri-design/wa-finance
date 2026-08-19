@@ -30,7 +30,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
-import { useFilter } from '../context/FilterContext';
+import { useFilter, matchCategory, matchWallet } from '../context/FilterContext';
 import { addExpense, getSettings, listConversations, listExpenses } from '../lib/firestore';
 import { createNewRecap, downloadExcelReport, getBackendSettings, whatsappApi } from '../lib/whatsapp-api';
 
@@ -234,13 +234,13 @@ export default function Dashboard() {
     if (d < activePeriodStart || d > activePeriodEnd) return false;
 
     if (filterWallet && filterWallet !== 'Semua dompet') {
-      const ch = String(item.payment_channel || item.rekening || '').trim().toLowerCase();
-      if (ch !== filterWallet.toLowerCase()) return false;
+      const ch = String(item.payment_channel || item.rekening || '').trim();
+      if (!matchWallet(ch, filterWallet)) return false;
     }
 
     if (filterCategory && filterCategory !== 'Semua kategori') {
-      const cat = String(item.category || '').trim().toLowerCase();
-      if (cat !== filterCategory.toLowerCase()) return false;
+      const cat = String(item.category || '').trim();
+      if (!matchCategory(cat, filterCategory)) return false;
     }
 
     return true;
@@ -319,9 +319,12 @@ export default function Dashboard() {
     return [...expenses, ...incomes].filter(matchesFilter);
   }, [expenses, incomes, matchesFilter]);
 
-  const filteredCategoryExpenses = useMemo(() => (
-    expenses.filter((item) => isInRange(item, categoryRange, activePeriodStart))
-  ), [expenses, categoryRange, activePeriodStart]);
+  const filteredCategoryExpenses = useMemo(() => {
+    if (isFiltered) {
+      return activePeriodExpenses;
+    }
+    return expenses.filter((item) => isInRange(item, categoryRange, activePeriodStart));
+  }, [isFiltered, activePeriodExpenses, expenses, categoryRange, activePeriodStart]);
 
   const totalMonth = activePeriodExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const salaryIncomePeriod = activePeriodIncomes

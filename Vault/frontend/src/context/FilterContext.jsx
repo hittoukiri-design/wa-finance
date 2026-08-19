@@ -11,6 +11,30 @@ function dateInputValue(d) {
   return `${year}-${month}-${day}`;
 }
 
+export function matchCategory(itemCat, filterCat) {
+  if (!filterCat || filterCat === 'Semua kategori') return true;
+  if (!itemCat) return false;
+  const a = String(itemCat).trim().toLowerCase();
+  const b = String(filterCat).trim().toLowerCase();
+  if (a === b) return true;
+  
+  // Handle Transport vs Transportasi
+  if ((a === 'transport' || a === 'transportasi') && (b === 'transport' || b === 'transportasi')) return true;
+  // Handle Makan vs Makanan
+  if ((a === 'makan' || a === 'makanan') && (b === 'makan' || b === 'makanan')) return true;
+  // Substring matching
+  if (a.includes(b) || b.includes(a)) return true;
+  return false;
+}
+
+export function matchWallet(itemWallet, filterWallet) {
+  if (!filterWallet || filterWallet === 'Semua dompet') return true;
+  if (!itemWallet) return false;
+  const a = String(itemWallet).trim().toLowerCase();
+  const b = String(filterWallet).trim().toLowerCase();
+  return a === b || a.includes(b) || b.includes(a);
+}
+
 export function FilterProvider({ children }) {
   const { user } = useAuth();
 
@@ -46,10 +70,11 @@ export function FilterProvider({ children }) {
         setWalletsList(allWallets);
 
         const customCategories = (settings?.category_budgets || []).map((c) => c.name);
+        const txCategories = (expenses || []).map((e) => e.category).filter(Boolean);
         const defaultCats = [
           'Makan', 'Belanja', 'Transportasi', 'Tagihan', 'Rumah', 'Kesehatan', 'Pendidikan', 'Hiburan', 'Perawatan', 'Sosial', 'Keluarga', 'Tabungan', 'Investasi', 'Gaji', 'Lainnya'
         ];
-        const allCats = Array.from(new Set([...customCategories, ...defaultCats]));
+        const allCats = Array.from(new Set([...customCategories, ...txCategories, ...defaultCats]));
         setCategoriesList(allCats);
       })
       .catch(() => {});
