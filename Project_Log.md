@@ -135,7 +135,11 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
 - ✅ **Penghapusan Badge Aether Family Finance pada Hero Banner Dashboard (`Dashboard.jsx`)**:
   - Menghapus badge pill placeholder `"AETHER FAMILY FINANCE"` di atas sapaan pengguna pada Hero Banner Dashboard.
   - Tampilan Hero Banner kini langsung menyajikan sapaan nama pengguna (*"Selamat siang, Chris"*) dan subtext tanggal periode aktif secara clean dan minimalis.
-- ✅ **Build production terbaru** (`index-DjArFdOf.js` & `index-D3V078JI.css`) telah aktif dan live di container Mac mini.
+- ✅ **Pembuatan Tag Backup Baseline v.1.0 & Penghapusan Komponen Google Apps Script (`Settings.jsx`, `Sidebar.jsx`)**:
+  - **Git Tag `v.1.0`**: Berhasil dibuat dan dipush ke GitHub (`https://github.com/hittoukiri-design/wa-finance/releases/tag/v.1.0`) sebagai cadangan aman dari versi legacy awal.
+  - **Pembersihan Menu Pengaturan (`/settings`)**: Menghapus kartu Google Apps Script (Web App Endpoint URL & Spreadsheet ID) yang sudah tidak terpakai, sehingga halaman fokus pada **Konfigurasi AI (Groq)** dan Profil Akun.
+  - **Pembersihan Menu Sidebar**: Menghapus menu usang `Setup Guide` dari navigasi Sidebar, menghasilkan menu yang ringkas, bersih, dan 100% fungsional.
+- ✅ **Build production terbaru** (`index-BieLRqFi.js` & `index-BOTHkDZy.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

@@ -297,66 +297,6 @@ export default function Settings() {
               {busy ? 'Menyimpan...' : 'Simpan Konfigurasi AI'}
             </button>
           </section>
-
-          {/* Legacy Apps Script / Sheet */}
-          <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
-            <SectionTitle
-              icon={FileCode2}
-              title="Google Apps Script (Opsional)"
-              description="Untuk backup sinkronisasi legacy ke Google Spreadsheet."
-            >
-              <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider ${statusClass}`}>
-                {status === 'testing' && <RefreshCw className="mr-1 inline h-3 w-3 animate-spin" />}
-                {statusLabel}
-              </span>
-            </SectionTitle>
-
-            <div className="mt-5 space-y-4">
-              <div>
-                <div className="flex items-center justify-between">
-                  <FieldLabel>Web App Endpoint URL</FieldLabel>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={handleTest}
-                    className="text-xs font-bold text-[#1a5611] hover:underline dark:text-[#76d446] disabled:opacity-50"
-                  >
-                    <Wifi className="mr-1 inline h-3 w-3" />
-                    Test Koneksi
-                  </button>
-                </div>
-                <input
-                  value={settings.apps_script_url}
-                  onChange={(event) => setSettings((current) => ({ ...current, apps_script_url: event.target.value }))}
-                  placeholder="https://script.google.com/macros/s/.../exec"
-                  className="w-full rounded-xl border border-[#d6e4be] bg-white px-3.5 py-2.5 font-mono text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between">
-                  <FieldLabel>Spreadsheet ID</FieldLabel>
-                  {settings.spreadsheet_id && (
-                    <a
-                      href={sheetUrl(settings.spreadsheet_id)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-bold text-[#1a5611] hover:underline dark:text-[#76d446]"
-                    >
-                      <ExternalLink className="h-3 w-3" /> Buka Sheet
-                    </a>
-                  )}
-                </div>
-                <input
-                  value={settings.spreadsheet_id}
-                  onChange={(event) => setSettings((current) => ({ ...current, spreadsheet_id: event.target.value }))}
-                  placeholder="ID Spreadsheet Google"
-                  className="w-full rounded-xl border border-[#d6e4be] bg-white px-3.5 py-2.5 font-mono text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
-                />
-              </div>
-            </div>
-          </section>
-
         </div>
       </form>
     </div>

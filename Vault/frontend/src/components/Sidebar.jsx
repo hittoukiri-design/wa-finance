@@ -31,7 +31,6 @@ const navGroups = [
       { name: 'Format Balasan', icon: MessageSquare, path: '/conversations' },
       { name: 'Analytic', icon: BarChart3, path: '/analytics' },
       { name: 'Pengaturan', icon: Settings, path: '/settings' },
-      { name: 'Setup Guide', icon: FileCode2, path: '/setup' },
     ],
   },
 ];
