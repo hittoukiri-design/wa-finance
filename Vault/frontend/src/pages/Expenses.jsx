@@ -19,6 +19,7 @@ import {
   Flame,
   Mail,
   MoreVertical,
+  Pencil,
   Plus,
   Receipt,
   ReceiptText,
@@ -30,8 +31,8 @@ import {
 } from 'lucide-react';
 import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
-import { addExpense, deleteExpense, listExpenses } from '../lib/firestore';
-import { getBackendSettings, listRecaps } from '../lib/whatsapp-api';
+import { addExpense, deleteExpense, listExpenses, updateExpense } from '../lib/firestore';
+import { getBackendSettings, listCategories as listBackendCategories, listRecaps } from '../lib/whatsapp-api';
 
 const currency = (amount) => new Intl.NumberFormat('id-ID', {
   style: 'currency',
@@ -49,6 +50,7 @@ const CATEGORY_ICONS = {
   Shopping: '🛒',
   Makan: '🍜',
   'Food & Drink': '🍜',
+  Snack: '🍟',
   Keluarga: '👥',
   Rumah: '🏠',
   Hiburan: '🎮',
@@ -63,8 +65,35 @@ const CATEGORY_ICONS = {
   Lainnya: '🏷️',
 };
 
-function getCategoryIcon(cat) {
-  return CATEGORY_ICONS[cat] || '🏷️';
+const CATEGORIES_LIST = [
+  'Tagihan',
+  'Belanja',
+  'Makan',
+  'Snack',
+  'Keluarga',
+  'Rumah',
+  'Hiburan',
+  'Transportasi',
+  'Perawatan',
+  'Sosial',
+  'Kesehatan',
+  'Gaji',
+  'Lainnya',
+];
+
+const WALLET_OPTIONS = [
+  'Bank',
+  'BCA',
+  'Utama',
+  'SUPERBANK',
+  'Cash',
+  'GoPay',
+  'QRIS',
+  'Transfer',
+];
+
+function getCategoryIcon(cat, iconMap = {}) {
+  return iconMap[cat] || CATEGORY_ICONS[cat] || '🏷️';
 }
 
 function getDate(item) {
@@ -140,9 +169,6 @@ function formatPeriodRange(start, end) {
   const eMonth = new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(end);
   const eYear = end.getFullYear();
 
-  if (sMonth === eMonth && sYear === eYear) {
-    return `${sDay} ${sMonth} ${sYear} - ${eDay} ${eMonth} ${eYear}`;
-  }
   return `${sDay} ${sMonth} ${sYear} - ${eDay} ${eMonth} ${eYear}`;
 }
 
@@ -201,17 +227,33 @@ export default function Expenses() {
   const [notice, setNotice] = useState('');
   const [recaps, setRecaps] = useState([]);
   const [recapFilter, setRecapFilter] = useState('active');
+  const [categories, setCategories] = useState([]);
+
+  // Edit Transaction state
+  const [editingItem, setEditingItem] = useState(null);
+  const [editForm, setEditForm] = useState({
+    id: '',
+    merchant: '',
+    amount: '',
+    date: today(),
+    payment_channel: 'Bank',
+    category: 'Lainnya',
+    type: 'expense',
+  });
+  const [editBusy, setEditBusy] = useState(false);
 
   const load = useCallback(async () => {
     setBusy(true);
     try {
-      const [nextExpenses, recapResult, settings] = await Promise.all([
+      const [nextExpenses, recapResult, settings, categoryResult] = await Promise.all([
         listExpenses(user.uid, { recapId: recapFilter }),
         listRecaps().catch(() => ({ recaps: [] })),
         getBackendSettings().catch(() => ({})),
+        listBackendCategories().catch(() => ({ categories: [] })),
       ]);
       setExpenses(nextExpenses);
       setRecaps(recapResult.recaps || []);
+      setCategories((categoryResult.categories || []).filter((category) => category.is_active));
       if (recapFilter === 'active' && settings.active_recap_start_date) {
         const activeStart = dateFromInput(settings.active_recap_start_date);
         if (activeStart) {
@@ -227,6 +269,15 @@ export default function Expenses() {
   }, [user.uid, recapFilter]);
 
   useEffect(() => { load(); }, [load]);
+
+  const categoryIconMap = useMemo(() => Object.fromEntries(
+    categories.map((category) => [category.name, category.emoji || '🏷️'])
+  ), [categories]);
+
+  const categoryOptions = useMemo(() => {
+    const loaded = categories.map((category) => category.name);
+    return loaded.length ? loaded : CATEGORIES_LIST;
+  }, [categories]);
 
   // Period start & end for header subtitle
   const periodStartDate = useMemo(() => dateFromInput(startDate) || startOfMonth(new Date()), [startDate]);
@@ -365,6 +416,64 @@ export default function Expenses() {
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  const openEditModal = (item) => {
+    const itemDate = getDate(item);
+    setEditingItem(item);
+    setEditForm({
+      id: item.id,
+      merchant: getMerchant(item),
+      amount: item.amount || '',
+      date: itemDate ? dateInputValue(itemDate) : today(),
+      payment_channel: getAccount(item) || 'Bank',
+      category: getCategory(item) || 'Lainnya',
+      type: getType(item),
+    });
+  };
+
+  const handleUpdate = async (event) => {
+    event.preventDefault();
+    if (!editForm.merchant.trim() || !editForm.amount || Number(editForm.amount) <= 0) {
+      setNotice('Deskripsi transaksi dan nominal wajib diisi.');
+      return;
+    }
+    setEditBusy(true);
+    try {
+      await updateExpense(user.uid, editForm.id, {
+        merchant: editForm.merchant.trim(),
+        amount: Number(editForm.amount),
+        date: editForm.date,
+        payment_channel: editForm.payment_channel.trim() || 'Bank',
+        category: editForm.category.trim() || 'Lainnya',
+        type: editForm.type,
+      });
+
+      // Update state locally for instantaneous response
+      setExpenses((current) => current.map((item) => {
+        if (item.id === editForm.id) {
+          return {
+            ...item,
+            merchant: editForm.merchant.trim(),
+            description: editForm.merchant.trim(),
+            amount: Number(editForm.amount),
+            date: editForm.date,
+            payment_channel: editForm.payment_channel.trim() || 'Bank',
+            rekening: editForm.payment_channel.trim() || 'Bank',
+            category: editForm.category.trim() || 'Lainnya',
+            type: editForm.type,
+          };
+        }
+        return item;
+      }));
+
+      setEditingItem(null);
+      setNotice('Transaksi berhasil diperbarui.');
+    } catch (error) {
+      setNotice(error.message || 'Gagal memperbarui transaksi.');
+    } finally {
+      setEditBusy(false);
+    }
+  };
 
   const save = async (event) => {
     event.preventDefault();
@@ -532,7 +641,7 @@ export default function Expenses() {
               title={`Klik untuk filter kategori ${cat.name}`}
             >
               <span className="tx-cat-pct-tag">{cat.percent}%</span>
-              <div className="tx-cat-icon">{getCategoryIcon(cat.name)}</div>
+              <div className="tx-cat-icon">{getCategoryIcon(cat.name, categoryIconMap)}</div>
               <div className="tx-cat-name truncate">{cat.name}</div>
               <div className="tx-cat-nominal truncate">{currency(cat.amount)}</div>
               <div className="tx-cat-count">{cat.count} transaksi</div>
@@ -602,7 +711,7 @@ export default function Expenses() {
                 <th>DATE</th>
                 <th>SOURCE</th>
                 <th>STATUS</th>
-                <th style={{ textAlign: 'right', width: '75px' }}>ACTIONS</th>
+                <th style={{ textAlign: 'right', width: '90px' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -666,13 +775,22 @@ export default function Expenses() {
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <button
-                        className="table-action-icon text-red-500 hover:text-red-700"
-                        title="Hapus transaksi"
-                        onClick={() => remove(item.id)}
-                      >
-                        <Trash2 width="14" height="14" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          className="table-action-icon text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-white"
+                          title="Edit transaksi"
+                          onClick={() => openEditModal(item)}
+                        >
+                          <Pencil width="14" height="14" />
+                        </button>
+                        <button
+                          className="table-action-icon text-red-400 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                          title="Hapus transaksi"
+                          onClick={() => remove(item.id)}
+                        >
+                          <Trash2 width="14" height="14" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -727,6 +845,112 @@ export default function Expenses() {
           </div>
         )}
       </div>
+
+      {/* ════ EDIT TRANSAKSI MODAL (AS IN USER REFERENCE SCREENSHOT) ════ */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-[22px] border border-[#263e1d] bg-[#101b12] p-6 shadow-2xl dark:border-[#263e1d] dark:bg-[#101b12]">
+            <div className="flex items-center justify-between border-b border-[#243a1a] pb-4">
+              <h2 className="text-lg font-bold text-white">Edit transaksi</h2>
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white"
+              >
+                <X width="18" height="18" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdate} className="mt-4 space-y-4">
+              {/* Field 1: Transaksi (Merchant / Deskripsi) */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Transaksi</label>
+                <input
+                  required
+                  value={editForm.merchant}
+                  onChange={(e) => setEditForm((c) => ({ ...c, merchant: e.target.value }))}
+                  placeholder="Contoh: patungan kado, bensin"
+                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                />
+              </div>
+
+              {/* Field 2: Nominal */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Nominal</label>
+                <input
+                  required
+                  type="number"
+                  value={editForm.amount}
+                  onChange={(e) => setEditForm((c) => ({ ...c, amount: e.target.value }))}
+                  placeholder="Contoh: 42500"
+                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                />
+              </div>
+
+              {/* Field 3: Tanggal */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Tanggal</label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={editForm.date}
+                    onChange={(e) => setEditForm((c) => ({ ...c, date: e.target.value }))}
+                    className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  />
+                  <Calendar className="pointer-events-none absolute right-4 top-3 h-4 w-4 text-slate-400" />
+                </div>
+              </div>
+
+              {/* Field 4 (Grid 2 cols): Dompet & Kategori */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Dompet</label>
+                  <select
+                    value={editForm.payment_channel}
+                    onChange={(e) => setEditForm((c) => ({ ...c, payment_channel: e.target.value }))}
+                    className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  >
+                    {WALLET_OPTIONS.map((w) => (
+                      <option key={w} value={w}>{w}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Kategori</label>
+                  <select
+                    value={editForm.category}
+                    onChange={(e) => setEditForm((c) => ({ ...c, category: e.target.value }))}
+                    className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  >
+                    {categoryOptions.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="rounded-full border border-slate-700 bg-transparent px-6 py-2 text-xs font-bold text-slate-300 hover:bg-white/5"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={editBusy}
+                  className="rounded-full bg-[#76d446] px-7 py-2 text-xs font-black text-[#0d170a] shadow-lg transition hover:bg-[#64be36] disabled:opacity-50"
+                >
+                  {editBusy ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Manual Add Transaction Modal */}
       {showForm && (
@@ -798,7 +1022,7 @@ export default function Expenses() {
                     onChange={(e) => setForm((c) => ({ ...c, category: e.target.value }))}
                     className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   >
-                    {['Tagihan', 'Belanja', 'Makan', 'Keluarga', 'Rumah', 'Hiburan', 'Transportasi', 'Perawatan', 'Sosial', 'Kesehatan', 'Gaji', 'Lainnya'].map((c) => (
+                    {categoryOptions.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>

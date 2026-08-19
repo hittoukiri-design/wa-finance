@@ -9,6 +9,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from 'firebase/firestore';
 import { firestore } from './firebase';
 
@@ -59,6 +60,21 @@ export async function addExpense(uid, values) {
     recap_status: 'active',
     createdAt: serverTimestamp(),
   });
+}
+
+export async function updateExpense(uid, expenseId, values) {
+  const payload = {
+    updatedAt: serverTimestamp(),
+  };
+  if (values.merchant !== undefined) payload.merchant = String(values.merchant).trim();
+  if (values.category !== undefined) payload.category = String(values.category).trim() || 'Lainnya';
+  if (values.amount !== undefined) payload.amount = Number(values.amount);
+  if (values.date !== undefined) payload.date = values.date;
+  if (values.payment_channel !== undefined) payload.payment_channel = String(values.payment_channel).trim() || 'Cash';
+  if (values.type !== undefined) payload.type = values.type;
+  if (values.status !== undefined) payload.status = values.status;
+
+  await setDoc(doc(firestore, 'users', uid, 'expenses', expenseId), payload, { merge: true });
 }
 
 export async function deleteExpense(uid, expenseId) {

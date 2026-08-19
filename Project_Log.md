@@ -56,7 +56,8 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - Category Cards Grid dinamis (10 kategori teratas dengan emoji/icon, nominal rupiah, persentase pangsa, dan progress bar; klik kartu langsung memfilter tabel transaksi).
   - Aktivitas Transaksi Table lengkap: Merchant (avatar inisial + nama merchant + rekening subtext), Kategori pill, Type pill (`↘ Pengeluaran` / `↗ Pemasukan`), Nominal (`- Rp ...` / `+ Rp ...`), Date, Source (WhatsApp icon + ID), Status (`● Approved`), dan Actions (Hapus).
   - Search live input, filter baris (10/25/50), pagination lengkap, dan modal Tambah Transaksi manual.
-- ✅ **Build production terbaru** (`index-BuR6-SNy.js` & `index-BA8h9VXx.css`) telah aktif dan live di container Mac mini.
+- ✅ **Fitur Edit Transaksi Interaktif (`Expenses.jsx` & `firestore.js`)**: Menambahkan tombol edit pensil `✏️` di setiap baris tabel transaksi yang membuka popup modal **Edit Transaksi** (Deskripsi/Merchant, Nominal, Tanggal, Dompet dropdown, Kategori dropdown, tombol Batal & Simpan) dan tersinkronisasi langsung ke Firestore (`updateExpense`).
+- ✅ **Build production terbaru** (`index-DV94JCK4.js` & `index-DQGN374V.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.
