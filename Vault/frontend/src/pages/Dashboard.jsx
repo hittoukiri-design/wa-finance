@@ -11,6 +11,7 @@ import {
   PieChart as PieChartIcon,
   Save,
   Wallet,
+  X,
 } from 'lucide-react';
 import {
   Area,

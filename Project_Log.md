@@ -182,7 +182,12 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Navigasi Minggu (`‹` dan `›`)**: Tombol panah kini berfungsi menggeser minggu mundur atau maju secara real-time.
   - **Tombol Hero Header Diperjelas**: Tombol `Excel` (unduh .xlsx), `Cetak PDF` (window.print/PDF format), dan `Tutup Periode` (backup arsip ke Google Sheets).
   - **Dokumentasi Panduan Penggunaan**: Menulis buku panduan komprehensif di `PANDUAN_PENGGUNAAN.md`.
-- ✅ **Build production terbaru** (`index-BwNN6qhK.js` & `index-COTc-TRh.css`) telah aktif dan live di container Mac mini.
+- ✅ **Perbaikan Bug Modal Tabungan & Integrasi Pusat Keamanan & Auto-Backup Server (`Dashboard.jsx`, `Settings.jsx`, `backend/index.js`)**:
+  - **Fix Crash Modal Tabungan**: Memperbaiki `ReferenceError: X is not defined` pada `Dashboard.jsx` dengan mengimpor ikon `X` dari `lucide-react`. Modal "+ Catat" kini terbuka dengan mulus tanpa error.
+  - **Pusat Keamanan & Auto-Backup Server (`/settings`)**: Menambahkan panel status Auto-Backup 24/7 di server Mac mini dan tombol `Download Full Database Snapshot (.json)` untuk mencadangkan seluruh data transaksi, dompet, pagu anggaran, dan konfigurasi ke Google Drive atau storage lokal.
+  - **Google Sheets Live Sync**: Integrasi endpoint Google Apps Script untuk sinkronisasi cloud real-time.
+  - **Proteksi Idempotensi (Anti Tumpang Tindih Data)**: Menjamin setiap pesan WhatsApp dan transaksi dilindungi ID unik (`message_id`) sehingga reconnect atau pesan duplikat tidak akan membuat data bertumpuk atau saldo keliru.
+- ✅ **Build production terbaru** (`index-C1N0z2d0.js` & `index-BS-fv2x6.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

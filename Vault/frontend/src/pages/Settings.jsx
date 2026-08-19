@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   AlertCircle,
+  Cloud,
+  Database,
+  Download,
   CheckCircle2,
   ExternalLink,
   FileCode2,
@@ -144,6 +147,29 @@ export default function Settings() {
       notify('error', error.message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleDownloadBackup = async () => {
+    try {
+      const currentUser = auth.currentUser;
+      const token = currentUser ? await currentUser.getIdToken() : '';
+      const response = await fetch(`${API_BASE}/api/backup/export`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!response.ok) throw new Error('Gagal mengunduh backup dari server.');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `wa-finance-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      notify('success', 'File cadangan database (.json) berhasil diunduh.');
+    } catch (err) {
+      notify('error', err.message || 'Gagal mengunduh backup.');
     }
   };
 
@@ -296,6 +322,117 @@ export default function Settings() {
               <Save className="h-4 w-4" />
               {busy ? 'Menyimpan...' : 'Simpan Konfigurasi AI'}
             </button>
+          </section>
+
+          {/* Google Sheets / Drive Cloud Sync */}
+          <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+            <SectionTitle
+              icon={Cloud}
+              title="Google Sheets & Cloud Sync"
+              description="Koneksi Google Apps Script untuk sinkronisasi otomatis dan backup ke Google Drive / Google Sheets."
+            >
+              <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase ${statusClass}`}>
+                {statusLabel}
+              </span>
+            </SectionTitle>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <FieldLabel>Web App Endpoint URL (Google Apps Script)</FieldLabel>
+                <input
+                  type="url"
+                  value={settings.apps_script_url}
+                  onChange={(event) => setSettings((current) => ({ ...current, apps_script_url: event.target.value }))}
+                  placeholder="https://script.google.com/macros/s/.../exec"
+                  className="w-full rounded-xl border border-[#d6e4be] bg-white px-3.5 py-2.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+                />
+              </div>
+
+              <div>
+                <FieldLabel>Spreadsheet ID</FieldLabel>
+                <input
+                  type="text"
+                  value={settings.spreadsheet_id}
+                  onChange={(event) => setSettings((current) => ({ ...current, spreadsheet_id: event.target.value }))}
+                  placeholder="Contoh: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+                  className="w-full rounded-xl border border-[#d6e4be] bg-white px-3.5 py-2.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleTest}
+                  disabled={busy}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#358219] bg-white px-5 py-2 text-xs font-bold text-[#1a5611] shadow-sm transition hover:bg-[#e4f2da] disabled:opacity-50 dark:border-[#76d446] dark:bg-[#162718] dark:text-[#76d446]"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${status === 'testing' ? 'animate-spin' : ''}`} />
+                  Test Koneksi Apps Script
+                </button>
+                {sheetUrl(settings.spreadsheet_id) && (
+                  <a
+                    href={sheetUrl(settings.spreadsheet_id)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#d6e4be] bg-white/70 px-4 py-2 text-xs font-bold text-[#436d32] hover:text-[#1a5611] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#8bb37a]"
+                  >
+                    <span>Buka Spreadsheet</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Server Auto-Backup & Data Safety */}
+          <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+            <SectionTitle
+              icon={Database}
+              title="Keamanan Data & Server Auto-Backup"
+              description="Penyimpanan database berjalan 24/7 di server Mac mini dan otomatis tersinkron ke Cloud."
+            >
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300">
+                AUTO-BACKUP ON 🟢
+              </span>
+            </SectionTitle>
+
+            <div className="mt-6 space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-[#d6e4be] bg-white/70 p-4 dark:border-[#263e1d] dark:bg-[#162718]">
+                  <div className="flex items-center gap-2 text-xs font-black text-[#1a5611] dark:text-[#76d446]">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>Anti Tumpang Tindih</span>
+                  </div>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-[#436d32] dark:text-[#8bb37a]">
+                    Setiap transaksi WhatsApp dilindungi <code>message_id</code> unik (idempotensi). Pesan ganda atau reconnect tidak akan menduplikasi saldo.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-[#d6e4be] bg-white/70 p-4 dark:border-[#263e1d] dark:bg-[#162718]">
+                  <div className="flex items-center gap-2 text-xs font-black text-[#1a5611] dark:text-[#76d446]">
+                    <Server className="h-4 w-4" />
+                    <span>Stand-alone 24/7</span>
+                  </div>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-[#436d32] dark:text-[#8bb37a]">
+                    Server berjalan independen di background. Saat laptop mati atau tidak digunakan, bot dan database tetap mencatat transaksi.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadBackup}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#1a5611] px-5 py-2.5 text-xs font-black text-white shadow-md transition hover:bg-[#123d0c] dark:bg-[#76d446] dark:text-[#0d170a]"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Full Database Snapshot (.json)
+                </button>
+                <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">
+                  Cadangan lengkap berisi semua data transaksi, dompet, pagu anggaran, dan konfigurasi yang dapat kamu simpan di Google Drive.
+                </p>
+              </div>
+            </div>
           </section>
         </div>
       </form>

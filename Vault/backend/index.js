@@ -694,6 +694,41 @@ app.get('/api/analytics', authenticate, (req, res) => {
     });
 });
 
+app.get('/api/backup/export', authenticate, async (req, res) => {
+    try {
+        const [settings, expenses, conversations, categories] = await Promise.all([
+            getUserSettings(req.userId),
+            db.prepare('SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC').all(req.userId),
+            db.prepare('SELECT * FROM conversations WHERE user_id = ? ORDER BY created_at DESC LIMIT 500').all(req.userId),
+            db.prepare('SELECT * FROM categories WHERE user_id = ?').all(req.userId),
+        ]);
+
+        const backupData = {
+            version: '2.0.0',
+            exported_at: new Date().toISOString(),
+            user_id: req.userId,
+            settings: publicSettings(settings),
+            stats: {
+                total_expenses: expenses.length,
+                total_conversations: conversations.length,
+                total_categories: categories.length,
+            },
+            wallets: settings.wallets || [],
+            category_budgets: settings.category_budgets || [],
+            categories,
+            expenses,
+            conversations,
+        };
+
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="wa-finance-backup-${dateInputValue(new Date())}.json"`);
+        res.json(backupData);
+    } catch (error) {
+        console.error('Backup export error:', error.message);
+        res.status(500).json({ error: 'Gagal membuat file cadangan database.' });
+    }
+});
+
 const PUBLIC_DIR = process.env.PUBLIC_DIR || path.join(__dirname, 'public');
 const INDEX_HTML = path.join(PUBLIC_DIR, 'index.html');
 
