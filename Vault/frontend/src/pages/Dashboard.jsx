@@ -329,8 +329,9 @@ export default function Dashboard() {
       }));
   }, [activePeriodExpenses]);
 
-  // ── ATM Card Carousel Slides & Gesture Handling ──
-  const [currentCardSlide, setCurrentCardSlide] = useState(0);
+  // ── ATM Card Carousel Slides & Seamless Infinite Loop ──
+  const [currentCardSlide, setCurrentCardSlide] = useState(1);
+  const [isTransitioning, setIsTransitioning] = useState(true);
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
   const [touchStartX, setTouchStartX] = useState(null);
   const [touchEndX, setTouchEndX] = useState(null);
@@ -432,11 +433,20 @@ export default function Dashboard() {
     return slides;
   }, [expenses, incomes, activePeriodExpenses, monthlyBudget, budgetRemaining, budgetUsed, savedWallets]);
 
-  // Auto slide every 4.5 seconds (pauses on hover)
+  // Extended slides with clones for seamless infinite loop
+  const displaySlides = useMemo(() => {
+    if (walletSlides.length <= 1) return walletSlides;
+    const firstClone = { ...walletSlides[0], id: `${walletSlides[0].id}-clone-end` };
+    const lastClone = { ...walletSlides[walletSlides.length - 1], id: `${walletSlides[walletSlides.length - 1].id}-clone-start` };
+    return [lastClone, ...walletSlides, firstClone];
+  }, [walletSlides]);
+
+  // Auto slide every 4.5 seconds (seamless infinite loop)
   useEffect(() => {
     if (isCarouselHovered || walletSlides.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentCardSlide((prev) => (prev + 1) % walletSlides.length);
+      setIsTransitioning(true);
+      setCurrentCardSlide((prev) => prev + 1);
     }, 4500);
     return () => clearInterval(interval);
   }, [isCarouselHovered, walletSlides.length]);
@@ -446,12 +456,29 @@ export default function Dashboard() {
 
   const handlePrevSlide = (e) => {
     e?.stopPropagation();
-    setCurrentCardSlide((prev) => (prev - 1 + walletSlides.length) % walletSlides.length);
+    if (walletSlides.length <= 1) return;
+    setIsTransitioning(true);
+    setCurrentCardSlide((prev) => prev - 1);
   };
 
   const handleNextSlide = (e) => {
     e?.stopPropagation();
-    setCurrentCardSlide((prev) => (prev + 1) % walletSlides.length);
+    if (walletSlides.length <= 1) return;
+    setIsTransitioning(true);
+    setCurrentCardSlide((prev) => prev + 1);
+  };
+
+  const handleTransitionEnd = () => {
+    if (walletSlides.length <= 1) return;
+    if (currentCardSlide >= walletSlides.length + 1) {
+      // Reached end clone -> silently jump to real first slide
+      setIsTransitioning(false);
+      setCurrentCardSlide(1);
+    } else if (currentCardSlide <= 0) {
+      // Reached start clone -> silently jump to real last slide
+      setIsTransitioning(false);
+      setCurrentCardSlide(walletSlides.length);
+    }
   };
 
   // Mouse Drag handlers
@@ -499,13 +526,15 @@ export default function Dashboard() {
     if (!touchStartX || !touchEndX) return;
     const distance = touchStartX - touchEndX;
     if (distance > 35) {
-      // Swiped Left -> Next
       handleNextSlide();
     } else if (distance < -35) {
-      // Swiped Right -> Prev
       handlePrevSlide();
     }
   };
+
+  const activeDotIndex = walletSlides.length > 1
+    ? ((currentCardSlide - 1) % walletSlides.length + walletSlides.length) % walletSlides.length
+    : 0;
 
   // Sparkline data calculations
   const expenseSparkline = useMemo(() => {
@@ -803,10 +832,14 @@ export default function Dashboard() {
           <div className="w-full overflow-hidden flex-1 flex flex-col justify-between">
             {/* Carousel Slide Track */}
             <div
-              className="flex transition-transform duration-500 ease-out h-full w-full"
-              style={{ transform: `translateX(-${currentCardSlide * 100}%)` }}
+              className="flex h-full w-full"
+              style={{
+                transform: `translateX(-${currentCardSlide * 100}%)`,
+                transition: isTransitioning ? 'transform 500ms cubic-bezier(0.25, 1, 0.5, 1)' : 'none',
+              }}
+              onTransitionEnd={handleTransitionEnd}
             >
-              {walletSlides.map((slide) => (
+              {displaySlides.map((slide) => (
                 <div
                   key={slide.id}
                   className="w-full min-w-full max-w-full shrink-0 flex-shrink-0 flex flex-col justify-between h-full"
@@ -881,8 +914,12 @@ export default function Dashboard() {
             {walletSlides.map((_, dotIdx) => (
               <div
                 key={dotIdx}
-                onClick={(e) => { e.stopPropagation(); setCurrentCardSlide(dotIdx); }}
-                className={`saldo-dot transition-all duration-300 cursor-pointer ${dotIdx === currentCardSlide ? 'active !w-5 !bg-[#76d446]' : '!bg-white/30 hover:!bg-white/60'}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsTransitioning(true);
+                  setCurrentCardSlide(dotIdx + 1);
+                }}
+                className={`saldo-dot transition-all duration-300 cursor-pointer ${dotIdx === activeDotIndex ? 'active !w-5 !bg-[#76d446]' : '!bg-white/30 hover:!bg-white/60'}`}
                 title={`Lihat kartu ${dotIdx + 1}`}
               />
             ))}
