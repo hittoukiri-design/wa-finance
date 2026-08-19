@@ -67,25 +67,26 @@ const formatLongDate = (date) => new Intl.DateTimeFormat('id-ID', {
   year: 'numeric',
 }).format(date);
 
-const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+const endOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
 const startOfWeek = (date) => {
   const copy = startOfDay(date);
   const day = copy.getDay() || 7;
   copy.setDate(copy.getDate() - day + 1);
   return copy;
 };
-const startOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
-const endOfMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
+const startOfMonth = (date = new Date()) => new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+const endOfMonth = (date = new Date()) => new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
 const addDays = (date, amount) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount);
 const addMonths = (date, amount) => new Date(date.getFullYear(), date.getMonth() + amount, 1);
 const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-function dateFromInput(value) {
+function dateFromInput(value, isEndOfDay = false) {
   if (!value) return null;
   const [year, month, day] = String(value).split('-').map(Number);
   if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);
+  return isEndOfDay ? new Date(year, month - 1, day, 23, 59, 59, 999) : new Date(year, month - 1, day, 0, 0, 0, 0);
 }
 
 function getExpenseDate(item) {
@@ -208,19 +209,24 @@ export default function Dashboard() {
     if (isFiltered && filterStartDate) {
       return dateFromInput(filterStartDate) || startOfMonth(new Date());
     }
-    return dateFromInput(activeRecapStartDate) || startOfMonth(new Date());
+    const recapStart = dateFromInput(activeRecapStartDate);
+    return recapStart || startOfMonth(new Date());
   }, [isFiltered, filterStartDate, activeRecapStartDate]);
 
   const activePeriodEnd = useMemo(() => {
     if (isFiltered && filterEndDate) {
-      return dateFromInput(filterEndDate, true) || endOfMonth(activePeriodStart);
+      return dateFromInput(filterEndDate, true) || endOfMonth(new Date());
     }
-    return endOfMonth(activePeriodStart);
+    const now = new Date();
+    const currentEnd = endOfMonth(now);
+    const startEnd = endOfMonth(activePeriodStart);
+    return currentEnd > startEnd ? currentEnd : startEnd;
   }, [isFiltered, filterEndDate, activePeriodStart]);
 
   const matchesFilter = useCallback((item) => {
     const d = getExpenseDate(item);
-    if (!d || d < activePeriodStart || d > activePeriodEnd) return false;
+    if (!d) return false;
+    if (d < activePeriodStart || d > activePeriodEnd) return false;
 
     if (filterWallet && filterWallet !== 'Semua dompet') {
       const ch = String(item.payment_channel || item.rekening || '').trim().toLowerCase();
