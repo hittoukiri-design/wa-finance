@@ -1698,8 +1698,27 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Motivational Quote Banner */}
+        {/* Motivational Quote Banner with Animated Mint Breeze */}
         <div className="box-card quote-motivational-card">
+          {/* Ambient Breeze & Floating Orbs */}
+          <div className="quote-float-orb o1" />
+          <div className="quote-float-orb o2" />
+          <svg className="quote-ext-wave" viewBox="0 0 600 80" preserveAspectRatio="none" aria-hidden="true">
+            <path className="w1" d="M0 50 C120 20 220 70 340 45 C460 20 540 60 600 48" />
+          </svg>
+
+          {/* Right-Aligned Animated Mint Plant (Sways in the Wind) */}
+          <div className="quote-banner-art-wrap">
+            <img
+              src="/mint-leave-exact.png"
+              alt="Mint Leaves"
+              className="quote-banner-art-img"
+            />
+          </div>
+
+          <div className="quote-ext-light" />
+
+          {/* Left Content */}
           <div className="quote-left-block">
             <div className="quote-icon-leaf">🌱</div>
             <p className="quote-text-p">

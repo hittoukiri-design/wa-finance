@@ -7557,13 +7557,9 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   text-align: right;
 }
 
-/* Motivational Quote Card (Clean, Seamless & Pristine) */
+/* Motivational Quote Card with Animated Mint Breeze & Ambient Shimmer */
 .quote-motivational-card {
   background-color: #f7faef;
-  background-image: url('/mint-leave-exact.png');
-  background-position: right center;
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
   border: 1px solid #d6e4be;
   border-radius: 20px;
   display: flex;
@@ -7582,13 +7578,113 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
 [data-theme="dark"] .quote-motivational-card, html.dark .quote-motivational-card {
   background:
     radial-gradient(circle at 18% 50%, rgba(36, 70, 24, 0.45) 0 25%, transparent 26%),
-    linear-gradient(105deg, rgba(11, 24, 13, 0.94) 0%, rgba(15, 35, 18, 0.84) 45%, rgba(20, 46, 24, 0.65) 100%),
-    url('/mint-leave-exact.png');
-  background-position: right center;
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
+    linear-gradient(105deg, #0b180d 0%, #0f2312 45%, #142e18 100%);
   border: 1px solid #244618;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(118, 212, 70, 0.18);
+}
+
+/* Right-Aligned Animated Mint Leaves (Organic Sway) */
+.quote-banner-art-wrap {
+  position: absolute;
+  z-index: 1;
+  right: -2px;
+  top: 0;
+  width: 60%;
+  height: 100%;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+
+.quote-banner-art-img {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: right center;
+  opacity: 0.98;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.22) 10%, #000 28%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.22) 10%, #000 28%, #000 100%);
+  transform-origin: 86% 96%;
+  animation: quoteArtBreeze 6s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+[data-theme="dark"] .quote-banner-art-img, html.dark .quote-banner-art-img {
+  opacity: 0.72;
+  mix-blend-mode: luminosity;
+}
+
+@keyframes quoteArtBreeze {
+  0%   { transform: rotate(-3deg) translateX(-2px); }
+  35%  { transform: rotate(-0.8deg) translateX(-1px); }
+  65%  { transform: rotate(1.2deg) translateX(2px); }
+  100% { transform: rotate(3.2deg) translateX(4px); }
+}
+
+/* Floating ambient orbs & breeze line */
+.quote-float-orb {
+  position: absolute;
+  z-index: 1;
+  border-radius: 50%;
+  background: rgba(181, 211, 129, 0.24);
+  pointer-events: none;
+}
+
+.quote-float-orb.o1 {
+  width: 32px;
+  height: 32px;
+  left: 36%;
+  top: 22%;
+  animation: float1 7s ease-in-out infinite;
+}
+
+.quote-float-orb.o2 {
+  width: 16px;
+  height: 16px;
+  left: 54%;
+  top: 68%;
+  background: rgba(157, 201, 95, 0.22);
+  animation: float2 8s ease-in-out infinite 0.6s;
+}
+
+.quote-ext-wave {
+  position: absolute;
+  z-index: 1;
+  left: -5%;
+  bottom: 0;
+  width: 110%;
+  height: 60px;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.quote-ext-wave path {
+  fill: none;
+  stroke: #488f28;
+  stroke-width: 1.4;
+  animation: waveMove 10s ease-in-out infinite alternate;
+}
+
+[data-theme="dark"] .quote-ext-wave path, html.dark .quote-ext-wave path {
+  stroke: #76d446;
+  opacity: 0.25;
+}
+
+.quote-ext-light {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.12) 50%, transparent 60%);
+  background-size: 200% 100%;
+  animation: lightSweep 12s ease-in-out infinite;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .quote-ext-light, html.dark .quote-ext-light {
+  background: linear-gradient(105deg, transparent 40%, rgba(118, 212, 70, 0.08) 50%, transparent 60%);
 }
 
 .quote-left-block {
