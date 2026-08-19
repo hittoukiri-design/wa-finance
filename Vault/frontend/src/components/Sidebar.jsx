@@ -53,7 +53,7 @@ export default function Sidebar() {
         className={`flex items-center ${
           isCollapsed
             ? 'justify-center py-5'
-            : 'border-b border-[#e5eedc] px-5 py-4 dark:border-[#1d3517]'
+            : 'px-5 pt-6 pb-3'
         }`}
       >
         <div className="flex items-center gap-3 min-w-0">

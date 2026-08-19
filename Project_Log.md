@@ -96,7 +96,10 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Hapus Dompet (`Trash2`)**: Menambahkan tombol icon tong sampah 🗑️ di sebelah tombol pensil pada setiap baris dompet. Dilengkapi dialog konfirmasi hapus dan sinkronisasi realtime ke Firestore (`deleted_wallets`).
   - **Tambah Kategori (`+ Tambah kategori`)**: Menambahkan tombol `+ Tambah kategori` di header section Proteksi Budget, lengkap dengan modal input: Nama Kategori, Picker Emoji, Budget Bulanan, dan Ambang Alert WhatsApp.
   - **Hapus Kategori (`Trash2`)**: Menambahkan tombol icon tong sampah 🗑️ di sebelah tombol pensil pada setiap baris kategori. Dilengkapi dialog konfirmasi dan sinkronisasi realtime ke Firestore (`deleted_categories`).
-- ✅ **Build production terbaru** (`index-CZiaLMMf.js` & `index-CzA8Fuxc.css`) telah aktif dan live di container Mac mini.
+- ✅ **Pembersihan Total Garis Pemisah Header Brand Sidebar (`Sidebar.jsx`)**:
+  - Menghapus garis horizontal pemisah (`border-b border-[#e5eedc]`) di bawah nama aplikasi `WA Finance / GATEWAY PLATFORM` pada mode expanded/penuh.
+  - Sidebar kini tampil 100% seamless, bersih, dan menyatu tanpa garis pemisah yang mengganggu di bawah judul maupun antar menu.
+- ✅ **Build production terbaru** (`index-DYIo0Opb.js` & `index-iovkVKgo.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.
