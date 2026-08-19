@@ -863,7 +863,7 @@ export default function Dashboard() {
         <div className="hero-content-exact-left">
           <h1 className="hero-title-exact">{getGreeting()}, {firstName(user)}</h1>
           <p className="hero-desc-exact">
-            Mulai hari dengan catatan yang rapi. · {formatLongDate(activePeriodStart)} - {formatLongDate(activePeriodEnd)}
+            Mulai hari dengan catatan yang rapi. · {formatLongDate(activePeriodStart)} - {isFiltered ? formatLongDate(activePeriodEnd) : 'Sekarang (Periode Aktif)'}
           </p>
         </div>
 
