@@ -1293,7 +1293,7 @@ export default function Dashboard() {
           onTouchEnd={handleTouchEnd}
         >
           {/* Viewport Wrapper */}
-          <div className="w-full overflow-hidden flex-1 flex flex-col justify-between">
+          <div className="w-full overflow-hidden flex-1 flex flex-col justify-between relative" style={{ isolation: 'isolate', contain: 'paint' }}>
             {/* Carousel Slide Track */}
             <div
               className="flex h-full w-full"
@@ -1306,8 +1306,8 @@ export default function Dashboard() {
               {displaySlides.map((slide) => (
                 <div
                   key={slide.id}
-                  className="w-full min-w-full max-w-full shrink-0 flex-shrink-0 flex flex-col justify-between h-full"
-                  style={{ width: '100%', minWidth: '100%', maxWidth: '100%' }}
+                  className="saldo-slide-item w-full min-w-full max-w-full shrink-0 flex-shrink-0 flex flex-col justify-between h-full px-0.5 overflow-hidden"
+                  style={{ width: '100%', minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
                 >
                   <div>
                     <div className="saldo-card-head">
