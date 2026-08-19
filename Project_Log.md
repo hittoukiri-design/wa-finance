@@ -106,3 +106,8 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
 ## Important Safety Note
 - Jangan upload data sensitif ke GitHub: `.env`, Firebase service account JSON, API keys, SQLite database, WhatsApp session, Excel/PSD/screenshot/zip backup, personal reports.
 - Gunakan explicit file staging, **bukan** `git add .`.
+
+- ✅ **Fleksibilitas Edit Transaksi & Taksonomi Kategori Cerdas**:
+  - Konfirmasi & validasi alur edit kategori transaksi langsung melalui tombol `✏️` pada tabel aktivitas `Expenses.jsx`.
+  - Pemetaan kata kunci cerdas (*Bensin* -> *Transportasi*, *Kosan* -> *Rumah*, *Kopi/Nasi* -> *Makan*).
+  - Sinkronisasi master Daily Report & Project Log.
