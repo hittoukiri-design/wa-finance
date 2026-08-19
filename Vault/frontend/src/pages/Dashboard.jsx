@@ -29,7 +29,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
-import { listConversations, listExpenses } from '../lib/firestore';
+import { getSettings, listConversations, listExpenses } from '../lib/firestore';
 import { createNewRecap, downloadExcelReport, getBackendSettings, whatsappApi } from '../lib/whatsapp-api';
 
 const CATEGORY_COLORS = ['#2f781c', '#6952ec', '#f77132', '#f59e0b', '#16b896', '#389ef2', '#94a3b8'];
@@ -149,6 +149,7 @@ export default function Dashboard() {
   const [budgetBusy, setBudgetBusy] = useState(false);
   const [budgetNotice, setBudgetNotice] = useState('');
   const [activeRecapStartDate, setActiveRecapStartDate] = useState('');
+  const [savedWallets, setSavedWallets] = useState([]);
   const [showRecapModal, setShowRecapModal] = useState(false);
   const [recapBusy, setRecapBusy] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState(null);
@@ -159,8 +160,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([listExpenses(user.uid), listConversations(user.uid), getBackendSettings()])
-      .then(([nextExpenses, nextConversations, settings]) => {
+    Promise.all([listExpenses(user.uid), listConversations(user.uid), getBackendSettings(), getSettings(user.uid)])
+      .then(([nextExpenses, nextConversations, settings, userConfig]) => {
         if (!active) return;
         setExpenses(nextExpenses.filter((item) => item.type !== 'income'));
         setIncomes(nextExpenses.filter((item) => item.type === 'income'));
@@ -169,6 +170,9 @@ export default function Dashboard() {
         setMonthlyBudget(savedBudget);
         setBudgetInput(savedBudget ? String(savedBudget) : '');
         setActiveRecapStartDate(settings.active_recap_start_date || '');
+        if (userConfig?.wallets && Array.isArray(userConfig.wallets)) {
+          setSavedWallets(userConfig.wallets);
+        }
       })
       .catch((reason) => {
         if (active) setError(reason.message || 'Data Firestore belum dapat dibaca.');
@@ -334,6 +338,10 @@ export default function Dashboard() {
   const [touchEndX, setTouchEndX] = useState(null);
 
   const walletSlides = useMemo(() => {
+    // Find primary wallet account number if available
+    const primaryWithNorek = savedWallets.find((w) => w.account_number && w.account_number.trim());
+    const primaryLast4 = primaryWithNorek ? primaryWithNorek.account_number.trim().slice(-4) : '0080';
+
     const slides = [
       {
         id: 'total',
@@ -341,7 +349,7 @@ export default function Dashboard() {
         title: 'TOTAL SALDO',
         amount: monthlyBudget ? budgetRemaining : totalMonth,
         isBudget: Boolean(monthlyBudget),
-        cardNumber: '•••• •••• •••• 0080',
+        cardNumber: `•••• •••• •••• ${primaryLast4}`,
         bottomLeft: monthlyBudget ? `${budgetUsed.toFixed(1)}% budget terpakai` : 'Semua dompet',
         bottomRight: `${saldoPerDompet.length || 3} dompet aktif`,
         badgeColor: '#76d446',
@@ -368,7 +376,7 @@ export default function Dashboard() {
 
     const WALLET_CONFIG = {
       BCA: { digits: '8821', badgeColor: '#2f781c' },
-      Cash: { digits: 'TUNAI', badgeColor: '#f77132' },
+      Cash: { digits: 'CASH', badgeColor: '#f77132' },
       SUPERBANK: { digits: '5920', badgeColor: '#6952ec' },
       GOPAY: { digits: '0812', badgeColor: '#00aed6' },
       QRIS: { digits: '9901', badgeColor: '#ea1d2c' },
@@ -379,6 +387,10 @@ export default function Dashboard() {
       const spent = walletExpenseMap[wName] || 0;
       const count = activePeriodExpenses.filter((e) => String(e.payment_channel || e.rekening || 'Cash').trim() === wName).length;
       const cfg = WALLET_CONFIG[wName] || { digits: '7721', badgeColor: '#76d446' };
+      const sw = savedWallets.find((w) => w.name && w.name.toLowerCase() === wName.toLowerCase());
+      const customDigits = sw?.account_number && sw.account_number.trim()
+        ? sw.account_number.trim().slice(-4)
+        : cfg.digits;
 
       slides.push({
         id: wName,
@@ -386,7 +398,7 @@ export default function Dashboard() {
         title: `DOMPET • ${wName.toUpperCase()}`,
         amount: spent,
         isBudget: false,
-        cardNumber: `${wName.toUpperCase()} •••• ${cfg.digits}`,
+        cardNumber: `•••• •••• •••• ${customDigits}`,
         bottomLeft: `${count} transaksi di periode ini`,
         bottomRight: 'Kanal Pembayaran',
         badgeColor: cfg.badgeColor,
@@ -394,7 +406,7 @@ export default function Dashboard() {
     });
 
     return slides;
-  }, [expenses, activePeriodExpenses, monthlyBudget, budgetRemaining, totalMonth, budgetUsed, saldoPerDompet]);
+  }, [expenses, activePeriodExpenses, monthlyBudget, budgetRemaining, totalMonth, budgetUsed, saldoPerDompet, savedWallets]);
 
   // Auto slide every 4.5 seconds (pauses on hover)
   useEffect(() => {

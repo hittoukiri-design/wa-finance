@@ -147,7 +147,10 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Auto-Slide Otomatis**: Kartu ATM kini bergeser otomatis setiap 4.5 detik bergantian antara *Total Saldo/Budget* dan dompet-dompet spesifik (BCA, Cash, SUPERBANK, GOPAY, QRIS, DANA) lengkap dengan nomor kartu realistis dan jumlah transaksi. Otomatis berhenti (*pause*) saat kursor mouse diarahkan ke kartu.
   - **Swipe / Geser Touch & Mouse**: Pengguna dapat menggeser kartu ke kiri/kanan dengan sentuhan (*touch swipe*) atau tarikan kursor mouse.
   - **Tombol Navigasi Chevron & Titik Indikator Interaktif**: Tombol panah kiri/kanan muncul saat kartu di-hover, dan titik indikator di bawah kartu dapat diklik langsung untuk berpindah kartu secara instan dengan animasi transisi yang mulus.
-- ✅ **Build production terbaru** (`index-CsnhpD64.js` & `index-BtAUBXRl.css`) telah aktif dan live di container Mac mini.
+- ✅ **Fitur Input Nomor Rekening/E-Wallet & Masking 4 Digit Terakhir (`Dompet.jsx` & `Dashboard.jsx`)**:
+  - **Menu Dompet (`/dompet`)**: Menambahkan kolom input *Nomor Rekening / No. E-Wallet* pada modal Tambah/Edit Dompet.
+  - **Kartu ATM Dashboard**: Kartu ATM kini secara dinamis membaca nomor rekening asli yang kamu isi di menu Dompet, dan menampilkan format masking standar perbankan `•••• •••• •••• [4 DIGIT TERAKHIR]` (misal: `•••• •••• •••• 7890`).
+- ✅ **Build production terbaru** (`index-CaME5AjH.js` & `index-BtAUBXRl.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

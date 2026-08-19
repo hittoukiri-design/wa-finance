@@ -69,7 +69,7 @@ export default function Dompet() {
 
   // Wallet Modal state
   const [editingWallet, setEditingWallet] = useState(null);
-  const [walletForm, setWalletForm] = useState({ id: '', name: '', initial_balance: '', threshold: '20%' });
+  const [walletForm, setWalletForm] = useState({ id: '', name: '', initial_balance: '', account_number: '', threshold: '20%' });
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
   const [deletingWallet, setDeletingWallet] = useState(null);
 
@@ -144,6 +144,7 @@ export default function Dompet() {
           threshold: sw?.threshold || '20%',
           balance: liveBal,
           initial_balance: initialBal,
+          account_number: sw?.account_number || '',
           is_active: sw ? sw.is_active !== false : true,
         };
       });
@@ -203,17 +204,19 @@ export default function Dompet() {
       id: w.id,
       name: w.name,
       initial_balance: w.initial_balance !== undefined ? String(w.initial_balance) : String(w.balance || 0),
+      account_number: w.account_number || '',
       threshold: w.threshold || '20%',
     });
   };
 
   const handleOpenCreateWallet = () => {
     setIsCreatingWallet(true);
-    setEditingWallet({ id: '', name: '', initial_balance: '0', threshold: '20%' });
+    setEditingWallet({ id: '', name: '', initial_balance: '0', account_number: '', threshold: '20%' });
     setWalletForm({
       id: `w-${Date.now()}`,
       name: '',
       initial_balance: '0',
+      account_number: '',
       threshold: '20%',
     });
   };
@@ -232,6 +235,7 @@ export default function Dompet() {
         id: walletForm.id || `w-${Date.now()}`,
         name: walletForm.name.trim(),
         initial_balance: Number(walletForm.initial_balance || 0),
+        account_number: (walletForm.account_number || '').trim(),
         threshold: walletForm.threshold.trim() || '20%',
         is_active: true,
       };
@@ -252,6 +256,7 @@ export default function Dompet() {
             ...w,
             name: walletForm.name.trim(),
             initial_balance: Number(walletForm.initial_balance || 0),
+            account_number: (walletForm.account_number || '').trim(),
             threshold: walletForm.threshold.trim() || '20%',
           };
         }
@@ -682,6 +687,17 @@ export default function Dompet() {
                   placeholder="Contoh: 15%, 20%, 30%"
                   className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
                 />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Nomor Rekening / No. E-Wallet (Opsional)</label>
+                <input
+                  value={walletForm.account_number}
+                  onChange={(e) => setWalletForm((c) => ({ ...c, account_number: e.target.value }))}
+                  placeholder="Contoh: 1234567890 atau 08123456789"
+                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                />
+                <p className="mt-1 text-[10px] text-slate-500">4 digit terakhir akan ditampilkan di kartu ATM Dashboard (contoh: •••• •••• •••• 7890)</p>
               </div>
 
               <div className="mt-6 flex items-center justify-end gap-3 pt-2">
