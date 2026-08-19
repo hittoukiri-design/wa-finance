@@ -32,7 +32,7 @@ import {
 import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
 import { addExpense, deleteExpense, listExpenses, updateExpense } from '../lib/firestore';
-import { getBackendSettings, listCategories as listBackendCategories, listRecaps } from '../lib/whatsapp-api';
+import { downloadExcelReport, getBackendSettings, listCategories as listBackendCategories, listRecaps } from '../lib/whatsapp-api';
 
 const currency = (amount) => new Intl.NumberFormat('id-ID', {
   style: 'currency',
@@ -505,25 +505,26 @@ export default function Expenses() {
     }
   };
 
-  const exportCsv = () => {
-    const header = ['Tanggal', 'Deskripsi', 'Kategori', 'Tipe', 'Nominal', 'Rekening', 'Sumber', 'Status'];
-    const rows = filtered.map((item) => [
-      formatDateTime(getDate(item)),
-      getMerchant(item),
-      getCategory(item),
-      getType(item) === 'income' ? 'Pemasukan' : 'Pengeluaran',
-      item.amount || 0,
-      getAccount(item),
-      getSource(item),
-      getStatus(item),
-    ]);
-    const csv = [header, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `wa-finance-transaksi-${dateInputValue(new Date())}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const exportExcel = async () => {
+    setNotice('');
+    try {
+      const blob = await downloadExcelReport({
+        recapId: recapFilter,
+        startDate,
+        endDate,
+        type: typeFilter,
+        category: categoryFilter,
+        search,
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${dateInputValue(new Date())} - WA Finance Report.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setNotice(error.message || 'Laporan Excel gagal dibuat.');
+    }
   };
 
   const exportPdf = () => {
@@ -540,48 +541,62 @@ export default function Expenses() {
         </div>
       )}
 
-      {/* ════ 1. TOP THREE CARDS ROW (AS REQUESTED) ════ */}
-      <div className="tx-top-three-grid">
+      {/* ════ 1. TOP THREE CARDS ROW (SIDE BY SIDE 3-COLUMNS) ════ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-4 w-full">
         
         {/* Card 1: Banner Card (Arus Kas - Daftar Transaksi) */}
-        <div className="tx-banner-box">
-          <div>
-            <div className="tx-banner-eyebrow">ARUS KAS</div>
-            <div className="tx-banner-title">Daftar transaksi</div>
-            <div className="tx-banner-sub">{periodString}</div>
+        <div className="relative overflow-hidden rounded-[22px] bg-[#87e33e] p-5 shadow-md flex flex-col justify-between min-h-[145px] text-[#0d2207] border border-[#74d32a]">
+          {/* Decorative background shapes */}
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full border-[8px] border-white/20" />
+          <div className="pointer-events-none absolute right-10 -bottom-8 h-20 w-36 rounded-full border-[6px] border-white/15" />
+          
+          <div className="relative z-10">
+            <div className="text-[10px] font-black uppercase tracking-wider text-[#1e4d0d]">
+              ARUS KAS
+            </div>
+            <div className="text-xl font-black text-[#0a1c05] mt-0.5">
+              Daftar transaksi
+            </div>
+            <div className="text-[11px] font-bold text-[#235610] mt-0.5">
+              {periodString}
+            </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-2">
-            <button className="btn-export-outline" onClick={exportPdf}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d93829" strokeWidth="2.5">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
+          <div className="relative z-10 mt-3 flex items-center gap-2">
+            <button
+              onClick={exportPdf}
+              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/80 px-3.5 py-1.5 text-xs font-black text-[#0d2207] shadow-sm backdrop-blur-sm transition hover:bg-white"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               PDF
             </button>
-            <button className="btn-export-outline" onClick={exportCsv}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2d7a18" strokeWidth="2.5">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
+            <button
+              onClick={exportExcel}
+              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/80 px-3.5 py-1.5 text-xs font-black text-[#0d2207] shadow-sm backdrop-blur-sm transition hover:bg-white"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               Excel
             </button>
           </div>
         </div>
 
         {/* Card 2: Total Pengeluaran */}
-        <div className="tx-stat-box">
+        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm flex flex-col justify-between min-h-[145px] dark:border-[#243e1c] dark:bg-[#121e14]">
           <div>
-            <div className="tx-stat-box-head">
-              <span className="tx-stat-box-title">TOTAL PENGELUARAN</span>
-              <div className="tx-stat-icon-badge">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#358219] dark:text-[#76d446]">
+                TOTAL PENGELUARAN
+              </span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#d8f0c4] text-[#1a5611] dark:bg-[#1a3518] dark:text-[#76d446]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
               </div>
             </div>
-            <div className="tx-stat-box-val">{busy ? '...' : currency(totalExpenseAmount)}</div>
+            <div className="text-2xl font-black text-[#0e2a07] dark:text-[#f3ffe9] mt-1">
+              {busy ? '...' : currency(totalExpenseAmount)}
+            </div>
           </div>
 
-          <div className="tx-stat-spark-wrap">
+          <div className="h-7 my-1">
             <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="txExpGrad" x1="0" y1="0" x2="0" y2="1">
@@ -590,47 +605,53 @@ export default function Expenses() {
                 </linearGradient>
               </defs>
               <polygon points={`${expPoints} 100,24 0,24`} fill="url(#txExpGrad)" />
-              <polyline points={expPoints} fill="none" stroke="#4a8c2c" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+              <polyline points={expPoints} fill="none" stroke="#4a8c2c" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
             </svg>
           </div>
 
-          <div className="tx-stat-box-sub">
+          <div className="text-[11px] font-semibold text-[#436d32] dark:text-[#8bb37a]">
             Rata-rata {currency(averageExpense)} per catatan
           </div>
         </div>
 
         {/* Card 3: Jumlah Transaksi */}
-        <div className="tx-stat-box">
+        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm flex flex-col justify-between min-h-[145px] dark:border-[#243e1c] dark:bg-[#121e14]">
           <div>
-            <div className="tx-stat-box-head">
-              <span className="tx-stat-box-title">JUMLAH TRANSAKSI</span>
-              <div className="tx-stat-icon-badge">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#358219] dark:text-[#76d446]">
+                JUMLAH TRANSAKSI
+              </span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#d8f0c4] text-[#1a5611] dark:bg-[#1a3518] dark:text-[#76d446]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
               </div>
             </div>
-            <div className="tx-stat-box-val">{busy ? '...' : expenseItems.length}</div>
+            <div className="text-2xl font-black text-[#0e2a07] dark:text-[#f3ffe9] mt-1">
+              {busy ? '...' : expenseItems.length}
+            </div>
           </div>
 
-          <div className="tx-stat-spark-wrap">
+          <div className="h-7 my-1 flex items-end">
             <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
-              {txBarData.slice(0, 16).map((v, i, arr) => {
-                const bw = Math.max(2.5, 90 / Math.max(arr.length, 1) - 1.5);
-                const x = arr.length < 2 ? (i * 20) : (i / (arr.length - 1)) * (95 - bw);
-                const bh = v > 0 ? Math.max(4, (v / maxTxBar) * 18) : 2;
-                return <rect key={i} x={x} y={22 - bh} width={bw} height={bh} rx="1" fill={i === arr.length - 1 ? '#22c55e' : '#4a8c2c'} opacity={v > 0 ? 0.9 : 0.25} />;
+              {txBarData.slice(0, 20).map((v, i, arr) => {
+                const bw = Math.max(2.2, 88 / Math.max(arr.length, 1) - 1.2);
+                const x = arr.length < 2 ? (i * 20) : (i / (arr.length - 1)) * (94 - bw);
+                const bh = v > 0 ? Math.max(4, (v / maxTxBar) * 20) : 2;
+                return <rect key={i} x={x} y={22 - bh} width={bw} height={bh} rx="1" fill={i === arr.length - 1 ? '#76d446' : '#4a8c2c'} opacity={v > 0 ? 0.95 : 0.25} />;
               })}
+              {/* Dotted horizontal future line */}
+              <line x1="65" y1="21" x2="98" y2="21" stroke="#4a8c2c" strokeWidth="1.5" strokeDasharray="2 3" opacity="0.4" />
             </svg>
           </div>
 
-          <div className="tx-stat-box-sub">
+          <div className="text-[11px] font-semibold text-[#436d32] dark:text-[#8bb37a]">
             {activeDaysCount} hari aktif • {totalCategoriesCount} kategori
           </div>
         </div>
 
       </div>
 
-      {/* ════ 2. CATEGORY SUMMARY CARDS GRID ════ */}
-      <div className="tx-category-cards-grid">
+      {/* ════ 2. CATEGORY SUMMARY CARDS GRID (5-COLUMNS x 2-ROWS) ════ */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4 w-full">
         {categoryStats.slice(0, 10).map((cat) => {
           const isActive = categoryFilter === cat.name;
           return (

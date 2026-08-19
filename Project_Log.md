@@ -69,7 +69,13 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - Memperbaiki penamaan brand resmi: **WA Finance / WA Finance Gateway** di seluruh sidebar dan navbar.
   - **Top Bar Kiri**: Menampilkan tombol panah `«` / `☰` tepat di samping judul **WA Finance Gateway** untuk menyembunyikan (hide) dan menampilkan (unhide) sidebar dengan mudah.
   - **Top Bar Kanan (Filter Popover Dropdown)**: Tombol tanggal bulan (*contoh: `🎛️ Agustus 2026`*) yang membuka popup filter terpadu (Pilihan Bulan, Tanggal Dari, Tanggal Sampai, Pilihan Dompet, Pilihan Kategori, tombol Reset & Terapkan).
-- ✅ **Build production terbaru** (`index-CUJcWS3u.js` & `index-UFVUqMtR.css`) telah aktif dan live di container Mac mini.
+- ✅ **Perbaikan Layout 3 Kartu Teratas Transaksi (`Expenses.jsx` & `index.css`)**:
+  - Memperbaiki layout 3 kartu teratas agar berjajar ke samping dalam 1 baris (3 kolom: `1.15fr 1fr 1fr` / `grid-cols-1 md:grid-cols-3 gap-3.5`) persis sesuai gambar referensi:
+    1. **Kartu 1 (Kiri)**: Banner hijau terang cerah (*Arus Kas - Daftar transaksi*, periode tanggal, tombol PDF & Excel).
+    2. **Kartu 2 (Tengah)**: Kartu gelap (*Total Pengeluaran*, icon api 🔥, angka nominal besar, area jagged sparkline dengan gradient hijau, dan rata-rata per catatan).
+    3. **Kartu 3 (Kanan)**: Kartu gelap (*Jumlah Transaksi*, icon dokumen 📄, angka total transaksi besar, mini bar chart vertikal dengan dotted future line, dan hari aktif/kategori).
+  - Merapikan grid kategori di bawahnya menjadi 5 kolom x 2 baris (10 kartu ringkasan kategori interaktif) dengan sudut membulat elegan (*rounded-2xl*).
+- ✅ **Build production terbaru** (`index-DOT6RVFK.js` & `index-wrrFV8wu.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.
