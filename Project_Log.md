@@ -112,7 +112,9 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
     - Sisi kanan (sisa hari dalam bulan): Menjadi garis lurus horizontal datar (flat baseline) hijau tanpa arsir area.
     - Card container diubah ke gaya dark `#121e14` dengan squircle badge api `🔥` hijau `#76d446` berbingkai rapi.
   - **Grafik Jumlah Transaksi (Card 3)**: Diselaraskan dengan gaya dark `#121e14`, squircle badge dokumen 📄, mini vertical bars untuk hari aktif, dan garis titik-titik proyeksi sisa hari.
-- ✅ **Build production terbaru** (`index-B1lSNu8u.js` & `index-BHZQYheX.css`) telah aktif dan live di container Mac mini.
+- ✅ **Pembersihan Icon Pojok Kanan Atas Kartu (`Expenses.jsx`)**:
+  - Menghapus icon badge di pojok kanan atas kartu *Total Pengeluaran* dan *Jumlah Transaksi* agar tampilan kartu lebih minimalis, bersih, dan fokus pada data utama.
+- ✅ **Build production terbaru** (`index-C30ouJl6.js` & `index-AFhe7qhc.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

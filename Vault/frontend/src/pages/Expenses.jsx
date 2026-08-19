@@ -580,16 +580,13 @@ export default function Expenses() {
           </div>
         </div>
 
-        {/* Card 2: Total Pengeluaran (Exact match to reference) */}
+        {/* Card 2: Total Pengeluaran */}
         <div className="rounded-[22px] border border-[#243e1c] bg-[#121e14] p-5 shadow-sm flex flex-col justify-between min-h-[145px]">
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#76d446]">
                 TOTAL PENGELUARAN
               </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1c3818] text-[#76d446] border border-[#285814] shadow-sm">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
-              </div>
             </div>
             <div className="text-2xl font-black text-[#f3ffe9] mt-1">
               {busy ? '...' : currency(totalExpenseAmount)}
@@ -614,16 +611,13 @@ export default function Expenses() {
           </div>
         </div>
 
-        {/* Card 3: Jumlah Transaksi (Exact match to reference) */}
+        {/* Card 3: Jumlah Transaksi */}
         <div className="rounded-[22px] border border-[#243e1c] bg-[#121e14] p-5 shadow-sm flex flex-col justify-between min-h-[145px]">
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#76d446]">
                 JUMLAH TRANSAKSI
               </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1c3818] text-[#76d446] border border-[#285814] shadow-sm">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
-              </div>
             </div>
             <div className="text-2xl font-black text-[#f3ffe9] mt-1">
               {busy ? '...' : expenseItems.length}
