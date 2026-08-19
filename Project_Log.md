@@ -41,11 +41,22 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
 > **Penting untuk Codex:** Gunakan `background-size: 100% 100%` agar gambar daun/botanical tidak terpotong pada capsule card dengan `border-radius: 20px`.
 
 ### Deployment Status (Diverifikasi 19 Agustus 2026)
-- ✅ Firebase Hosting `https://wa-finance-bot-i729.web.app` — **HTTP 200** (live & sehat).
-- ✅ Firebase Hosting `/m3-demo` route — **HTTP 200** (live).
 - ✅ Custom domain `https://api-finance.i729.my.id` — **HTTP 200** (live & sehat).
-- ✅ Custom domain `/m3-demo` route — **HTTP 200** (live, sudah terupdate, bukan 404 lagi).
-- ✅ **Build di server production** sudah memakai asset terbaru `index-B8UEu-4V.js` dan `index-aNs1PpHZ.css` setelah deploy ke Mac mini.
+- ✅ Firebase Hosting `https://wa-finance-bot-i729.web.app` — **HTTP 200** (live & sehat).
+- ✅ **Dashboard React Utama (`/`) Berhasil Di-porting Penuh**: Tampilan dashboard sekarang 100% menggunakan desain Botanical Forest Green identik dengan gambar referensi & demo:
+  - Hero Banner Capsule dengan background `hero-banner-bg.png` (`background-size: 100% 100%`) dan tombol Excel & PDF.
+  - Sub-row 3 kartu: Weekly Strip (7 hari kalender interaktif), Streak Stack Card (streak berjalan, streak terpanjang, hari tercatat), dan Total Saldo Card (chip icon, nominal saldo/budget, pagination dots).
+  - 4 Metric Mini Cards: Pemasukan, Pengeluaran (jagged green area sparkline), Transaksi (vertical bar sparkline), dan Tabungan.
+  - Middle Charts Grid: Expense Trend (smooth Recharts Area), Top Expense Categories (Recharts Donut dengan total di tengah & breakdown list di kanan), dan Saldo per Dompet (progress bars per dompet).
+  - Bottom Grid: Recent Transactions table (avatar & badge kategori) dan Motivational Quote Card dengan leaf icon.
+- ✅ **Data & Logic Utuh**: Seluruh data Firestore, hitungan budget, modal New Recap, inline budget edit, dan navigasi tetap terkoneksi sempurna tanpa ada data yang diubah/rusak.
+- ✅ **Sidebar Menu Utuh**: Tidak diubah sesuai arahan user.
+- ✅ **Menu Transaksi React (`/expenses`) Berhasil Di-porting Penuh**: Tampilan halaman Transaksi sekarang 100% menggunakan desain Botanical Forest Green identik dengan gambar referensi & demo:
+  - Top Summary Bar Card dengan background `transaction-banner-bg.png` (`background-size: 100% 100%`), tombol export `[PDF]` & `[Excel]`, serta statistik trio (Rata-rata 1 catatan, Hari aktif, Total kategori).
+  - Category Cards Grid dinamis (10 kategori teratas dengan emoji/icon, nominal rupiah, persentase pangsa, dan progress bar; klik kartu langsung memfilter tabel transaksi).
+  - Aktivitas Transaksi Table lengkap: Merchant (avatar inisial + nama merchant + rekening subtext), Kategori pill, Type pill (`↘ Pengeluaran` / `↗ Pemasukan`), Nominal (`- Rp ...` / `+ Rp ...`), Date, Source (WhatsApp icon + ID), Status (`● Approved`), dan Actions (Hapus).
+  - Search live input, filter baris (10/25/50), pagination lengkap, dan modal Tambah Transaksi manual.
+- ✅ **Build production terbaru** (`index-BuR6-SNy.js` & `index-BA8h9VXx.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

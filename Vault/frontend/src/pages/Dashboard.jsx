@@ -1,25 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowRight,
   Archive,
   BarChart3,
-  Bot,
   CalendarDays,
-  CheckCircle2,
-  ChevronRight,
+  CreditCard,
   Edit3,
   FileSpreadsheet,
   FileText,
-  MessageSquare,
   PieChart as PieChartIcon,
-  Plus,
   Save,
-  Settings2,
-  Sparkles,
-  TrendingUp,
   Wallet,
-  Wifi,
-  Zap,
 } from 'lucide-react';
 import {
   Area,
@@ -39,7 +29,7 @@ import { useAuth } from '../context/useAuth';
 import { listConversations, listExpenses } from '../lib/firestore';
 import { createNewRecap, getBackendSettings, whatsappApi } from '../lib/whatsapp-api';
 
-const CATEGORY_COLORS = ['#22c55e', '#8b5cf6', '#3b82f6', '#f59e0b', '#fb7185', '#94a3b8'];
+const CATEGORY_COLORS = ['#2f781c', '#6952ec', '#f77132', '#f59e0b', '#16b896', '#389ef2', '#94a3b8'];
 const DEFAULT_BUDGET_THRESHOLDS = [80, 90, 95, 100];
 
 const currency = (amount) => new Intl.NumberFormat('id-ID', {
@@ -127,85 +117,6 @@ function isInRange(item, range, activeStart = null) {
   return date >= start;
 }
 
-function Panel({ children, className = '' }) {
-  return (
-    <section className={`rounded-xl border border-slate-800/90 bg-[#0b141c] shadow-[0_18px_50px_rgba(0,0,0,0.16)] ${className}`}>
-      {children}
-    </section>
-  );
-}
-
-function MetricCard({ icon: Icon, title, value, detail, accent = 'emerald', progress }) {
-  const accents = {
-    emerald: 'bg-emerald-500/15 text-emerald-400',
-    violet: 'bg-violet-500/15 text-violet-300',
-    blue: 'bg-blue-500/15 text-blue-300',
-    amber: 'bg-amber-500/15 text-amber-300',
-  };
-
-  return (
-    <Panel className="group min-h-[126px] overflow-hidden p-5 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-500/35">
-      <div className="flex items-start gap-4">
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${accents[accent] || accents.emerald}`}>
-          <Icon className="h-6 w-6" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-500">{title}</p>
-          <p className="mt-2 truncate text-[26px] font-bold leading-none tracking-tight text-slate-50">{value}</p>
-          <p className="mt-3 text-xs text-slate-400">{detail}</p>
-          {typeof progress === 'number' && (
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-800">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500"
-                style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    </Panel>
-  );
-}
-
-function RangeSelect({ value, onChange }) {
-  return (
-    <select
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="rounded-lg border border-slate-800 bg-[#101b26] px-3 py-1.5 text-xs font-medium text-slate-300 outline-none transition hover:border-slate-700 focus:border-emerald-500"
-    >
-      <option value="day">This Day</option>
-      <option value="week">This Week</option>
-      <option value="month">This Month</option>
-    </select>
-  );
-}
-
-function TrendRangeSelect({ value, onChange }) {
-  return (
-    <select
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="rounded-lg border border-slate-800 bg-[#101b26] px-3 py-1.5 text-xs font-medium text-slate-300 outline-none transition hover:border-slate-700 focus:border-emerald-500"
-    >
-      <option value="daily">Harian</option>
-      <option value="weekly">Mingguan</option>
-      <option value="monthly">Bulanan</option>
-    </select>
-  );
-}
-
-function CategoryBadge({ children, color }) {
-  return (
-    <span
-      className="inline-flex rounded-full px-2 py-1 text-[11px] font-bold text-slate-950"
-      style={{ backgroundColor: color || '#22c55e' }}
-    >
-      {children}
-    </span>
-  );
-}
-
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 11) return 'Selamat pagi';
@@ -217,61 +128,6 @@ function getGreeting() {
 function firstName(user) {
   const source = user?.displayName || user?.email || 'teman';
   return source.split('@')[0].split(/\s+/)[0] || 'teman';
-}
-
-function WelcomeHero({ user, startDate, endDate, onTransactions, onRecap }) {
-  return (
-    <section className="relative isolate mb-6 overflow-hidden rounded-[32px] border border-lime-200/80 bg-[#c9f598] px-7 py-7 text-[#123008] shadow-[0_24px_70px_rgba(63,98,18,0.16)] dark:border-lime-300/10 dark:bg-[#a9ed62] md:px-9 md:py-8">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <span className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-lime-600/20" />
-        <span className="absolute left-[45%] top-[-88px] h-64 w-64 rounded-full bg-lime-600/20" />
-        <span className="absolute bottom-[-110px] right-[8%] h-56 w-56 rounded-full bg-lime-700/18" />
-        <span className="absolute bottom-5 left-[35%] h-28 w-12 rounded-full bg-lime-600/25" />
-        <span className="absolute right-[34%] top-8 h-20 w-72 rounded-full border-[7px] border-white/85" />
-        <span className="absolute right-[24%] top-8 h-20 w-20 rounded-full border-[7px] border-white/85" />
-        <span className="absolute bottom-10 right-[28%] h-28 w-20 rounded-t-full border-l-[7px] border-t-[7px] border-[#226c13]" />
-        <span className="absolute left-[16%] bottom-0 h-28 w-36 rounded-t-full bg-lime-600/25" />
-      </div>
-
-      <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-3xl">
-          <div className="mb-5 inline-flex items-center gap-3 rounded-full bg-[#123008]/8 px-3 py-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#123008] text-xs font-black text-lime-200">
-              WA
-            </span>
-            <span className="text-xs font-black uppercase tracking-[0.16em] text-[#21490f]">
-              WA Finance
-            </span>
-          </div>
-          <h2 className="text-[34px] font-semibold leading-tight tracking-tight text-[#102a08] md:text-[46px]">
-            {getGreeting()}, {firstName(user)}
-          </h2>
-          <p className="mt-4 max-w-2xl text-sm font-medium leading-6 text-[#31591d] md:text-base">
-            Mulai hari dengan catatan yang rapi. Periode aktif: {formatLongDate(startDate)} - {formatLongDate(endDate)}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={onTransactions}
-            className="inline-flex items-center gap-2 rounded-full bg-[#135400] px-5 py-3 text-sm font-bold text-lime-50 shadow-[0_12px_30px_rgba(19,84,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[#0d3d00]"
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            Transaksi
-          </button>
-          <button
-            type="button"
-            onClick={onRecap}
-            className="inline-flex items-center gap-2 rounded-full bg-[#135400] px-5 py-3 text-sm font-bold text-lime-50 shadow-[0_12px_30px_rgba(19,84,0,0.22)] transition hover:-translate-y-0.5 hover:bg-[#0d3d00]"
-          >
-            <FileText className="h-4 w-4" />
-            New Recap
-          </button>
-        </div>
-      </div>
-    </section>
-  );
 }
 
 export default function Dashboard() {
@@ -292,6 +148,7 @@ export default function Dashboard() {
   const [activeRecapStartDate, setActiveRecapStartDate] = useState('');
   const [showRecapModal, setShowRecapModal] = useState(false);
   const [recapBusy, setRecapBusy] = useState(false);
+  const [selectedDayIndex, setSelectedDayIndex] = useState(null);
   const [recapForm, setRecapForm] = useState(() => ({
     name: `Periode ${new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date())}`,
     start_date: dateKey(new Date()),
@@ -322,17 +179,21 @@ export default function Dashboard() {
 
   const activePeriodStart = useMemo(() => dateFromInput(activeRecapStartDate) || startOfMonth(new Date()), [activeRecapStartDate]);
   const activePeriodEnd = useMemo(() => endOfMonth(activePeriodStart), [activePeriodStart]);
+
   const activePeriodExpenses = useMemo(() => expenses.filter((item) => {
     const date = getExpenseDate(item);
     return date ? date >= activePeriodStart : false;
   }), [expenses, activePeriodStart]);
+
   const activePeriodIncomes = useMemo(() => incomes.filter((item) => {
     const date = getExpenseDate(item);
     return date ? date >= activePeriodStart : false;
   }), [incomes, activePeriodStart]);
+
   const filteredCategoryExpenses = useMemo(() => (
     expenses.filter((item) => isInRange(item, categoryRange, activePeriodStart))
   ), [expenses, categoryRange, activePeriodStart]);
+
   const totalMonth = activePeriodExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const salaryIncomePeriod = activePeriodIncomes
     .filter((item) => isSalaryIncome(item))
@@ -340,20 +201,136 @@ export default function Dashboard() {
   const extraIncomePeriod = activePeriodIncomes
     .filter((item) => !isSalaryIncome(item))
     .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const totalIncome = salaryIncomePeriod + extraIncomePeriod;
+
   const budgetUsed = monthlyBudget ? (totalMonth / monthlyBudget) * 100 : 0;
   const budgetBase = monthlyBudget || salaryIncomePeriod;
   const budgetRemaining = budgetBase + extraIncomePeriod - totalMonth;
-  const activeConversationCount = useMemo(() => {
-    const unique = new Set(conversations.map((item) => item.phone_number || item.from).filter(Boolean));
-    return unique.size || conversations.length;
-  }, [conversations]);
-  const successRate = conversations.length
-    ? Math.round((expenses.length / Math.max(conversations.length, expenses.length)) * 1000) / 10
-    : expenses.length ? 100 : 0;
 
+  // Streak computations
+  const streak = useMemo(() => {
+    const dates = new Set(
+      activePeriodExpenses
+        .map((e) => { const d = getExpenseDate(e); return d ? dateKey(d) : null; })
+        .filter(Boolean)
+    );
+    let count = 0;
+    const today = startOfDay(new Date());
+    for (let i = 0; i < 365; i++) {
+      if (dates.has(dateKey(addDays(today, -i)))) {
+        count++;
+      } else {
+        break;
+      }
+    }
+    return count;
+  }, [activePeriodExpenses]);
+
+  const longestStreak = useMemo(() => {
+    const sorted = [...new Set(
+      activePeriodExpenses
+        .map((e) => { const d = getExpenseDate(e); return d ? dateKey(d) : null; })
+        .filter(Boolean)
+    )].sort();
+    let longest = 0;
+    let cur = 0;
+    sorted.forEach((dk, i) => {
+      if (i === 0) {
+        cur = 1;
+      } else {
+        const diff = Math.round((new Date(dk) - new Date(sorted[i - 1])) / 86400000);
+        cur = diff === 1 ? cur + 1 : 1;
+      }
+      if (cur > longest) longest = cur;
+    });
+    return Math.max(longest, streak);
+  }, [activePeriodExpenses, streak]);
+
+  const daysWithTx = useMemo(() => new Set(
+    activePeriodExpenses
+      .map((e) => { const d = getExpenseDate(e); return d ? dateKey(d) : null; })
+      .filter(Boolean)
+  ).size, [activePeriodExpenses]);
+
+  const totalDays = useMemo(() => {
+    return Math.max(1, Math.ceil((activePeriodEnd - activePeriodStart) / 86400000) + 1);
+  }, [activePeriodStart, activePeriodEnd]);
+
+  const lastTxDate = useMemo(() => {
+    if (!activePeriodExpenses.length) return null;
+    const sorted = [...activePeriodExpenses].sort((a, b) => (getExpenseDate(b)?.getTime() || 0) - (getExpenseDate(a)?.getTime() || 0));
+    return getExpenseDate(sorted[0]);
+  }, [activePeriodExpenses]);
+
+  // 7-day strip
+  const weekDays = useMemo(() => {
+    const today = startOfDay(new Date());
+    const txDates = new Set(
+      activePeriodExpenses
+        .map((e) => { const d = getExpenseDate(e); return d ? dateKey(d) : null; })
+        .filter(Boolean)
+    );
+    const dow = today.getDay();
+    const monday = addDays(today, -(dow === 0 ? 6 : dow - 1));
+    const names = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB'];
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = addDays(monday, i);
+      return {
+        key: dateKey(d),
+        day: names[d.getDay()],
+        date: d.getDate(),
+        isToday: dateKey(d) === dateKey(today),
+        hasTx: txDates.has(dateKey(d)),
+      };
+    });
+  }, [activePeriodExpenses]);
+
+  // Saldo per Dompet
+  const saldoPerDompet = useMemo(() => {
+    const grouped = {};
+    activePeriodExpenses.forEach((e) => {
+      const ch = String(e.payment_channel || e.rekening || 'Cash').trim();
+      grouped[ch] = (grouped[ch] || 0) + Number(e.amount || 0);
+    });
+    const maxVal = Math.max(...Object.values(grouped), 1);
+    const COLORS = ['#1b5e20', '#f5962a', '#2563eb', '#6952ec'];
+    return Object.entries(grouped)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([name, amount], i) => ({
+        name,
+        amount,
+        percent: Math.round((amount / maxVal) * 100),
+        color: COLORS[i % COLORS.length],
+      }));
+  }, [activePeriodExpenses]);
+
+  // Sparkline data calculations
+  const expenseSparkline = useMemo(() => {
+    const byDay = {};
+    activePeriodExpenses.forEach((e) => {
+      const d = getExpenseDate(e);
+      if (d) { const k = dateKey(d); byDay[k] = (byDay[k] || 0) + Number(e.amount || 0); }
+    });
+    const today = startOfDay(new Date());
+    const daysSoFar = Math.max(1, Math.ceil((today - activePeriodStart) / 86400000) + 1);
+    return Array.from({ length: Math.min(daysSoFar, totalDays) }, (_, i) => byDay[dateKey(addDays(activePeriodStart, i))] || 0);
+  }, [activePeriodExpenses, activePeriodStart, totalDays]);
+
+  const txBarData = useMemo(() => {
+    const byDay = {};
+    activePeriodExpenses.forEach((e) => {
+      const d = getExpenseDate(e);
+      if (d) { const k = dateKey(d); byDay[k] = (byDay[k] || 0) + 1; }
+    });
+    const today = startOfDay(new Date());
+    const daysSoFar = Math.max(1, Math.ceil((today - activePeriodStart) / 86400000) + 1);
+    return Array.from({ length: Math.min(daysSoFar, totalDays) }, (_, i) => byDay[dateKey(addDays(activePeriodStart, i))] || 0);
+  }, [activePeriodExpenses, activePeriodStart, totalDays]);
+
+  // Trend Chart
   const trend = useMemo(() => {
     const now = new Date();
-
     if (trendRange === 'weekly') {
       const currentWeek = startOfWeek(now);
       const weeks = [...Array(8)].map((_, index) => {
@@ -367,17 +344,14 @@ export default function Dashboard() {
           amount: 0,
         };
       });
-
       activePeriodExpenses.forEach((item) => {
         const date = getExpenseDate(item);
         if (!date) return;
         const bucket = weeks.find((week) => date >= week.start && date <= week.end);
         if (bucket) bucket.amount += Number(item.amount || 0);
       });
-
       return weeks;
     }
-
     if (trendRange === 'monthly') {
       const currentMonth = startOfMonth(now);
       const months = [...Array(6)].map((_, index) => {
@@ -390,14 +364,12 @@ export default function Dashboard() {
         };
       });
       const byMonth = new Map(months.map((item) => [item.key, item]));
-
       activePeriodExpenses.forEach((item) => {
         const date = getExpenseDate(item);
         if (!date) return;
         const key = monthKey(date);
         if (byMonth.has(key)) byMonth.get(key).amount += Number(item.amount || 0);
       });
-
       return months;
     }
 
@@ -412,17 +384,16 @@ export default function Dashboard() {
       };
     });
     const byKey = new Map(days.map((item) => [item.key, item]));
-
     activePeriodExpenses.forEach((item) => {
       const date = getExpenseDate(item);
       if (!date) return;
       const key = dateKey(startOfDay(date));
       if (byKey.has(key)) byKey.get(key).amount += Number(item.amount || 0);
     });
-
     return days;
   }, [activePeriodExpenses, trendRange]);
 
+  // Categories Chart
   const categories = useMemo(() => {
     const grouped = {};
     filteredCategoryExpenses.forEach((item) => {
@@ -447,27 +418,6 @@ export default function Dashboard() {
       .slice(0, 5)
   ), [expenses]);
 
-  const topCategory = categories[0];
-  const insights = [
-    {
-      icon: TrendingUp,
-      title: topCategory ? `${topCategory.name} kategori tertinggi` : 'Belum ada kategori dominan',
-      detail: topCategory ? `${topCategory.percent}% dari pengeluaran periode terpilih.` : 'Insight muncul setelah transaksi tersimpan.',
-    },
-    {
-      icon: Zap,
-      title: budgetUsed > 80 ? 'Budget mendekati limit' : 'Budget masih terkendali',
-      detail: monthlyBudget
-        ? `${budgetUsed.toFixed(1)}% dari budget bulanan ${currency(monthlyBudget)}.`
-        : 'Atur monthly budget untuk mengaktifkan alert WhatsApp.',
-    },
-    {
-      icon: CheckCircle2,
-      title: 'Automation health',
-      detail: conversations.length ? `${successRate}% estimasi transaksi berhasil diproses.` : 'Hubungkan WhatsApp untuk mulai tracking otomatis.',
-    },
-  ];
-
   const saveBudget = async () => {
     const parsed = Math.max(0, Math.round(Number(String(budgetInput || '').replace(/[^0-9]/g, ''))));
     setBudgetBusy(true);
@@ -484,7 +434,7 @@ export default function Dashboard() {
       setMonthlyBudget(nextBudget);
       setBudgetInput(nextBudget ? String(nextBudget) : '');
       setBudgetEditing(false);
-      setBudgetNotice(nextBudget ? 'Monthly budget tersimpan. Alert WA aktif di 80/90/95/100%.' : 'Monthly budget dinonaktifkan.');
+      setBudgetNotice(nextBudget ? 'Monthly budget tersimpan.' : 'Monthly budget dinonaktifkan.');
     } catch (reason) {
       setBudgetNotice(reason.message || 'Budget gagal disimpan.');
     } finally {
@@ -504,49 +454,507 @@ export default function Dashboard() {
       setIncomes([]);
       setConversations([]);
       setActiveRecapStartDate(result.settings?.active_recap_start_date || recapForm.start_date);
-      setBudgetNotice(`New Recap berhasil. Arsip: ${result.recap?.name || 'periode lama'}. Periode baru siap dipakai.`);
+      setBudgetNotice(`New Recap berhasil. Arsip: ${result.recap?.name || 'periode lama'}.`);
     } catch (reason) {
-      setBudgetNotice(reason.message || 'New Recap gagal. Data belum diubah.');
+      setBudgetNotice(reason.message || 'New Recap gagal.');
     } finally {
       setRecapBusy(false);
     }
   };
 
+  // Sparkline generator SVG points
+  const maxExp = Math.max(...expenseSparkline, 1);
+  const expPoints = expenseSparkline.length < 2
+    ? '0,18 100,18'
+    : expenseSparkline.map((v, i) => {
+        const x = (i / (expenseSparkline.length - 1)) * 100;
+        const y = 20 - (v / maxExp) * 16;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+
+  const maxBar = Math.max(...txBarData, 1);
+
   return (
     <div className="mx-auto w-full max-w-[1450px]">
-      <Header title="Dashboard" subtitle="Overview of your finance operations and AI insights." />
-
-      <WelcomeHero
-        user={user}
-        startDate={activePeriodStart}
-        endDate={activePeriodEnd}
-        onTransactions={() => navigate('/expenses')}
-        onRecap={() => setShowRecapModal(true)}
-      />
+      <Header title="Dashboard" subtitle="Overview keuangan & insight AI kamu." />
 
       {error && (
-        <div className="mb-5 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
           {error}
         </div>
       )}
       {budgetNotice && (
-        <div className="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+        <div className="mb-4 rounded-xl border border-emerald-400/30 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200">
           {budgetNotice}
         </div>
       )}
 
+      {/* ════ 1. HERO BANNER CAPSULE ════ */}
+      <div className="hero-banner-exact">
+        <div className="hero-content-exact-left">
+          <div className="hero-pill-badge-exact">
+            <div className="hero-pill-badge-icon">
+              <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            </div>
+            <span className="hero-pill-badge-text">AETHER FAMILY FINANCE</span>
+          </div>
+          <h1 className="hero-title-exact">{getGreeting()}, {firstName(user)}</h1>
+          <p className="hero-desc-exact">
+            Mulai hari dengan catatan yang rapi. · {formatLongDate(activePeriodStart)} - {formatLongDate(activePeriodEnd)}
+          </p>
+        </div>
+
+        <div className="hero-buttons-exact">
+          <button className="btn-hero-solid-green" onClick={() => navigate('/expenses')}>
+            <FileSpreadsheet width="13" height="13" />
+            Excel
+          </button>
+          <button className="btn-hero-solid-green" onClick={() => setShowRecapModal(true)}>
+            <FileText width="13" height="13" />
+            PDF
+          </button>
+        </div>
+      </div>
+
+      {/* ════ 2. TOP SUB-ROW GRID ════ */}
+      <div className="top-subrow-grid">
+        
+        {/* Weekly Strip Card */}
+        <div className="box-card">
+          <div className="week-card-top">
+            <span className="badge-streak-status">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              {streak > 0 ? `${streak} hari streak` : 'Belum ada streak'}
+            </span>
+            <span className="week-tx-count-text">
+              {loading ? '...' : `${activePeriodExpenses.length} transaksi`} • Terakhir: {lastTxDate ? formatDay(lastTxDate) : '-'}
+            </span>
+          </div>
+
+          <div className="week-selector-bar">
+            <button onClick={() => navigate('/expenses')}>‹</button>
+            <span className="week-selector-title">
+              {new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date())}
+            </span>
+            <button onClick={() => navigate('/expenses')}>›</button>
+          </div>
+
+          <div className="week-days-flex">
+            {weekDays.map((d, index) => {
+              const isSelected = selectedDayIndex === index || (selectedDayIndex === null && d.isToday);
+              return (
+                <div
+                  key={d.key}
+                  className={`week-day-box ${isSelected ? 'selected' : ''}`}
+                  onClick={() => setSelectedDayIndex(index)}
+                >
+                  <span className="week-day-name-txt">{d.day}</span>
+                  <div className="week-day-num-circle">{d.date}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button className="link-view-all-month" onClick={() => navigate('/expenses')}>
+            <CalendarDays width="12" height="12" />
+            Lihat satu bulan
+          </button>
+        </div>
+
+        {/* Streak Stats Card */}
+        <div className="box-card streak-stack-box">
+          <div className="streak-stat-item">
+            <div className="streak-icon-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#245c10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+            </div>
+            <div>
+              <div className="streak-stat-label">Streak Berjalan</div>
+              <div className="streak-stat-number">{streak} hari</div>
+            </div>
+          </div>
+          <div className="streak-stat-item">
+            <div className="streak-icon-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#245c10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"/><path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H8v4h8v-4h-1c-.55 0-1-.45-1-1v-2.34"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+            </div>
+            <div>
+              <div className="streak-stat-label">Streak Terpanjang</div>
+              <div className="streak-stat-number">{longestStreak} hari</div>
+            </div>
+          </div>
+          <div className="streak-stat-item">
+            <div className="streak-icon-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#245c10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div>
+              <div className="streak-stat-label">Hari Tercatat Bulan Ini</div>
+              <div className="streak-stat-number">{daysWithTx} / {totalDays}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Total Saldo Card */}
+        <div className="box-card total-saldo-card">
+          <div>
+            <div className="saldo-card-head">
+              <div className="saldo-card-label">
+                <Wallet width="14" height="14" />
+                TOTAL SALDO
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setBudgetEditing((v) => !v)}
+                  className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  title="Edit budget"
+                >
+                  <Edit3 width="13" height="13" />
+                </button>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d7a18" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              </div>
+            </div>
+
+            <div className="saldo-chip-icon">
+              <div></div><div></div><div></div><div></div>
+            </div>
+
+            {budgetEditing ? (
+              <div className="my-2 flex gap-2">
+                <input
+                  value={budgetInput}
+                  onChange={(e) => setBudgetInput(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="Budget bulanan..."
+                  className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                <button
+                  onClick={saveBudget}
+                  disabled={budgetBusy}
+                  className="flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1 text-white hover:bg-emerald-500 disabled:opacity-60"
+                >
+                  <Save width="14" height="14" />
+                </button>
+              </div>
+            ) : (
+              <div className="saldo-main-amount">
+                {loading ? '...' : currency(monthlyBudget ? budgetRemaining : totalMonth)}
+              </div>
+            )}
+
+            <div className="saldo-card-number">•••• •••• •••• 0080</div>
+          </div>
+
+          <div>
+            <div className="saldo-card-bottom">
+              <span className="saldo-wallet-name">
+                {monthlyBudget ? `${budgetUsed.toFixed(1)}% budget terpakai` : 'Semua dompet'}
+              </span>
+              <span className="saldo-wallet-sub">{saldoPerDompet.length || 3} dompet aktif</span>
+            </div>
+            <div className="saldo-pagination-dots">
+              <div className="saldo-dot active"></div>
+              <div className="saldo-dot"></div>
+              <div className="saldo-dot"></div>
+              <div className="saldo-dot"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ════ 3. 4 METRIC CARDS ROW ════ */}
+      <div className="metrics-four-grid">
+        
+        {/* 1. PEMASUKAN */}
+        <div className="metric-mini-card">
+          <div className="metric-mini-icon-row">
+            <div className="metric-mini-icon-badge">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#245c10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+          </div>
+          <div className="metric-mini-title">PEMASUKAN</div>
+          <div className="metric-mini-value">{loading ? '...' : currency(totalIncome)}</div>
+          <div className="metric-sparkline-box">
+            <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
+              <line x1="0" y1="18" x2="100" y2="18" stroke="#4a8c2c" strokeWidth="1.6" strokeDasharray="3 2" />
+            </svg>
+          </div>
+          <div className="metric-mini-sub">Dari tambah saldo dompet</div>
+        </div>
+
+        {/* 2. PENGELUARAN */}
+        <div className="metric-mini-card">
+          <div className="metric-mini-icon-row">
+            <div className="metric-mini-icon-badge">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#245c10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+            </div>
+          </div>
+          <div className="metric-mini-title">PENGELUARAN</div>
+          <div className="metric-mini-value">{loading ? '...' : currency(totalMonth)}</div>
+          <div className="metric-sparkline-box">
+            <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="expSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#4a8c2c" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#4a8c2c" stopOpacity="0.05" />
+                </linearGradient>
+              </defs>
+              <polygon points={`${expPoints} 100,24 0,24`} fill="url(#expSparkGrad)" />
+              <polyline points={expPoints} fill="none" stroke="#4a8c2c" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div className="metric-mini-sub">Semua catatan periode ini</div>
+        </div>
+
+        {/* 3. TRANSAKSI */}
+        <div className="metric-mini-card">
+          <div className="metric-mini-icon-row">
+            <div className="metric-mini-icon-badge">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#245c10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+            </div>
+          </div>
+          <div className="metric-mini-title">TRANSAKSI</div>
+          <div className="metric-mini-value">{loading ? '...' : activePeriodExpenses.length}</div>
+          <div className="metric-sparkline-box">
+            <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
+              {txBarData.slice(0, 15).map((v, i, arr) => {
+                const bw = Math.max(2.5, 90 / Math.max(arr.length, 1) - 1.5);
+                const x = arr.length < 2 ? (i * 20) : (i / (arr.length - 1)) * (95 - bw);
+                const bh = v > 0 ? Math.max(4, (v / maxBar) * 18) : 2;
+                return <rect key={i} x={x} y={22 - bh} width={bw} height={bh} rx="1" fill={i === arr.length - 1 ? '#22c55e' : '#4a8c2c'} opacity={v > 0 ? 0.9 : 0.25} />;
+              })}
+            </svg>
+          </div>
+          <div className="metric-mini-sub">
+            {saldoPerDompet.length || 3} dompet • {categories.length || 1} kategori
+          </div>
+        </div>
+
+        {/* 4. TABUNGAN */}
+        <div className="metric-mini-card">
+          <div className="metric-mini-icon-row">
+            <div className="metric-mini-icon-badge">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#245c10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="M16 12a2 2 0 1 1-4 0 2 2 0 014 0z"/></svg>
+            </div>
+          </div>
+          <div className="metric-mini-title">TABUNGAN</div>
+          <div className="metric-mini-value">Rp 0</div>
+          <div className="metric-sparkline-box">
+            <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
+              <line x1="0" y1="18" x2="100" y2="18" stroke="#4a8c2c" strokeWidth="1.6" strokeDasharray="3 2" />
+            </svg>
+          </div>
+          <div className="metric-mini-sub">Kategori Tabungan</div>
+        </div>
+
+      </div>
+
+      {/* ════ 4. MIDDLE CHARTS GRID ════ */}
+      <div className="middle-charts-grid">
+        
+        {/* Expense Trend */}
+        <div className="box-card">
+          <div className="card-header-flex">
+            <span className="card-title-main">Expense Trend</span>
+            <select className="card-select-pill" value={trendRange} onChange={(e) => setTrendRange(e.target.value)}>
+              <option value="daily">Harian</option>
+              <option value="weekly">Mingguan</option>
+              <option value="monthly">Bulanan</option>
+            </select>
+          </div>
+          <div style={{ height: '160px', position: 'relative' }}>
+            {trend.some((d) => d.amount > 0) ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trend} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
+                  <defs>
+                    <linearGradient id="trendAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2d7a18" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#2d7a18" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="#dcebd0" strokeDasharray="4 4" vertical={false} />
+                  <XAxis dataKey="label" stroke="#8ca37d" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#8ca37d" fontSize={10} tickLine={false} axisLine={false} tickFormatter={shortCurrency} />
+                  <Tooltip
+                    contentStyle={{ background: '#f3f8ee', border: '1px solid #dcebd0', borderRadius: 8, color: '#112409', fontSize: 11 }}
+                    formatter={(v) => [currency(v), 'Pengeluaran']}
+                  />
+                  <Area type="monotone" dataKey="amount" stroke="#2d7a18" strokeWidth={2.5} fill="url(#trendAreaGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-[#dcebd0] text-center">
+                <BarChart3 className="h-7 w-7 text-[#8ca37d]" />
+                <p className="mt-2 text-xs text-[#567245]">Trend muncul setelah transaksi tersimpan.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Top Expense Categories */}
+        <div className="box-card">
+          <div className="card-header-flex">
+            <span className="card-title-main">Top Expense Categories</span>
+            <select className="card-select-pill" value={categoryRange} onChange={(e) => setCategoryRange(e.target.value)}>
+              <option value="month">This Month</option>
+              <option value="week">This Week</option>
+              <option value="day">This Day</option>
+            </select>
+          </div>
+
+          <div className="donut-chart-flex-wrap">
+            {categories.length ? (
+              <>
+                <div className="donut-canvas-relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={categories} innerRadius={48} outerRadius={68} paddingAngle={2} dataKey="amount" stroke="none">
+                        {categories.map((c) => <Cell key={c.name} fill={c.color} />)}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="donut-center-label-box">
+                    <span className="donut-center-total-val">{shortCurrency(categories.reduce((s, c) => s + c.amount, 0))}</span>
+                    <span className="donut-center-total-lbl">Total</span>
+                  </div>
+                </div>
+
+                <div className="donut-legend-list">
+                  {categories.map((c) => (
+                    <div key={c.name} className="donut-legend-row">
+                      <div className="donut-legend-left">
+                        <span className="legend-dot-indicator" style={{ backgroundColor: c.color }} />
+                        <span className="truncate max-w-[90px]">{c.name}</span>
+                      </div>
+                      <div className="donut-legend-right">
+                        <span className="legend-amount-val">{currency(c.amount)}</span>
+                        <span className="legend-pct-val">{c.percent}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="flex h-full w-full flex-col items-center justify-center rounded-xl border border-dashed border-[#dcebd0] text-center">
+                <PieChartIcon className="h-7 w-7 text-[#8ca37d]" />
+                <p className="mt-2 text-xs text-[#567245]">Kategori muncul sesuai filter periode.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Saldo per Dompet */}
+        <div className="box-card">
+          <div className="card-header-flex">
+            <span className="card-title-main">Saldo per Dompet</span>
+            <div className="streak-icon-wrap" style={{ width: '24px', height: '24px', fontSize: '11px' }}>
+              <CreditCard width="13" height="13" color="#245c10" />
+            </div>
+          </div>
+          <div style={{ fontSize: '10px', color: 'var(--text-light)', marginBottom: '6px' }}>Dompet</div>
+
+          <div className="dompet-progress-list">
+            {saldoPerDompet.length ? (
+              saldoPerDompet.map((d) => (
+                <div key={d.name} className="dompet-bar-item">
+                  <div className="dompet-bar-header">
+                    <span>{d.name}</span>
+                    <span>{currency(d.amount)}</span>
+                  </div>
+                  <div className="dompet-track-bg">
+                    <div className="dompet-track-fill" style={{ width: `${d.percent}%`, backgroundColor: d.color }} />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <Wallet className="h-6 w-6 text-[#8ca37d]" />
+                <p className="mt-2 text-xs text-[#567245]">Dompet muncul setelah transaksi ada.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* ════ 5. BOTTOM ROW ════ */}
+      <div className="bottom-dashboard-grid">
+        
+        {/* Recent Transactions */}
+        <div className="box-card">
+          <div className="card-header-flex">
+            <span className="card-title-main">Recent Transactions</span>
+            <button className="card-select-pill" onClick={() => navigate('/expenses')}>
+              View all transactions
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="recent-tx-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Category</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentTransactions.map((item) => {
+                  const date = getExpenseDate(item);
+                  return (
+                    <tr key={item.id}>
+                      <td className="tx-date-cell">{formatDateTime(date)}</td>
+                      <td>
+                        <div className="tx-desc-cell-title">{item.merchant || item.description || 'Transaksi WhatsApp'}</div>
+                        <div className="tx-desc-cell-sub">{item.payment_channel || item.rekening || 'Cash'}</div>
+                      </td>
+                      <td>
+                        <span className="pill-tag-category">{item.category || 'Lainnya'}</span>
+                      </td>
+                      <td className="tx-amt-green">{currency(item.amount)}</td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{item.source || 'WhatsApp'}</td>
+                    </tr>
+                  );
+                })}
+                {!loading && !recentTransactions.length && (
+                  <tr>
+                    <td colSpan="5" className="py-8 text-center text-xs text-slate-500">
+                      Belum ada transaksi. Kirim dari WhatsApp atau catat manual.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Motivational Quote Banner */}
+        <div className="box-card quote-motivational-card">
+          <div className="quote-left-block">
+            <div className="quote-icon-leaf">🌱</div>
+            <p className="quote-text-p">
+              Catatan kecil hari ini,<br />
+              membawa perubahan besar<br />
+              di masa depan.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Recap Modal */}
       {showRecapModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-          <form onSubmit={submitNewRecap} className="w-full max-w-lg rounded-2xl border border-slate-700 bg-[#0b141c] p-6 shadow-2xl">
+          <form onSubmit={submitNewRecap} className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-[#0b141c]">
             <div className="flex items-start gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
                 <Archive className="h-6 w-6" />
               </span>
               <div>
-                <h2 className="text-xl font-bold text-white">New Recap / Tutup Periode</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">New Recap / Tutup Periode</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
                   Sistem akan backup tab Google Sheet lama, arsipkan data aktif di webapp, lalu mulai periode baru dari kosong.
-                  Data lama tetap bisa dipanggil dari riwayat recap.
                 </p>
               </div>
             </div>
@@ -556,8 +964,8 @@ export default function Dashboard() {
                 <input
                   required
                   value={recapForm.name}
-                  onChange={(event) => setRecapForm((current) => ({ ...current, name: event.target.value }))}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none focus:border-emerald-500"
+                  onChange={(e) => setRecapForm((c) => ({ ...c, name: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   placeholder="Contoh: Gaji Agustus 2026"
                 />
               </label>
@@ -567,12 +975,12 @@ export default function Dashboard() {
                   required
                   type="date"
                   value={recapForm.start_date}
-                  onChange={(event) => setRecapForm((current) => ({ ...current, start_date: event.target.value }))}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none focus:border-emerald-500"
+                  onChange={(e) => setRecapForm((c) => ({ ...c, start_date: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 />
               </label>
-              <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-xs leading-5 text-amber-100/80">
-                Data tidak dihapus. Yang terjadi: tab Sheet lama dicopy ke arsip, tab aktif dikosongkan, lalu data webapp lama diberi label arsip.
+              <div className="rounded-xl border border-amber-400/20 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-700 dark:bg-amber-500/10 dark:text-amber-100/80">
+                Data tidak dihapus. Tab Sheet lama dicopy ke arsip, tab aktif dikosongkan, data webapp lama diberi label arsip.
               </div>
             </div>
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -580,14 +988,14 @@ export default function Dashboard() {
                 type="button"
                 onClick={() => setShowRecapModal(false)}
                 disabled={recapBusy}
-                className="rounded-xl border border-slate-700 px-5 py-3 text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:text-white disabled:opacity-50"
+                className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={recapBusy}
-                className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-[#06120b] transition hover:bg-emerald-400 disabled:opacity-50"
+                className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-500 disabled:opacity-50"
               >
                 {recapBusy ? 'Memproses backup...' : 'Backup & Mulai Baru'}
               </button>
@@ -596,274 +1004,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="space-y-5">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            icon={Wallet}
-            title="Total Expenses"
-            value={loading ? '...' : currency(totalMonth)}
-            detail={activePeriodExpenses.length ? `Periode aktif sejak ${formatDay(activePeriodStart)}` : `Belum ada transaksi sejak ${formatDay(activePeriodStart)}`}
-            accent="emerald"
-          />
-          <Panel className="group min-h-[126px] overflow-hidden p-5 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-500/35">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-300">
-                <CalendarDays className="h-6 w-6" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-500">Monthly Budget</p>
-                  <button
-                    type="button"
-                    onClick={() => setBudgetEditing((value) => !value)}
-                    className="rounded-lg p-1 text-slate-500 transition hover:bg-slate-800 hover:text-slate-200"
-                    title="Edit monthly budget"
-                  >
-                    <Edit3 className="h-4 w-4" />
-                  </button>
-                </div>
-                {budgetEditing ? (
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      value={budgetInput}
-                      onChange={(event) => setBudgetInput(event.target.value)}
-                      inputMode="numeric"
-                      placeholder="Contoh 5000000"
-                      className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm font-semibold text-slate-100 outline-none focus:border-emerald-500"
-                    />
-                    <button
-                      type="button"
-                      disabled={budgetBusy}
-                      onClick={saveBudget}
-                      className="inline-flex items-center justify-center rounded-lg bg-emerald-500 px-3 py-2 text-slate-950 transition hover:bg-emerald-400 disabled:opacity-60"
-                      title="Save monthly budget"
-                    >
-                      <Save className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <p className="mt-2 truncate text-[26px] font-bold leading-none tracking-tight text-slate-50">
-                    {monthlyBudget ? currency(monthlyBudget) : 'Belum diset'}
-                  </p>
-                )}
-                <p className="mt-3 text-xs text-slate-400">
-                  {monthlyBudget
-                    ? `${budgetUsed.toFixed(1)}% utilized · sisa ${currency(budgetRemaining)}`
-                    : 'Klik edit untuk mengaktifkan alert WA.'}
-                </p>
-                {monthlyBudget ? (
-                  <p className="mt-1 text-[10px] text-slate-500">
-                    Masuk {currency(extraIncomePeriod)} · Keluar {currency(totalMonth)}
-                  </p>
-                ) : null}
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-800">
-                  <div
-                    className={`h-full rounded-full ${budgetUsed >= 100 ? 'bg-red-400' : budgetUsed >= 95 ? 'bg-amber-400' : 'bg-gradient-to-r from-emerald-400 to-emerald-500'}`}
-                    style={{ width: `${Math.min(Math.max(budgetUsed, 0), 100)}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-[10px] text-slate-500">Alert: 80% · 90% · 95% · 100%</p>
-              </div>
-            </div>
-          </Panel>
-          <MetricCard
-            icon={MessageSquare}
-            title="Active Conversations"
-            value={loading ? '...' : String(activeConversationCount)}
-            detail={conversations.length ? `${conversations.length} pesan tersimpan` : 'Menunggu chat WhatsApp'}
-            accent="violet"
-          />
-          <MetricCard
-            icon={Bot}
-            title="Automation Success Rate"
-            value={loading ? '...' : `${successRate}%`}
-            detail={expenses.length ? 'Berdasarkan data transaksi' : 'Belum ada data otomatis'}
-            accent="amber"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.15fr_0.95fr]">
-          <Panel className="p-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-[15px] font-bold text-slate-100">Expense Trend</h2>
-              <TrendRangeSelect value={trendRange} onChange={setTrendRange} />
-            </div>
-            <div className="h-[250px]">
-              {trend.some((item) => item.amount > 0) ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={trend} margin={{ top: 20, right: 18, bottom: 0, left: -8 }}>
-                    <defs>
-                      <linearGradient id="expenseTrendFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#22c55e" stopOpacity={0.42} />
-                        <stop offset="100%" stopColor="#22c55e" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid stroke="#22303b" strokeDasharray="4 4" vertical={false} />
-                    <XAxis dataKey="label" stroke="#8a97a4" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#8a97a4" fontSize={11} tickLine={false} axisLine={false} tickFormatter={shortCurrency} />
-                    <Tooltip
-                      contentStyle={{ background: '#101b26', border: '1px solid #334555', borderRadius: 10, color: '#fff' }}
-                      formatter={(value) => [currency(value), 'Pengeluaran']}
-                    />
-                    <Area type="monotone" dataKey="amount" stroke="#42d865" strokeWidth={2.5} fill="url(#expenseTrendFill)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-800 text-center">
-                  <BarChart3 className="h-10 w-10 text-slate-700" />
-                  <p className="mt-3 text-sm text-slate-500">Trend muncul setelah transaksi masuk.</p>
-                </div>
-              )}
-            </div>
-          </Panel>
-
-          <Panel className="p-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-[15px] font-bold text-slate-100">Top Expense Categories</h2>
-              <RangeSelect value={categoryRange} onChange={setCategoryRange} />
-            </div>
-            {categories.length ? (
-              <div className="grid min-h-[250px] grid-cols-1 items-center gap-5 lg:grid-cols-[190px_1fr]">
-                <div className="relative h-[190px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={categories} innerRadius={56} outerRadius={88} paddingAngle={2} dataKey="amount" stroke="none">
-                        {categories.map((item) => <Cell key={item.name} fill={item.color} />)}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <strong className="text-lg text-white">{shortCurrency(categories.reduce((sum, item) => sum + item.amount, 0))}</strong>
-                    <span className="text-xs text-slate-500">Total</span>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {categories.map((item) => (
-                    <div key={item.name} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 text-sm">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                        <span className="truncate text-slate-300">{item.name}</span>
-                      </div>
-                      <span className="font-medium text-slate-200">{currency(item.amount)}</span>
-                      <span className="w-12 text-right text-xs text-slate-500">{item.percent}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="flex min-h-[250px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-800 text-center">
-                <PieChartIcon className="h-10 w-10 text-slate-700" />
-                <p className="mt-3 text-sm text-slate-500">Kategori akan muncul sesuai filter periode.</p>
-              </div>
-            )}
-          </Panel>
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.85fr]">
-          <Panel className="overflow-hidden">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-800/80 px-5 py-4">
-              <h2 className="text-[15px] font-bold text-slate-100">Recent Transactions</h2>
-              <button
-                type="button"
-                onClick={() => navigate('/expenses')}
-                className="rounded-lg border border-slate-800 bg-[#101b26] px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-emerald-500/40 hover:text-white"
-              >
-                View all transactions
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-xs">
-                <thead className="text-slate-500">
-                  <tr className="border-b border-slate-800/80">
-                    <th className="px-5 py-3 font-semibold">Date</th>
-                    <th className="py-3 font-semibold">Description</th>
-                    <th className="py-3 font-semibold">Category</th>
-                    <th className="py-3 text-right font-semibold">Amount</th>
-                    <th className="px-5 py-3 text-right font-semibold">Source</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentTransactions.map((item, index) => {
-                    const date = getExpenseDate(item);
-                    const color = CATEGORY_COLORS[index % CATEGORY_COLORS.length];
-                    return (
-                      <tr key={item.id} className="border-b border-slate-800/60 last:border-0">
-                        <td className="px-5 py-3 text-slate-400">{formatDateTime(date)}</td>
-                        <td className="py-3">
-                          <p className="font-medium text-slate-200">{item.merchant || item.description || 'Transaksi WhatsApp'}</p>
-                          <p className="mt-0.5 text-[11px] text-slate-500">{item.payment_channel || item.rekening || 'Cash'}</p>
-                        </td>
-                        <td className="py-3"><CategoryBadge color={color}>{item.category || 'Lainnya'}</CategoryBadge></td>
-                        <td className="py-3 text-right font-bold text-emerald-400">{currency(item.amount)}</td>
-                        <td className="px-5 py-3 text-right text-slate-400">{item.source || 'Manual'}</td>
-                      </tr>
-                    );
-                  })}
-                  {!loading && !recentTransactions.length && (
-                    <tr>
-                      <td colSpan="5" className="px-5 py-12 text-center text-slate-500">
-                        Belum ada transaksi. Kirim transaksi dari WhatsApp atau tambahkan manual.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Panel>
-
-          <div className="space-y-5">
-            <Panel className="p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="text-[15px] font-bold text-slate-100">AI Insights</h2>
-                <span className="rounded-md bg-violet-500/20 px-2 py-1 text-[10px] font-bold text-violet-300">New</span>
-              </div>
-              <div className="space-y-3">
-                {insights.map((item) => (
-                  <div key={item.title} className="group flex items-center gap-3 rounded-xl border border-slate-800 bg-[#101b26] p-3 transition hover:border-emerald-500/35">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-                      <item.icon className="h-5 w-5" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <strong className="block truncate text-sm text-slate-100">{item.title}</strong>
-                      <small className="mt-1 block text-xs leading-relaxed text-slate-500">{item.detail}</small>
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-slate-600 transition group-hover:text-emerald-400" />
-                  </div>
-                ))}
-              </div>
-            </Panel>
-
-            <Panel className="p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="text-[15px] font-bold text-slate-100">Quick Actions</h2>
-                <Sparkles className="h-4 w-4 text-emerald-400" />
-              </div>
-              <div className="grid gap-3">
-                <button type="button" onClick={() => navigate('/whatsapp')} className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-left transition hover:border-emerald-400/60">
-                  <Wifi className="h-6 w-6 text-emerald-400" />
-                  <span><strong className="block text-sm text-white">Connect WhatsApp</strong><small className="text-xs text-slate-400">Scan QR dan aktifkan bot.</small></span>
-                  <ArrowRight className="ml-auto h-4 w-4 text-slate-500" />
-                </button>
-                <button type="button" onClick={() => navigate('/expenses')} className="flex items-center gap-3 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4 text-left transition hover:border-blue-400/60">
-                  <Plus className="h-6 w-6 text-blue-300" />
-                  <span><strong className="block text-sm text-white">Tambah Transaksi</strong><small className="text-xs text-slate-400">Catat manual jika diperlukan.</small></span>
-                  <ArrowRight className="ml-auto h-4 w-4 text-slate-500" />
-                </button>
-                <button type="button" onClick={() => navigate('/settings')} className="flex items-center gap-3 rounded-xl border border-violet-500/20 bg-violet-500/10 p-4 text-left transition hover:border-violet-400/60">
-                  <Settings2 className="h-6 w-6 text-violet-300" />
-                  <span><strong className="block text-sm text-white">Pengaturan AI</strong><small className="text-xs text-slate-400">Apps Script, Sheet, dan model.</small></span>
-                  <ArrowRight className="ml-auto h-4 w-4 text-slate-500" />
-                </button>
-                <button type="button" onClick={() => setShowRecapModal(true)} className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-left transition hover:border-amber-400/60">
-                  <Archive className="h-6 w-6 text-amber-300" />
-                  <span><strong className="block text-sm text-white">New Recap</strong><small className="text-xs text-slate-400">Backup periode lama dan mulai dari 0.</small></span>
-                  <ArrowRight className="ml-auto h-4 w-4 text-slate-500" />
-                </button>
-              </div>
-            </Panel>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

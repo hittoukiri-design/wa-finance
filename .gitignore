@@ -37,8 +37,8 @@ Hero Header*.png
 Hero header*.png
 Sample*.png
 Sampel*.png
-**/hero-banner-bg.png
-**/transaction-banner-bg.png
+/hero-banner-bg.png
+/transaction-banner-bg.png
 *.xlsx
 *.xls
 *.xlsm
