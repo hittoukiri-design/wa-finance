@@ -16,9 +16,11 @@ import {
   FileSpreadsheet,
   FileText,
   Filter,
+  Flame,
   Mail,
   MoreVertical,
   Plus,
+  Receipt,
   ReceiptText,
   Search,
   ShoppingCart,
@@ -41,10 +43,10 @@ const today = () => dateInputValue(new Date());
 const emptyForm = { merchant: '', category: 'Lainnya', amount: '', date: today(), payment_channel: 'Cash', type: 'expense' };
 
 const CATEGORY_ICONS = {
-  Belanja: '🛒',
-  Shopping: '🛒',
   Tagihan: '💳',
   Utilities: '💳',
+  Belanja: '🛒',
+  Shopping: '🛒',
   Makan: '🍜',
   'Food & Drink': '🍜',
   Keluarga: '👥',
@@ -84,12 +86,6 @@ function formatDateTime(value) {
   }).format(date);
 }
 
-function formatDateOnly(value) {
-  const date = value instanceof Date ? value : value ? new Date(value) : null;
-  if (!date || Number.isNaN(date.getTime())) return '-';
-  return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
-}
-
 function dateInputValue(value) {
   const date = value instanceof Date ? value : value ? new Date(value) : new Date();
   if (Number.isNaN(date.getTime())) return '';
@@ -126,8 +122,28 @@ function startOfDay(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+function addDays(date, amount) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + amount);
+  return result;
+}
+
 function dateKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function formatPeriodRange(start, end) {
+  const sDay = start.getDate();
+  const sMonth = new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(start);
+  const sYear = start.getFullYear();
+  const eDay = end.getDate();
+  const eMonth = new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(end);
+  const eYear = end.getFullYear();
+
+  if (sMonth === eMonth && sYear === eYear) {
+    return `${sDay} ${sMonth} ${sYear} - ${eDay} ${eMonth} ${eYear}`;
+  }
+  return `${sDay} ${sMonth} ${sYear} - ${eDay} ${eMonth} ${eYear}`;
 }
 
 function getCategory(item) {
@@ -212,6 +228,11 @@ export default function Expenses() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Period start & end for header subtitle
+  const periodStartDate = useMemo(() => dateFromInput(startDate) || startOfMonth(new Date()), [startDate]);
+  const periodEndDate = useMemo(() => dateFromInput(endDate, true) || endOfMonth(periodStartDate), [endDate, periodStartDate]);
+  const periodString = useMemo(() => formatPeriodRange(periodStartDate, periodEndDate), [periodStartDate, periodEndDate]);
+
   // Statistics computations
   const expenseItems = useMemo(() => expenses.filter((item) => getType(item) !== 'income'), [expenses]);
   const incomeItems = useMemo(() => expenses.filter((item) => getType(item) === 'income'), [expenses]);
@@ -227,7 +248,54 @@ export default function Expenses() {
     return dates.size;
   }, [expenses]);
 
-  // Categories breakdown for top grid cards
+  // Sparkline data for Card 2 (Expense Sparkline Area)
+  const totalDaysInMonth = useMemo(() => {
+    return Math.max(1, Math.ceil((periodEndDate - periodStartDate) / 86400000) + 1);
+  }, [periodStartDate, periodEndDate]);
+
+  const expenseSparkline = useMemo(() => {
+    const byDay = {};
+    expenseItems.forEach((e) => {
+      const d = getDate(e);
+      if (d) { const k = dateKey(d); byDay[k] = (byDay[k] || 0) + Number(e.amount || 0); }
+    });
+    const today = startOfDay(new Date());
+    const daysSoFar = Math.max(1, Math.ceil((today - periodStartDate) / 86400000) + 1);
+    return Array.from({ length: Math.min(daysSoFar, totalDaysInMonth) }, (_, i) => byDay[dateKey(addDays(periodStartDate, i))] || 0);
+  }, [expenseItems, periodStartDate, totalDaysInMonth]);
+
+  const maxExpSpark = Math.max(...expenseSparkline, 1);
+  const expPoints = useMemo(() => {
+    const totalSlots = Math.min(totalDaysInMonth, 31);
+    const dataLen = expenseSparkline.length;
+    const pts = [];
+    for (let i = 0; i < totalSlots; i++) {
+      const x = totalSlots <= 1 ? 50 : (i / (totalSlots - 1)) * 100;
+      let y = 22;
+      if (i < dataLen) {
+        const val = expenseSparkline[i] || 0;
+        y = 22 - (val / maxExpSpark) * 18;
+      }
+      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+    }
+    return pts.join(' ');
+  }, [expenseSparkline, maxExpSpark, totalDaysInMonth]);
+
+  // Sparkline data for Card 3 (Transaction Count Bars)
+  const txBarData = useMemo(() => {
+    const byDay = {};
+    expenseItems.forEach((e) => {
+      const d = getDate(e);
+      if (d) { const k = dateKey(d); byDay[k] = (byDay[k] || 0) + 1; }
+    });
+    const today = startOfDay(new Date());
+    const daysSoFar = Math.max(1, Math.ceil((today - periodStartDate) / 86400000) + 1);
+    return Array.from({ length: Math.min(daysSoFar, totalDaysInMonth) }, (_, i) => byDay[dateKey(addDays(periodStartDate, i))] || 0);
+  }, [expenseItems, periodStartDate, totalDaysInMonth]);
+
+  const maxTxBar = Math.max(...txBarData, 1);
+
+  // Categories breakdown for grid cards
   const categoryStats = useMemo(() => {
     const grouped = {};
     expenseItems.forEach((item) => {
@@ -363,39 +431,93 @@ export default function Expenses() {
         </div>
       )}
 
-      {/* ════ 1. TOP SUMMARY BAR CARD (WITH AUTHENTIC BANNER BG) ════ */}
-      <div className="tx-summary-bar-card">
-        <div className="tx-export-pills">
-          <button className="btn-export-outline" onClick={exportPdf}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d93829" strokeWidth="2.5">
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-            PDF
-          </button>
-          <button className="btn-export-outline" onClick={exportCsv}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2d7a18" strokeWidth="2.5">
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-            Excel
-          </button>
+      {/* ════ 1. TOP THREE CARDS ROW (AS REQUESTED) ════ */}
+      <div className="tx-top-three-grid">
+        
+        {/* Card 1: Banner Card (Arus Kas - Daftar Transaksi) */}
+        <div className="tx-banner-box">
+          <div>
+            <div className="tx-banner-eyebrow">ARUS KAS</div>
+            <div className="tx-banner-title">Daftar transaksi</div>
+            <div className="tx-banner-sub">{periodString}</div>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2">
+            <button className="btn-export-outline" onClick={exportPdf}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d93829" strokeWidth="2.5">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              PDF
+            </button>
+            <button className="btn-export-outline" onClick={exportCsv}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2d7a18" strokeWidth="2.5">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              Excel
+            </button>
+          </div>
         </div>
 
-        <div className="tx-stats-trio">
-          <div className="tx-stat-cell-item">
-            <div className="tx-stat-cell-val">{busy ? '...' : currency(averageExpense)}</div>
-            <div className="tx-stat-cell-lbl">Rata-rata 1 catatan</div>
+        {/* Card 2: Total Pengeluaran */}
+        <div className="tx-stat-box">
+          <div>
+            <div className="tx-stat-box-head">
+              <span className="tx-stat-box-title">TOTAL PENGELUARAN</span>
+              <div className="tx-stat-icon-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+              </div>
+            </div>
+            <div className="tx-stat-box-val">{busy ? '...' : currency(totalExpenseAmount)}</div>
           </div>
-          <div className="tx-stat-cell-item">
-            <div className="tx-stat-cell-val">{busy ? '...' : `${activeDaysCount} hari aktif`}</div>
-            <div className="tx-stat-cell-lbl">Hari aktif</div>
+
+          <div className="tx-stat-spark-wrap">
+            <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="txExpGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#4a8c2c" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#4a8c2c" stopOpacity="0.05" />
+                </linearGradient>
+              </defs>
+              <polygon points={`${expPoints} 100,24 0,24`} fill="url(#txExpGrad)" />
+              <polyline points={expPoints} fill="none" stroke="#4a8c2c" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
           </div>
-          <div className="tx-stat-cell-item">
-            <div className="tx-stat-cell-val">{busy ? '...' : `${totalCategoriesCount} kategori`}</div>
-            <div className="tx-stat-cell-lbl">Total kategori</div>
+
+          <div className="tx-stat-box-sub">
+            Rata-rata {currency(averageExpense)} per catatan
           </div>
         </div>
+
+        {/* Card 3: Jumlah Transaksi */}
+        <div className="tx-stat-box">
+          <div>
+            <div className="tx-stat-box-head">
+              <span className="tx-stat-box-title">JUMLAH TRANSAKSI</span>
+              <div className="tx-stat-icon-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+              </div>
+            </div>
+            <div className="tx-stat-box-val">{busy ? '...' : expenseItems.length}</div>
+          </div>
+
+          <div className="tx-stat-spark-wrap">
+            <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
+              {txBarData.slice(0, 16).map((v, i, arr) => {
+                const bw = Math.max(2.5, 90 / Math.max(arr.length, 1) - 1.5);
+                const x = arr.length < 2 ? (i * 20) : (i / (arr.length - 1)) * (95 - bw);
+                const bh = v > 0 ? Math.max(4, (v / maxTxBar) * 18) : 2;
+                return <rect key={i} x={x} y={22 - bh} width={bw} height={bh} rx="1" fill={i === arr.length - 1 ? '#22c55e' : '#4a8c2c'} opacity={v > 0 ? 0.9 : 0.25} />;
+              })}
+            </svg>
+          </div>
+
+          <div className="tx-stat-box-sub">
+            {activeDaysCount} hari aktif • {totalCategoriesCount} kategori
+          </div>
+        </div>
+
       </div>
 
       {/* ════ 2. CATEGORY SUMMARY CARDS GRID ════ */}
@@ -676,7 +798,7 @@ export default function Expenses() {
                     onChange={(e) => setForm((c) => ({ ...c, category: e.target.value }))}
                     className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   >
-                    {['Belanja', 'Tagihan', 'Makan', 'Keluarga', 'Rumah', 'Hiburan', 'Transportasi', 'Perawatan', 'Sosial', 'Kesehatan', 'Gaji', 'Lainnya'].map((c) => (
+                    {['Tagihan', 'Belanja', 'Makan', 'Keluarga', 'Rumah', 'Hiburan', 'Transportasi', 'Perawatan', 'Sosial', 'Kesehatan', 'Gaji', 'Lainnya'].map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>

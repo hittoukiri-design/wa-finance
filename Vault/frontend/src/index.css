@@ -7817,3 +7817,135 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   background-color: var(--card-bg-subtle);
 }
 \n
+
+/* ── Top 3 Cards Grid for Transaksi View ── */
+.tx-top-three-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 1024px) {
+  .tx-top-three-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tx-banner-box {
+  position: relative;
+  overflow: hidden;
+  background-color: #f6faf2;
+  background-image: url('/transaction-banner-bg.png');
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border: 1px solid #dcebd0;
+  border-radius: 18px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow-card);
+  min-height: 125px;
+}
+
+[data-theme="dark"] .tx-banner-box, html.dark .tx-banner-box {
+  background-color: #12250d;
+  border-color: #244618;
+  background-blend-mode: overlay;
+}
+
+.tx-banner-eyebrow {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #358219;
+}
+
+[data-theme="dark"] .tx-banner-eyebrow, html.dark .tx-banner-eyebrow {
+  color: #76d446;
+}
+
+.tx-banner-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0e2a07;
+  margin: 1px 0;
+}
+
+[data-theme="dark"] .tx-banner-title, html.dark .tx-banner-title {
+  color: #f3ffe9;
+}
+
+.tx-banner-sub {
+  font-size: 10px;
+  color: #436d32;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .tx-banner-sub, html.dark .tx-banner-sub {
+  color: #a8cf93;
+}
+
+.tx-stat-box {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow-card);
+  min-height: 125px;
+  position: relative;
+}
+
+.tx-stat-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tx-stat-box-title {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-light);
+}
+
+.tx-stat-icon-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: #e4f4d8;
+  color: #245c10;
+  display: grid;
+  place-items: center;
+}
+
+[data-theme="dark"] .tx-stat-icon-badge, html.dark .tx-stat-icon-badge {
+  background-color: #1a3414;
+  color: #76d446;
+}
+
+.tx-stat-box-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-top: 2px;
+}
+
+.tx-stat-spark-wrap {
+  height: 24px;
+  margin: 4px 0 2px;
+}
+
+.tx-stat-box-sub {
+  font-size: 10px;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
