@@ -51,6 +51,8 @@
 /* Components predate the theme toggle and contain a dark palette directly in
    their utility classes. These overrides make the same controls readable in
    light mode without changing their behaviour. */
+
+/* --- App shell backgrounds --- */
 html[data-theme="light"] .app-shell,
 html[data-theme="light"] .app-main,
 html[data-theme="light"] .app-sidebar,
@@ -60,7 +62,10 @@ html[data-theme="light"] [class*="bg-[#071019]"] {
 
 html[data-theme="light"] [class*="bg-[#0b141c]"],
 html[data-theme="light"] [class*="bg-[#0c1822]"],
-html[data-theme="light"] [class*="bg-[#101b26]"] {
+html[data-theme="light"] [class*="bg-[#101b26]"],
+html[data-theme="light"] [class*="bg-[#111a31]"],
+html[data-theme="light"] [class*="bg-[#08151d]"],
+html[data-theme="light"] [class*="bg-[#1b2746]"] {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
 }
@@ -70,11 +75,13 @@ html[data-theme="light"] [class*="bg-slate-800"] {
   background-color: #edf2f7 !important;
 }
 
+/* --- Borders --- */
 html[data-theme="light"] [class*="border-slate-8"],
 html[data-theme="light"] [class*="border-slate-7"] {
   border-color: #dbe4ef !important;
 }
 
+/* --- Text colours: white & light slate → dark readable --- */
 html[data-theme="light"] [class*="text-white"],
 html[data-theme="light"] [class*="text-slate-100"],
 html[data-theme="light"] [class*="text-slate-200"],
@@ -87,13 +94,76 @@ html[data-theme="light"] [class*="text-slate-500"] {
   color: #64748b !important;
 }
 
-html[data-theme="light"] ::-webkit-scrollbar-track {
-  background: #e9eef5;
+/* --- Inputs & selects with dark backgrounds --- */
+html[data-theme="light"] input[class*="bg-slate-900"],
+html[data-theme="light"] select[class*="bg-slate-900"],
+html[data-theme="light"] textarea[class*="bg-slate-900"] {
+  background-color: #f8fafc !important;
+  color: #16233a !important;
+  border-color: #cbd5e1 !important;
 }
 
-html[data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: #b8c4d3;
+/* --- Header h1 (hardcoded text-white in Header.jsx) --- */
+html[data-theme="light"] header h1 {
+  color: #16233a !important;
 }
+
+/* --- Status pills in Header: keep their tinted look legible --- */
+html[data-theme="light"] [class*="bg-emerald-500/10"] {
+  background-color: #dcfce7 !important;
+}
+html[data-theme="light"] [class*="text-emerald-300"] {
+  color: #15803d !important;
+}
+html[data-theme="light"] [class*="bg-amber-500/10"] {
+  background-color: #fef9c3 !important;
+}
+html[data-theme="light"] [class*="text-amber-300"] {
+  color: #b45309 !important;
+}
+html[data-theme="light"] [class*="bg-red-500/10"] {
+  background-color: #fee2e2 !important;
+}
+html[data-theme="light"] [class*="text-red-300"] {
+  color: #b91c1c !important;
+}
+
+/* --- Theme toggle button in Header --- */
+html[data-theme="light"] [class*="text-slate-400"][class*="hover:text-amber-300"] {
+  color: #64748b !important;
+}
+
+/* --- Sidebar user card bg --- */
+html[data-theme="light"] [class*="bg-emerald-500/20"] {
+  background-color: #d1fae5 !important;
+}
+
+/* --- Hover overrides (prevent hover:text-white staying invisible on light bg) --- */
+html[data-theme="light"] [class*="hover:text-white"]:hover,
+html[data-theme="light"] [class*="hover:text-slate-200"]:hover {
+  color: #0f172a !important;
+}
+
+/* --- Scrollbar --- */
+html[data-theme="light"] ::-webkit-scrollbar-track { background: #e9eef5; }
+html[data-theme="light"] ::-webkit-scrollbar-thumb { background: #b8c4d3; }
+
+/* --- Broad light-mode safety net: catches components with hardcoded dark classes --- */
+html[data-theme="light"] .app-main { color: #16233a; }
+html[data-theme="light"] .app-main [class*="bg-[#0"],
+html[data-theme="light"] .app-main [class*="bg-[#1"] { background-color: #ffffff !important; color: #16233a !important; }
+html[data-theme="light"] .app-main [class*="text-white"],
+html[data-theme="light"] .app-main [class*="text-slate-100"],
+html[data-theme="light"] .app-main [class*="text-slate-200"],
+html[data-theme="light"] .app-main [class*="text-slate-300"] { color: #16233a !important; }
+html[data-theme="light"] .app-main [class*="text-slate-400"],
+html[data-theme="light"] .app-main [class*="text-slate-500"] { color: #64748b !important; }
+html[data-theme="light"] .app-main [class*="bg-slate-900"],
+html[data-theme="light"] .app-main [class*="bg-slate-800"],
+html[data-theme="light"] .app-main [class*="bg-slate-700"] { background-color: #f1f5f9 !important; }
+html[data-theme="light"] .app-main input,
+html[data-theme="light"] .app-main select,
+html[data-theme="light"] .app-main textarea { background-color: #f8fafc !important; color: #16233a !important; border-color: #cbd5e1 !important; }
 
 html[data-theme="dark"] body {
   background: #071019;
