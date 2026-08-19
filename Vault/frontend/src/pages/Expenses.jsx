@@ -44,6 +44,8 @@ const today = () => dateInputValue(new Date());
 const emptyForm = { merchant: '', category: 'Lainnya', amount: '', date: today(), payment_channel: 'Cash', type: 'expense' };
 
 const CATEGORY_ICONS = {
+  Tabungan: '🏦',
+  Investasi: '📈',
   Tagihan: '💳',
   Utilities: '💳',
   Belanja: '🛒',
@@ -66,6 +68,8 @@ const CATEGORY_ICONS = {
 };
 
 const CATEGORIES_LIST = [
+  'Tabungan',
+  'Investasi',
   'Tagihan',
   'Belanja',
   'Makan',
@@ -204,7 +208,10 @@ function getAccount(item) {
 }
 
 function getType(item) {
-  return String(item.type || 'expense').toLowerCase() === 'income' ? 'income' : 'expense';
+  const t = String(item.type || 'expense').toLowerCase();
+  if (t === 'income') return 'income';
+  if (t === 'savings' || String(item.category || '').toLowerCase() === 'tabungan' || String(item.category || '').toLowerCase() === 'investasi') return 'savings';
+  return 'expense';
 }
 
 function merchantInitial(merchant) {
@@ -756,9 +763,13 @@ export default function Expenses() {
                       <span className="badge-category-green">{getCategory(item)}</span>
                     </td>
                     <td>
-                      {isIncome ? (
+                      {getType(item) === 'income' ? (
                         <span className="badge-type-green">
                           <ArrowUp width="11" height="11" /> Pemasukan
+                        </span>
+                      ) : getType(item) === 'savings' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/15 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
+                          🏦 Tabungan
                         </span>
                       ) : (
                         <span className="badge-type-red">
@@ -767,8 +778,8 @@ export default function Expenses() {
                       )}
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 800 }}>
-                      <span className={isIncome ? 'text-[#2d7a18] dark:text-[#76d446]' : 'text-slate-900 dark:text-slate-100'}>
-                        {isIncome ? `+ ${currency(item.amount)}` : `- ${currency(item.amount)}`}
+                      <span className={getType(item) === 'income' ? 'text-[#2d7a18] dark:text-[#76d446]' : getType(item) === 'savings' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-900 dark:text-slate-100'}>
+                        {getType(item) === 'income' ? `+ ${currency(item.amount)}` : `- ${currency(item.amount)}`}
                       </span>
                     </td>
                     <td style={{ color: 'var(--text-light)', fontSize: '11px', whiteSpace: 'nowrap' }}>
@@ -880,6 +891,46 @@ export default function Expenses() {
             </div>
 
             <form onSubmit={handleUpdate} className="mt-4 space-y-4">
+              {/* Field 0: Tipe Transaksi */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Tipe Transaksi</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditForm((c) => ({ ...c, type: 'expense' }))}
+                    className={`rounded-xl py-2 text-xs font-bold transition ${
+                      editForm.type === 'expense'
+                        ? 'bg-red-500 text-white'
+                        : 'border border-slate-700 text-slate-300 hover:bg-white/5'
+                    }`}
+                  >
+                    ↘ Pengeluaran
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditForm((c) => ({ ...c, type: 'income' }))}
+                    className={`rounded-xl py-2 text-xs font-bold transition ${
+                      editForm.type === 'income'
+                        ? 'bg-emerald-600 text-white'
+                        : 'border border-slate-700 text-slate-300 hover:bg-white/5'
+                    }`}
+                  >
+                    ↗ Pemasukan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditForm((c) => ({ ...c, type: 'savings', category: 'Tabungan' }))}
+                    className={`rounded-xl py-2 text-xs font-bold transition ${
+                      editForm.type === 'savings'
+                        ? 'bg-indigo-600 text-white'
+                        : 'border border-slate-700 text-slate-300 hover:bg-white/5'
+                    }`}
+                  >
+                    🏦 Tabungan
+                  </button>
+                </div>
+              </div>
+
               {/* Field 1: Transaksi (Merchant / Deskripsi) */}
               <div>
                 <label className="mb-1 block text-[11px] font-semibold text-slate-400">Transaksi</label>
@@ -983,8 +1034,8 @@ export default function Expenses() {
 
             <div className="mt-4 space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Tipe</label>
-                <div className="grid grid-cols-2 gap-2">
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Tipe Transaksi</label>
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setForm((c) => ({ ...c, type: 'expense' }))}
@@ -998,7 +1049,7 @@ export default function Expenses() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setForm((c) => ({ ...c, type: 'income' }))}
+                    onClick={() => setForm((c) => ({ ...c, type: 'income', category: c.category === 'Lainnya' ? 'Gaji' : c.category }))}
                     className={`rounded-xl py-2 text-xs font-bold transition ${
                       form.type === 'income'
                         ? 'bg-emerald-600 text-white'
@@ -1006,6 +1057,17 @@ export default function Expenses() {
                     }`}
                   >
                     ↗ Pemasukan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm((c) => ({ ...c, type: 'savings', category: 'Tabungan' }))}
+                    className={`rounded-xl py-2 text-xs font-bold transition ${
+                      form.type === 'savings'
+                        ? 'bg-indigo-600 text-white'
+                        : 'border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    🏦 Tabungan
                   </button>
                 </div>
               </div>

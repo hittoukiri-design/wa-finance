@@ -25,6 +25,8 @@ const currency = (amount) => new Intl.NumberFormat('id-ID', {
 }).format(Number(amount || 0));
 
 const BASE_CATEGORIES = [
+  { id: 'tabungan', name: 'Tabungan', emoji: '🏦', defaultBudget: 0, threshold: '80%' },
+  { id: 'investasi', name: 'Investasi', emoji: '📈', defaultBudget: 0, threshold: '80%' },
   { id: 'makan', name: 'Makan', emoji: '🍜', defaultBudget: 0, threshold: '80%' },
   { id: 'belanja', name: 'Belanja', emoji: '🛒', defaultBudget: 0, threshold: '80%' },
   { id: 'transportasi', name: 'Transportasi', emoji: '🚗', defaultBudget: 0, threshold: '80%' },
@@ -40,6 +42,8 @@ const BASE_CATEGORIES = [
 ];
 
 const CATEGORY_EMOJIS = {
+  Tabungan: '🏦',
+  Investasi: '📈',
   Makan: '🍜',
   Belanja: '🛒',
   Transportasi: '🚗',

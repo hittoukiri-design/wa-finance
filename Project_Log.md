@@ -169,7 +169,12 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - Mengimplementasikan sistem infinite loop sejati dengan *head/tail cloning* dan *instant zero-transition transitionend reset*.
   - Saat kartu terakhir (paling kanan) digeser ke kanan atau auto-slide berjalan, kartu akan **terus bergerak maju ke kartu pertama secara mulus tanpa efek mundur (rewind)**!
   - Berlaku sama saat digeser ke kiri (bergerak mundur mulus ke kartu terakhir tanpa lompat).
-- ✅ **Build production terbaru** (`index-ZWFe7sde.js` & `index-D0dzAucB.css`) telah aktif dan live di container Mac mini.
+- ✅ **Audit Menyeluruh & Integrasi Penuh Fitur Tabungan & Investasi (`Dashboard.jsx`, `Expenses.jsx`, `Dompet.jsx`)**:
+  - **Kalkulasi Tabungan Riil**: Kartu ke-4 pada Dashboard (TABUNGAN & INVESTASI) kini menghitung akumulasi riil dari semua transaksi bertipe `savings` dan kategori `Tabungan`/`Investasi`.
+  - **Quick Action "+ Catat" di Dashboard**: Pengguna bisa langsung mengklik kartu Tabungan atau tombol `+ Catat` di Dashboard untuk membuka modal pencatatan tabungan/investasi secara instan tanpa perlu berpindah halaman.
+  - **Input Transaksi Manual (`/expenses`)**: Menambahkan 3 tombol tipe transaksi (↘ Pengeluaran, ↗ Pemasukan, 🏦 Tabungan) serta mendaftarkan kategori `Tabungan` (🏦) dan `Investasi` (📈).
+  - **Kategori Dompet (`/dompet`)**: Menambahkan pos `Tabungan` dan `Investasi` ke dalam daftar kategori proteksi budget agar dapat dipantau alokasinya.
+- ✅ **Build production terbaru** (`index-6SMwMm3j.js` & `index-CCZlvJAj.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

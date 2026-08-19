@@ -27,7 +27,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
-import { getSettings, listConversations, listExpenses } from '../lib/firestore';
+import { addExpense, getSettings, listConversations, listExpenses } from '../lib/firestore';
 import { createNewRecap, downloadExcelReport, getBackendSettings, whatsappApi } from '../lib/whatsapp-api';
 
 const CATEGORY_COLORS = ['#2f781c', '#6952ec', '#f77132', '#f59e0b', '#16b896', '#389ef2', '#94a3b8'];
@@ -150,6 +150,16 @@ export default function Dashboard() {
   const [savedWallets, setSavedWallets] = useState([]);
   const [showRecapModal, setShowRecapModal] = useState(false);
   const [recapBusy, setRecapBusy] = useState(false);
+  const [showSavingsModal, setShowSavingsModal] = useState(false);
+  const [savingsBusy, setSavingsBusy] = useState(false);
+  const [savingsNotice, setSavingsNotice] = useState('');
+  const [savingsForm, setSavingsForm] = useState(() => ({
+    amount: '',
+    merchant: 'Nabung Bulanan',
+    category: 'Tabungan',
+    payment_channel: 'BCA',
+    date: dateKey(new Date()),
+  }));
   const [selectedDayIndex, setSelectedDayIndex] = useState(null);
   const [recapForm, setRecapForm] = useState(() => ({
     name: `Periode ${new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date())}`,
@@ -204,6 +214,54 @@ export default function Dashboard() {
     }
   };
 
+  const handleSaveSavings = async (e) => {
+    e.preventDefault();
+    if (!savingsForm.amount || Number(savingsForm.amount) <= 0) {
+      setSavingsNotice('Nominal tabungan wajib diisi.');
+      return;
+    }
+    setSavingsBusy(true);
+    setSavingsNotice('');
+    try {
+      const docRef = await addExpense(user.uid, {
+        merchant: (savingsForm.merchant || 'Nabung').trim(),
+        amount: Number(savingsForm.amount),
+        date: savingsForm.date,
+        payment_channel: savingsForm.payment_channel || 'BCA',
+        category: savingsForm.category || 'Tabungan',
+        type: 'savings',
+        source: 'Manual',
+      });
+      const newTx = {
+        id: docRef.id,
+        merchant: (savingsForm.merchant || 'Nabung').trim(),
+        description: (savingsForm.merchant || 'Nabung').trim(),
+        amount: Number(savingsForm.amount),
+        date: savingsForm.date,
+        payment_channel: savingsForm.payment_channel || 'BCA',
+        rekening: savingsForm.payment_channel || 'BCA',
+        category: savingsForm.category || 'Tabungan',
+        type: 'savings',
+        source: 'Manual',
+        status: 'Approved',
+        createdAt: new Date(),
+      };
+      setExpenses((prev) => [newTx, ...prev]);
+      setShowSavingsModal(false);
+      setSavingsForm({
+        amount: '',
+        merchant: 'Nabung Bulanan',
+        category: 'Tabungan',
+        payment_channel: 'BCA',
+        date: dateKey(new Date()),
+      });
+    } catch (err) {
+      setSavingsNotice(err.message || 'Gagal mencatat tabungan.');
+    } finally {
+      setSavingsBusy(false);
+    }
+  };
+
   const activePeriodExpenses = useMemo(() => expenses.filter((item) => {
     const date = getExpenseDate(item);
     return date ? date >= activePeriodStart : false;
@@ -226,6 +284,21 @@ export default function Dashboard() {
     .filter((item) => !isSalaryIncome(item))
     .reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const totalIncome = salaryIncomePeriod + extraIncomePeriod;
+
+  // Active period savings & investment total
+  const activePeriodSavings = useMemo(() => {
+    return [...expenses, ...incomes].filter((item) => {
+      const d = getExpenseDate(item);
+      if (!d || d < activePeriodStart) return false;
+      const t = String(item.type || '').toLowerCase();
+      const cat = String(item.category || '').toLowerCase();
+      return t === 'savings' || cat.includes('tabung') || cat.includes('invest');
+    });
+  }, [expenses, incomes, activePeriodStart]);
+
+  const totalSavings = useMemo(() => {
+    return activePeriodSavings.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  }, [activePeriodSavings]);
 
   const budgetUsed = monthlyBudget ? (totalMonth / monthlyBudget) * 100 : 0;
   const budgetBase = monthlyBudget || salaryIncomePeriod;
@@ -997,20 +1070,35 @@ export default function Dashboard() {
         </div>
 
         {/* 4. TABUNGAN */}
-        <div className="metric-mini-card">
+        <div
+          className="metric-mini-card group cursor-pointer transition hover:border-[#b8dc9f] dark:hover:border-[#38642a]"
+          onClick={() => setShowSavingsModal(true)}
+          title="Klik untuk mencatat tabungan / investasi"
+        >
           <div className="metric-mini-icon-row">
             <div className="metric-mini-icon-badge">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#245c10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="M16 12a2 2 0 1 1-4 0 2 2 0 014 0z"/></svg>
             </div>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowSavingsModal(true); }}
+              className="rounded-full border border-[#d6e4be] bg-white px-2 py-0.5 text-[10px] font-bold text-[#1a5611] shadow-sm transition hover:bg-[#1a5611] hover:text-white dark:border-[#263e1d] dark:bg-[#162519] dark:text-[#76d446]"
+            >
+              + Catat
+            </button>
           </div>
-          <div className="metric-mini-title">TABUNGAN</div>
-          <div className="metric-mini-value">Rp 0</div>
+          <div className="metric-mini-title">TABUNGAN & INVESTASI</div>
+          <div className="metric-mini-value">{loading ? '...' : currency(totalSavings)}</div>
           <div className="metric-sparkline-box">
             <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
               <line x1="0" y1="18" x2="100" y2="18" stroke="#4a8c2c" strokeWidth="1.6" strokeDasharray="3 2" />
             </svg>
           </div>
-          <div className="metric-mini-sub">Kategori Tabungan</div>
+          <div className="metric-mini-sub">
+            {activePeriodSavings.length > 0
+              ? `${activePeriodSavings.length} transaksi tabungan`
+              : 'Klik untuk catat tabungan'}
+          </div>
         </div>
 
       </div>
@@ -1268,6 +1356,118 @@ export default function Dashboard() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ════ MODAL: CATAT TABUNGAN / INVESTASI ════ */}
+      {showSavingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-[22px] border border-[#263e1d] bg-[#101b12] p-6 shadow-2xl dark:border-[#263e1d] dark:bg-[#101b12]">
+            <div className="flex items-center justify-between border-b border-[#243a1a] pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400">
+                  <Wallet width="18" height="18" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Catat Tabungan / Investasi</h2>
+                  <p className="text-xs text-slate-400">Simpan dana ke pos tabungan atau aset investasi.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSavingsModal(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white"
+              >
+                <X width="18" height="18" />
+              </button>
+            </div>
+
+            {savingsNotice && (
+              <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300">
+                {savingsNotice}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveSavings} className="mt-4 space-y-4">
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Nominal Tabungan (Rp)</label>
+                <input
+                  required
+                  type="number"
+                  value={savingsForm.amount}
+                  onChange={(e) => setSavingsForm((c) => ({ ...c, amount: e.target.value }))}
+                  placeholder="Contoh: 500000"
+                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Keterangan / Tujuan Tabungan</label>
+                <input
+                  required
+                  value={savingsForm.merchant}
+                  onChange={(e) => setSavingsForm((c) => ({ ...c, merchant: e.target.value }))}
+                  placeholder="Contoh: Nabung Dana Darurat, Beli Reksadana Bibit, Emas"
+                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Sumber Dompet</label>
+                  <select
+                    value={savingsForm.payment_channel}
+                    onChange={(e) => setSavingsForm((c) => ({ ...c, payment_channel: e.target.value }))}
+                    className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  >
+                    {(savedWallets.length ? savedWallets.map((w) => w.name) : ['BCA', 'SUPERBANK', 'Cash', 'GOPAY', 'DANA']).map((w) => (
+                      <option key={w} value={w}>{w}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Kategori</label>
+                  <select
+                    value={savingsForm.category}
+                    onChange={(e) => setSavingsForm((c) => ({ ...c, category: e.target.value }))}
+                    className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  >
+                    <option value="Tabungan">🏦 Tabungan</option>
+                    <option value="Investasi">📈 Investasi</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Tanggal</label>
+                <input
+                  required
+                  type="date"
+                  value={savingsForm.date}
+                  onChange={(e) => setSavingsForm((c) => ({ ...c, date: e.target.value }))}
+                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                />
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSavingsModal(false)}
+                  className="rounded-full border border-slate-700 bg-transparent px-6 py-2 text-xs font-bold text-slate-300 hover:bg-white/5"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingsBusy}
+                  className="rounded-full bg-[#76d446] px-7 py-2 text-xs font-black text-[#0d170a] shadow-lg transition hover:bg-[#64be36] disabled:opacity-50"
+                >
+                  {savingsBusy ? 'Menyimpan...' : 'Simpan Tabungan'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
