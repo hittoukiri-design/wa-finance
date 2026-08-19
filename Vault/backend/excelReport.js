@@ -110,12 +110,19 @@ async function loadWallets(userId) {
 
 function calculateWalletRows(expenses, wallets) {
     const rows = new Map();
+    // Default channels in master template
+    const defaultChannels = ['BCA', 'GOPAY', 'QRIS', 'SUPERBANK', 'Transfer', 'Cash', 'DANA'];
+    defaultChannels.forEach((name) => rows.set(name.toUpperCase(), { name, balance: 0 }));
+
     for (const wallet of wallets) {
         const name = String(wallet.name || '').trim();
         if (!name) continue;
+        const initialBal = wallet.initial_balance !== undefined && !Number.isNaN(Number(wallet.initial_balance))
+            ? Number(wallet.initial_balance)
+            : 0;
         rows.set(name.toUpperCase(), {
             name,
-            balance: Number(wallet.balance || 0),
+            balance: initialBal,
         });
     }
 
@@ -128,11 +135,16 @@ function calculateWalletRows(expenses, wallets) {
         row.balance += item.tipe === 'Masuk' ? amount : -amount;
     }
 
-    if (!rows.size) {
-        ['BCA', 'GOPAY', 'QRIS', 'SUPERBANK', 'Transfer', 'Cash'].forEach((name) => rows.set(name.toUpperCase(), { name, balance: 0 }));
-    }
-
-    return [...rows.values()].sort((a, b) => a.name.localeCompare(b.name, 'id'));
+    // Sort to match canonical order: BCA, GOPAY, QRIS, SUPERBANK, Transfer, Cash, DANA
+    const order = ['BCA', 'GOPAY', 'QRIS', 'SUPERBANK', 'TRANSFER', 'CASH', 'DANA'];
+    return [...rows.values()].sort((a, b) => {
+        const idxA = order.indexOf(a.name.toUpperCase());
+        const idxB = order.indexOf(b.name.toUpperCase());
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.name.localeCompare(b.name, 'id');
+    });
 }
 
 function xmlEscape(str) {
@@ -198,7 +210,7 @@ function generateSheet3Xml(expenses, userId) {
 
     const maxRow = Math.max(expenses.length + 1, 2);
 
-    return `<?xml version="1.0" encoding="utf-8"?><x:worksheet xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:sheetFormatPr defaultColWidth="12.630000114440918" defaultRowHeight="15.75" /><x:cols><x:col min="1" max="1" width="17.25" customWidth="1" /><x:col min="2" max="2" width="29" customWidth="1" /><x:col min="3" max="3" width="13.5" customWidth="1" /><x:col min="4" max="4" width="28.38" customWidth="1" /><x:col min="6" max="6" width="14.38" customWidth="1" /><x:col min="8" max="8" width="15.75" customWidth="1" /><x:col min="9" max="9" width="22" customWidth="1" /><x:col min="10" max="10" width="13.75" customWidth="1" /><x:col min="11" max="11" width="15" customWidth="1" /></x:cols><x:sheetData>${rowsXml}</x:sheetData><x:dataValidations count="5"><x:dataValidation type="custom" allowBlank="1" showDropDown="1" showErrorMessage="1" sqref="A2:A${maxRow}"><x:formula1>AND(ISNUMBER(A2), LEFT(CELL("format", A2), 1)="D")</x:formula1></x:dataValidation><x:dataValidation type="list" allowBlank="1" showDropDown="1" showErrorMessage="1" sqref="J2:J${maxRow}"><x:formula1>"Tersimpan,Dibatalkan"</x:formula1></x:dataValidation><x:dataValidation type="custom" allowBlank="1" showDropDown="1" showErrorMessage="1" sqref="K2:K${maxRow}"><x:formula1>OR(ISBLANK(K2), AND(ISNUMBER(K2), LEFT(CELL("format", K2), 1)="D"))</x:formula1></x:dataValidation><x:dataValidation type="custom" allowBlank="1" showDropDown="1" showErrorMessage="1" sqref="C2:C${maxRow}"><x:formula1>OR(ISBLANK(C2), OR(ISNUMBER(C2), AND(ISBLANK(C2)=FALSE, NOT(LEFT(CELL("format", C2))="D"))))</x:formula1></x:dataValidation><x:dataValidation type="list" allowBlank="1" showDropDown="1" showErrorMessage="1" sqref="G2:G${maxRow}"><x:formula1>"Masuk,Keluar"</x:formula1></x:dataValidation></x:dataValidations><x:pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3" /><x:tableParts count="1"><x:tablePart r:id="R4382ed52ec2b42ea" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" /></x:tableParts></x:worksheet>`;
+    return `<?xml version="1.0" encoding="utf-8"?><x:worksheet xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:sheetFormatPr defaultColWidth="12.630000114440918" defaultRowHeight="15.75" /><x:cols><x:col min="1" max="1" width="17.25" customWidth="1" /><x:col min="2" max="2" width="29" customWidth="1" /><x:col min="3" max="3" width="13.5" customWidth="1" /><x:col min="4" max="4" width="28.38" customWidth="1" /><x:col min="6" max="6" width="14.38" customWidth="1" /><x:col min="8" max="8" width="15.75" customWidth="1" /><x:col min="9" max="9" width="22" customWidth="1" /><x:col min="10" max="10" width="13.75" customWidth="1" /><x:col min="11" max="11" width="15" customWidth="1" /></x:cols><x:sheetData>${rowsXml}</x:sheetData><x:dataValidations count="5"><x:dataValidation type="custom" allowBlank="1" showDropDown="1" showErrorMessage="1" sqref="A2:A${maxRow}"><x:formula1>AND(ISNUMBER(A2), LEFT(CELL("format", A2), 1)="D")</x:formula1></x:dataValidation><x:dataValidation type="list" allowBlank="1" showDropDown="1" showErrorMessage="1" sqref="J2:J${maxRow}"><x:formula1>"Tersimpan,Dibatalkan"</x:formula1></x:dataValidation><x:dataValidation type="custom" allowBlank="1" showDropDown="1" showErrorMessage="1" sqref="K2:K${maxRow}"><x:formula1>OR(ISBLANK(K2), AND(ISNUMBER(K2), LEFT(CELL("format", K2), 1)="D"))</x:formula1></x:dataValidation><x:dataValidation type="custom" allowBlank="1" showDropDown="1" showErrorMessage="1" sqref="C2:C${maxRow}"><x:formula1>OR(ISBLANK(C2), AND(ISNUMBER(C2), AND(ISBLANK(C2)=FALSE, NOT(LEFT(CELL("format", C2))="D"))))</x:formula1></x:dataValidation><x:dataValidation type="list" allowBlank="1" showDropDown="1" showErrorMessage="1" sqref="G2:G${maxRow}"><x:formula1>"Masuk,Keluar"</x:formula1></x:dataValidation></x:dataValidations><x:pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3" /><x:tableParts count="1"><x:tablePart r:id="R4382ed52ec2b42ea" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" /></x:tableParts></x:worksheet>`;
 }
 
 function generateSheet2Xml(walletRows) {
