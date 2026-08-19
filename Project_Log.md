@@ -150,7 +150,12 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
 - ✅ **Fitur Input Nomor Rekening/E-Wallet & Masking 4 Digit Terakhir (`Dompet.jsx` & `Dashboard.jsx`)**:
   - **Menu Dompet (`/dompet`)**: Menambahkan kolom input *Nomor Rekening / No. E-Wallet* pada modal Tambah/Edit Dompet.
   - **Kartu ATM Dashboard**: Kartu ATM kini secara dinamis membaca nomor rekening asli yang kamu isi di menu Dompet, dan menampilkan format masking standar perbankan `•••• •••• •••• [4 DIGIT TERAKHIR]` (misal: `•••• •••• •••• 7890`).
-- ✅ **Build production terbaru** (`index-CaME5AjH.js` & `index-BtAUBXRl.css`) telah aktif dan live di container Mac mini.
+- ✅ **Penyempurnaan Arsitektur Dompet Utama & Akumulasi Total Saldo (`Dompet.jsx` & `Dashboard.jsx`)**:
+  - **Pembersihan Mock "Utama"**: Menghapus data hardcoded mock seed `"Utama"` dan `"Bank"` yang sebelumnya muncul sembarangan. Dompet kini 100% murni berasal dari transaksi nyata dan input pengguna.
+  - **Fitur Set Dompet Utama (Primary Wallet)**: Menambahkan tombol bintang ⭐ dan badge **UTAMA** pada menu Dompet untuk menetapkan dompet utama (misal: BCA).
+  - **Total Saldo Gabungan Riil**: Kartu pertama (TOTAL SALDO) pada Dashboard kini menampilkan **total akumulasi saldo riil dari seluruh dompet aktif**.
+  - **Saldo Riil per Dompet saat di-slide**: Setiap kartu dompet individu saat di-slide kini menampilkan **Saldo Aktif masing-masing dompet** (Saldo Awal + Pemasukan - Pengeluaran) secara presisi dan akurat.
+- ✅ **Build production terbaru** (`index-B_h8q4l2.js` & `index-CWyGRZCL.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

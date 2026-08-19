@@ -9,6 +9,7 @@ import {
   Landmark,
   Pencil,
   Plus,
+  Star,
   Trash2,
   Wallet,
   X,
@@ -108,11 +109,11 @@ export default function Dompet() {
   const computedWallets = useMemo(() => {
     const walletExpenseMap = {};
     const walletIncomeMap = {};
-    const discoveredWallets = new Set(['Bank', 'Cash', 'Utama']);
+    const discoveredWallets = new Set();
     const deletedWallets = new Set((savedSettings.deleted_wallets || []).map((w) => String(w).toLowerCase()));
 
     expenses.forEach((e) => {
-      const wName = String(e.payment_channel || e.rekening || 'Cash').trim();
+      const wName = String(e.payment_channel || e.rekening || '').trim();
       if (wName) discoveredWallets.add(wName);
       const amt = Number(e.amount || 0);
       if (String(e.type || '').toLowerCase() === 'income') {
@@ -128,6 +129,10 @@ export default function Dompet() {
       savedMap[sw.name.toLowerCase()] = sw;
       if (sw.name) discoveredWallets.add(sw.name);
     });
+
+    if (discoveredWallets.size === 0) {
+      discoveredWallets.add('Cash');
+    }
 
     return Array.from(discoveredWallets)
       .filter((wName) => !deletedWallets.has(wName.toLowerCase()))
@@ -306,6 +311,18 @@ export default function Dompet() {
     }
   };
 
+  const handleSetPrimaryWallet = async (walletName) => {
+    setSavedSettings((prev) => ({ ...prev, primary_wallet: walletName }));
+    try {
+      await saveSettings(user.uid, { primary_wallet: walletName });
+      setNotice(`Dompet ${walletName} berhasil dijadikan Dompet Utama.`);
+    } catch (err) {
+      setNotice('Gagal menyimpan dompet utama.');
+    }
+  };
+
+  const primaryWalletName = savedSettings.primary_wallet || (computedWallets.some((w) => w.name.toLowerCase() === 'bca') ? 'BCA' : computedWallets[0]?.name || 'Cash');
+
   // ── Handlers for Category ──
   const handleOpenCreateCategory = () => {
     setIsCreatingCategory(true);
@@ -325,8 +342,8 @@ export default function Dompet() {
     setCategoryForm({
       id: cat.id,
       name: cat.name,
-      emoji: cat.emoji || getCategoryIcon(cat.name),
-      budget: cat.budget ? String(cat.budget) : '',
+      emoji: cat.emoji || '🏷️',
+      budget: cat.budget !== undefined ? String(cat.budget) : '0',
       threshold: cat.threshold || '80%',
     });
   };
@@ -473,6 +490,7 @@ export default function Dompet() {
         <div className="mt-5 space-y-2.5">
           {visibleWallets.map((w) => {
             const isInactive = !w.is_active;
+            const isPrimary = w.name.toLowerCase() === primaryWalletName.toLowerCase();
             return (
               <div
                 key={w.id}
@@ -487,8 +505,20 @@ export default function Dompet() {
                     <Wallet width="19" height="19" />
                   </div>
                   <div>
-                    <div className="font-black text-[#0e2a07] dark:text-[#f3ffe9]">
-                      {w.name}
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-[#0e2a07] dark:text-[#f3ffe9]">
+                        {w.name}
+                      </span>
+                      {isPrimary && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[9.5px] font-black text-amber-700 dark:text-amber-300">
+                          <Star width="10" height="10" fill="currentColor" /> UTAMA
+                        </span>
+                      )}
+                      {w.account_number && (
+                        <span className="rounded-md border border-[#d6e4be] bg-white px-1.5 py-0.5 text-[9.5px] font-bold text-slate-600 dark:border-[#263e1d] dark:bg-[#162519] dark:text-slate-300">
+                          •••• {w.account_number.slice(-4)}
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-[#436d32] dark:text-[#a8cf93]">
                       Ingatkan di {w.threshold || '20%'}
@@ -502,6 +532,17 @@ export default function Dompet() {
                   </div>
 
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleSetPrimaryWallet(w.name)}
+                      title={isPrimary ? 'Dompet Utama saat ini' : 'Jadikan Dompet Utama'}
+                      className={`rounded-lg p-2 transition ${
+                        isPrimary
+                          ? 'text-amber-500 bg-amber-500/10 dark:text-amber-400'
+                          : 'text-slate-400 hover:text-amber-500 hover:bg-amber-500/10'
+                      }`}
+                    >
+                      <Star width="16" height="16" fill={isPrimary ? 'currentColor' : 'none'} />
+                    </button>
                     <button
                       onClick={() => handleOpenEditWallet(w)}
                       title="Edit saldo / pengaturan dompet"

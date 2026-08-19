@@ -338,41 +338,31 @@ export default function Dashboard() {
   const [touchEndX, setTouchEndX] = useState(null);
 
   const walletSlides = useMemo(() => {
-    // Find primary wallet account number if available
-    const primaryWithNorek = savedWallets.find((w) => w.account_number && w.account_number.trim());
-    const primaryLast4 = primaryWithNorek ? primaryWithNorek.account_number.trim().slice(-4) : '0080';
-
-    const slides = [
-      {
-        id: 'total',
-        type: 'total',
-        title: 'TOTAL SALDO',
-        amount: monthlyBudget ? budgetRemaining : totalMonth,
-        isBudget: Boolean(monthlyBudget),
-        cardNumber: `•••• •••• •••• ${primaryLast4}`,
-        bottomLeft: monthlyBudget ? `${budgetUsed.toFixed(1)}% budget terpakai` : 'Semua dompet',
-        bottomRight: `${saldoPerDompet.length || 3} dompet aktif`,
-        badgeColor: '#76d446',
-      }
-    ];
-
     const walletExpenseMap = {};
     const walletIncomeMap = {};
+
     expenses.forEach((e) => {
       const wName = String(e.payment_channel || e.rekening || 'Cash').trim();
       const amt = Number(e.amount || 0);
-      if (String(e.type || '').toLowerCase() === 'income') {
-        walletIncomeMap[wName] = (walletIncomeMap[wName] || 0) + amt;
-      } else {
-        walletExpenseMap[wName] = (walletExpenseMap[wName] || 0) + amt;
-      }
+      walletExpenseMap[wName] = (walletExpenseMap[wName] || 0) + amt;
     });
 
-    const discovered = Array.from(new Set([
-      ...Object.keys(walletExpenseMap),
-      ...Object.keys(walletIncomeMap),
-      'BCA', 'Cash', 'SUPERBANK'
-    ])).filter(Boolean);
+    incomes.forEach((item) => {
+      const wName = String(item.payment_channel || item.rekening || 'Cash').trim();
+      const amt = Number(item.amount || 0);
+      walletIncomeMap[wName] = (walletIncomeMap[wName] || 0) + amt;
+    });
+
+    const discovered = new Set();
+    Object.keys(walletExpenseMap).forEach((w) => w && discovered.add(w));
+    Object.keys(walletIncomeMap).forEach((w) => w && discovered.add(w));
+    savedWallets.forEach((sw) => {
+      if (sw.name) discovered.add(sw.name);
+    });
+
+    if (discovered.size === 0) {
+      discovered.add('Cash');
+    }
 
     const WALLET_CONFIG = {
       BCA: { digits: '8821', badgeColor: '#2f781c' },
@@ -383,30 +373,66 @@ export default function Dashboard() {
       DANA: { digits: '4410', badgeColor: '#118eea' },
     };
 
-    discovered.slice(0, 5).forEach((wName) => {
-      const spent = walletExpenseMap[wName] || 0;
-      const count = activePeriodExpenses.filter((e) => String(e.payment_channel || e.rekening || 'Cash').trim() === wName).length;
-      const cfg = WALLET_CONFIG[wName] || { digits: '7721', badgeColor: '#76d446' };
+    const walletList = Array.from(discovered).map((wName) => {
       const sw = savedWallets.find((w) => w.name && w.name.toLowerCase() === wName.toLowerCase());
-      const customDigits = sw?.account_number && sw.account_number.trim()
+      const initialBal = sw && sw.initial_balance !== undefined ? Number(sw.initial_balance) : 0;
+      const inc = walletIncomeMap[wName] || 0;
+      const exp = walletExpenseMap[wName] || 0;
+      const liveBalance = initialBal + inc - exp;
+      const txCount = activePeriodExpenses.filter((e) => String(e.payment_channel || e.rekening || 'Cash').trim() === wName).length;
+      const cfg = WALLET_CONFIG[wName] || { digits: '7721', badgeColor: '#76d446' };
+      const last4 = sw?.account_number && sw.account_number.trim()
         ? sw.account_number.trim().slice(-4)
         : cfg.digits;
 
-      slides.push({
-        id: wName,
-        type: 'wallet',
-        title: `DOMPET • ${wName.toUpperCase()}`,
-        amount: spent,
-        isBudget: false,
-        cardNumber: `•••• •••• •••• ${customDigits}`,
-        bottomLeft: `${count} transaksi di periode ini`,
-        bottomRight: 'Kanal Pembayaran',
+      return {
+        name: wName,
+        balance: liveBalance,
+        txCount,
+        last4,
         badgeColor: cfg.badgeColor,
+      };
+    });
+
+    // Total Accumulated Balance across all wallets
+    const totalAccumulatedBalance = walletList.reduce((sum, w) => sum + w.balance, 0);
+
+    // Primary wallet account number for total card
+    const primaryWithNorek = savedWallets.find((w) => w.account_number && w.account_number.trim());
+    const primaryLast4 = primaryWithNorek ? primaryWithNorek.account_number.trim().slice(-4) : (walletList[0]?.last4 || '0080');
+
+    // Slide 0: TOTAL SALDO GABUNGAN
+    const slides = [
+      {
+        id: 'total',
+        type: 'total',
+        title: 'TOTAL SALDO',
+        amount: monthlyBudget ? budgetRemaining : totalAccumulatedBalance,
+        isBudget: Boolean(monthlyBudget),
+        cardNumber: `•••• •••• •••• ${primaryLast4}`,
+        bottomLeft: monthlyBudget ? `${budgetUsed.toFixed(1)}% budget terpakai` : `Gabungan ${walletList.length} dompet`,
+        bottomRight: `${walletList.length} dompet aktif`,
+        badgeColor: '#76d446',
+      }
+    ];
+
+    // Slide 1..N: MASING-MASING DOMPET DENGAN SALDO AKTIF
+    walletList.forEach((w) => {
+      slides.push({
+        id: w.name,
+        type: 'wallet',
+        title: `DOMPET • ${w.name.toUpperCase()}`,
+        amount: w.balance,
+        isBudget: false,
+        cardNumber: `•••• •••• •••• ${w.last4}`,
+        bottomLeft: `Saldo aktif dompet`,
+        bottomRight: `${w.txCount} transaksi dicatat`,
+        badgeColor: w.badgeColor,
       });
     });
 
     return slides;
-  }, [expenses, activePeriodExpenses, monthlyBudget, budgetRemaining, totalMonth, budgetUsed, saldoPerDompet, savedWallets]);
+  }, [expenses, incomes, activePeriodExpenses, monthlyBudget, budgetRemaining, budgetUsed, savedWallets]);
 
   // Auto slide every 4.5 seconds (pauses on hover)
   useEffect(() => {
