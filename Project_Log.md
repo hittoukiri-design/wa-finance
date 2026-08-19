@@ -161,7 +161,11 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
 - ✅ **Penyederhanaan Judul Kartu ATM (`Dashboard.jsx`)**:
   - Menghapus imbuhan berlebih `"DOMPET • "` pada judul kartu ATM Carousel.
   - Kartu kini langsung menampilkan nama murni dompet yang jelas dan elegan (contoh: **BCA**, **SUPERBANK**, **CASH**, **GOPAY**, **DANA**, dll.).
-- ✅ **Build production terbaru** (`index-B0hr6knt.js` & `index-t7nHn5jH.css`) telah aktif dan live di container Mac mini.
+- ✅ **Penghapusan Tombol Panah & Integrasi Penuh Mouse Drag Gesture (`Dashboard.jsx`)**:
+  - Menghapus tombol panah chevron kiri & kanan yang menutupi kartu.
+  - Menambahkan gesture **Mouse Drag & Slide** (klik tahan dan geser mouse ke kiri/kanan) serta **Touch Swipe** pada layar sentuh.
+  - Auto-slide otomatis berjalan mulus setiap 4.5 detik dan otomatis pause saat cursor mouse berada di atas kartu.
+- ✅ **Build production terbaru** (`index-Dnb6i2kN.js` & `index-D0LqdHjA.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

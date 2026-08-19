@@ -3,8 +3,6 @@ import {
   Archive,
   BarChart3,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   CreditCard,
   Edit3,
   FileSpreadsheet,
@@ -443,6 +441,9 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [isCarouselHovered, walletSlides.length]);
 
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+
   const handlePrevSlide = (e) => {
     e?.stopPropagation();
     setCurrentCardSlide((prev) => (prev - 1 + walletSlides.length) % walletSlides.length);
@@ -453,6 +454,38 @@ export default function Dashboard() {
     setCurrentCardSlide((prev) => (prev + 1) % walletSlides.length);
   };
 
+  // Mouse Drag handlers
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return; // Only primary button
+    setIsMouseDown(true);
+    setDragStartX(e.clientX);
+  };
+
+  const handleMouseUp = (e) => {
+    if (!isMouseDown) return;
+    const diff = dragStartX - e.clientX;
+    if (diff > 35) {
+      handleNextSlide();
+    } else if (diff < -35) {
+      handlePrevSlide();
+    }
+    setIsMouseDown(false);
+  };
+
+  const handleMouseLeave = (e) => {
+    if (isMouseDown) {
+      const diff = dragStartX - e.clientX;
+      if (diff > 35) {
+        handleNextSlide();
+      } else if (diff < -35) {
+        handlePrevSlide();
+      }
+      setIsMouseDown(false);
+    }
+    setIsCarouselHovered(false);
+  };
+
+  // Touch Swipe handlers
   const handleTouchStart = (e) => {
     setTouchEndX(null);
     setTouchStartX(e.targetTouches[0].clientX);
@@ -465,12 +498,12 @@ export default function Dashboard() {
   const handleTouchEnd = () => {
     if (!touchStartX || !touchEndX) return;
     const distance = touchStartX - touchEndX;
-    if (distance > 40) {
+    if (distance > 35) {
       // Swiped Left -> Next
-      setCurrentCardSlide((prev) => (prev + 1) % walletSlides.length);
-    } else if (distance < -40) {
+      handleNextSlide();
+    } else if (distance < -35) {
       // Swiped Right -> Prev
-      setCurrentCardSlide((prev) => (prev - 1 + walletSlides.length) % walletSlides.length);
+      handlePrevSlide();
     }
   };
 
@@ -755,34 +788,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Total Saldo ATM Card Carousel with Auto-Slide & Swipe */}
+        {/* Total Saldo ATM Card Carousel with Auto-Slide, Drag & Swipe */}
         <div
           className="box-card total-saldo-card relative group overflow-hidden select-none cursor-grab active:cursor-grabbing"
           onMouseEnter={() => setIsCarouselHovered(true)}
-          onMouseLeave={() => setIsCarouselHovered(false)}
+          onMouseLeave={handleMouseLeave}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Navigation Chevron Buttons (Visible on Hover / Click) */}
-          <button
-            type="button"
-            onClick={handlePrevSlide}
-            aria-label="Previous card"
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 shadow-sm"
-          >
-            <ChevronLeft width="14" height="14" />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleNextSlide}
-            aria-label="Next card"
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 shadow-sm"
-          >
-            <ChevronRight width="14" height="14" />
-          </button>
-
           {/* Viewport Wrapper */}
           <div className="w-full overflow-hidden flex-1 flex flex-col justify-between">
             {/* Carousel Slide Track */}
