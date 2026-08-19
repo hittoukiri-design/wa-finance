@@ -35,6 +35,47 @@ import { addExpense, getSettings, listConversations, listExpenses } from '../lib
 import { createNewRecap, downloadExcelReport, getBackendSettings, whatsappApi } from '../lib/whatsapp-api';
 
 const CATEGORY_COLORS = ['#2f781c', '#6952ec', '#f77132', '#f59e0b', '#16b896', '#389ef2', '#94a3b8'];
+
+export const CATEGORY_COLOR_MAP = {
+  Lainnya: '#2f781c',       // Forest Green
+  Belanja: '#6952ec',       // Purple / Indigo
+  Tagihan: '#f77132',       // Coral / Orange-Red
+  Makan: '#f59e0b',         // Amber / Gold
+  Makanan: '#f59e0b',       // Amber / Gold
+  Transport: '#16b896',     // Teal / Turquoise
+  Transportasi: '#16b896', // Teal / Turquoise
+  Kesehatan: '#ec4899',     // Rose / Pink
+  Pendidikan: '#3b82f6',    // Blue
+  Hiburan: '#8b5cf6',       // Violet
+  Rumah: '#84cc16',         // Lime
+  Perawatan: '#d946ef',     // Fuchsia
+  Sosial: '#06b6d4',        // Cyan
+  Keluarga: '#14b8a6',      // Teal
+  Pemasukan: '#10b981',     // Emerald / Green
+  Gaji: '#059669',          // Deep Emerald
+  Tabungan: '#0284c7',      // Sky Blue
+  Investasi: '#6366f1',     // Indigo
+};
+
+export function getCategoryColor(name, fallbackIndex = 0) {
+  if (!name) return CATEGORY_COLORS[fallbackIndex % CATEGORY_COLORS.length];
+  const trimmed = String(name).trim();
+  if (CATEGORY_COLOR_MAP[trimmed]) return CATEGORY_COLOR_MAP[trimmed];
+  
+  for (const [key, color] of Object.entries(CATEGORY_COLOR_MAP)) {
+    if (key.toLowerCase() === trimmed.toLowerCase()) return color;
+    if (trimmed.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(trimmed.toLowerCase())) {
+      return color;
+    }
+  }
+  return CATEGORY_COLORS[fallbackIndex % CATEGORY_COLORS.length];
+}
+
+function isIncomeCategory(cat) {
+  if (!cat) return false;
+  const s = String(cat).toLowerCase().trim();
+  return s === 'pemasukan' || s === 'gaji' || s === 'income' || s === 'salary';
+}
 const DEFAULT_BUDGET_THRESHOLDS = [80, 90, 95, 100];
 
 const currency = (amount) => new Intl.NumberFormat('id-ID', {
@@ -313,18 +354,28 @@ export default function Dashboard() {
     }
   };
 
+  const isFilteringIncome = isFiltered && isIncomeCategory(filterCategory);
+  const isFilteringExpenseCategory = isFiltered && filterCategory && filterCategory !== 'Semua kategori' && !isIncomeCategory(filterCategory);
+
   const activePeriodExpenses = useMemo(() => expenses.filter(matchesFilter), [expenses, matchesFilter]);
   const activePeriodIncomes = useMemo(() => incomes.filter(matchesFilter), [incomes, matchesFilter]);
   const allPeriodTransactions = useMemo(() => {
     return [...expenses, ...incomes].filter(matchesFilter);
   }, [expenses, incomes, matchesFilter]);
 
+  const activeDisplayTransactions = useMemo(() => {
+    if (isFilteringIncome) {
+      return activePeriodIncomes;
+    }
+    return activePeriodExpenses;
+  }, [isFilteringIncome, activePeriodIncomes, activePeriodExpenses]);
+
   const filteredCategoryExpenses = useMemo(() => {
     if (isFiltered) {
-      return activePeriodExpenses;
+      return isFilteringIncome ? activePeriodIncomes : activePeriodExpenses;
     }
     return expenses.filter((item) => isInRange(item, categoryRange, activePeriodStart));
-  }, [isFiltered, activePeriodExpenses, expenses, categoryRange, activePeriodStart]);
+  }, [isFiltered, isFilteringIncome, activePeriodIncomes, activePeriodExpenses, expenses, categoryRange, activePeriodStart]);
 
   const totalMonth = activePeriodExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const salaryIncomePeriod = activePeriodIncomes
@@ -747,20 +798,20 @@ export default function Dashboard() {
       };
     });
     const byKey = new Map(days.map((item) => [item.key, item]));
-    activePeriodExpenses.forEach((item) => {
+    activeDisplayTransactions.forEach((item) => {
       const date = getExpenseDate(item);
       if (!date) return;
       const key = dateKey(startOfDay(date));
       if (byKey.has(key)) byKey.get(key).amount += Number(item.amount || 0);
     });
     return days;
-  }, [activePeriodExpenses, trendRange]);
+  }, [activeDisplayTransactions, trendRange]);
 
   // Categories Chart
   const categories = useMemo(() => {
     const grouped = {};
     filteredCategoryExpenses.forEach((item) => {
-      const name = item.category || 'Lainnya';
+      const name = item.category || (item.type === 'income' ? 'Pemasukan' : 'Lainnya');
       grouped[name] = (grouped[name] || 0) + Number(item.amount || 0);
     });
     const total = Object.values(grouped).reduce((sum, value) => sum + value, 0);
@@ -771,7 +822,7 @@ export default function Dashboard() {
         name,
         amount,
         percent: total ? Math.round((amount / total) * 1000) / 10 : 0,
-        color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+        color: getCategoryColor(name, index),
       }));
   }, [filteredCategoryExpenses]);
 
@@ -1160,7 +1211,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="metric-mini-title">TRANSAKSI</div>
-          <div className="metric-mini-value">{loading ? '...' : activePeriodExpenses.length}</div>
+          <div className="metric-mini-value">{loading ? '...' : (isFilteringIncome ? activePeriodIncomes.length : activePeriodExpenses.length)}</div>
           <div className="metric-sparkline-box">
             <svg viewBox="0 0 100 24" width="100%" height="24" preserveAspectRatio="none">
               {txBarData.slice(0, 15).map((v, i, arr) => {
