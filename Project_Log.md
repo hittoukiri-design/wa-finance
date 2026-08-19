@@ -65,7 +65,11 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Mode Diperluas (Expanded)**: Menampilkan brand `FINO / WA Finance`, tombol `«` untuk mengecilkan, pengelompokan menu rapi (`APLIKASI` & `OPERASIONAL`), icon & label teks lengkap, serta user profile card.
   - **Mode Dikecilkan (Collapsed / Icon-Only)**: Strip ramping 76px dengan logo melingkar, tombol `»` di bawah logo, icon menu terpusat dengan tooltip dan rounded capsule highlight saat aktif, serta tombol hamburger `☰` di navbar atas (`Header.jsx`) untuk membuka kembali kapan saja.
   - State tersimpan otomatis di `localStorage` (`sidebar_collapsed`).
-- ✅ **Build production terbaru** (`index-CpTFj0nW.js` & `index-hmwuqdkS.css`) telah aktif dan live di container Mac mini.
+- ✅ **Penyesuaian Brand & Top Bar Header Interaktif (`Header.jsx` & `Sidebar.jsx`)**:
+  - Memperbaiki penamaan brand resmi: **WA Finance / WA Finance Gateway** di seluruh sidebar dan navbar.
+  - **Top Bar Kiri**: Menampilkan tombol panah `«` / `☰` tepat di samping judul **WA Finance Gateway** untuk menyembunyikan (hide) dan menampilkan (unhide) sidebar dengan mudah.
+  - **Top Bar Kanan (Filter Popover Dropdown)**: Tombol tanggal bulan (*contoh: `🎛️ Agustus 2026`*) yang membuka popup filter terpadu (Pilihan Bulan, Tanggal Dari, Tanggal Sampai, Pilihan Dompet, Pilihan Kategori, tombol Reset & Terapkan).
+- ✅ **Build production terbaru** (`index-CUJcWS3u.js` & `index-UFVUqMtR.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

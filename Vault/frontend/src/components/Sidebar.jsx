@@ -63,22 +63,22 @@ export default function Sidebar() {
       {/* ── Top Header / Brand ── */}
       <div
         className={`flex items-center border-b border-[#e5eedc] dark:border-[#1d3517] ${
-          isCollapsed ? 'justify-center p-4' : 'justify-between px-5 py-5'
+          isCollapsed ? 'justify-center p-4' : 'justify-between px-5 py-4'
         }`}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <img
             src={waFinanceLogo}
             alt="WA Finance"
-            className="h-9 w-9 object-contain drop-shadow-[0_0_8px_rgba(52,211,93,0.5)]"
+            className="h-8 w-8 shrink-0 object-contain drop-shadow-[0_0_8px_rgba(52,211,93,0.5)]"
           />
           {!isCollapsed && (
-            <div className="flex flex-col">
-              <span className="text-[16px] font-black tracking-tight text-[#0e2a07] dark:text-[#f3ffe9]">
-                FINO
-              </span>
-              <span className="text-[9px] font-bold uppercase tracking-wider text-[#358219] dark:text-[#76d446]">
+            <div className="flex flex-col min-w-0">
+              <span className="truncate text-[15px] font-black tracking-tight text-[#0e2a07] dark:text-[#f3ffe9]">
                 WA Finance
+              </span>
+              <span className="truncate text-[8.5px] font-bold uppercase tracking-wider text-[#358219] dark:text-[#76d446]">
+                Gateway Platform
               </span>
             </div>
           )}
@@ -88,10 +88,10 @@ export default function Sidebar() {
         {!isCollapsed && (
           <button
             onClick={toggleSidebar}
-            title="Kecilkan menu"
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#dcebd0] bg-white/80 text-[#358219] shadow-sm transition hover:bg-white dark:border-[#263e1d] dark:bg-[#162914] dark:text-[#76d446]"
+            title="Sembunyikan menu"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#dcebd0] bg-white/80 text-[#358219] shadow-sm transition hover:bg-white dark:border-[#263e1d] dark:bg-[#162914] dark:text-[#76d446]"
           >
-            <ChevronLeft width="18" height="18" />
+            <ChevronLeft width="16" height="16" />
           </button>
         )}
       </div>
@@ -101,7 +101,7 @@ export default function Sidebar() {
         <div className="flex justify-center pt-2">
           <button
             onClick={toggleSidebar}
-            title="Besarkan menu"
+            title="Tampilkan menu"
             className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-[#e4f2da] hover:text-[#1a5611] dark:text-slate-400 dark:hover:bg-[#162914] dark:hover:text-[#76d446]"
           >
             <ChevronRight width="16" height="16" />
@@ -110,7 +110,7 @@ export default function Sidebar() {
       )}
 
       {/* ── Navigation Menu Groups ── */}
-      <nav className="mt-3 flex-1 space-y-5 overflow-y-auto px-3">
+      <nav className="mt-3 flex-1 space-y-4 overflow-y-auto px-3">
         {navGroups.map((grp) => (
           <div key={grp.group} className="space-y-1">
             {!isCollapsed ? (
@@ -130,7 +130,7 @@ export default function Sidebar() {
                   `flex items-center rounded-xl font-bold transition-all ${
                     isCollapsed
                       ? 'h-11 w-11 justify-center mx-auto text-sm'
-                      : 'gap-3.5 px-3.5 py-2.5 text-[13.5px]'
+                      : 'gap-3 px-3.5 py-2 text-[13px]'
                   } ${
                     isActive
                       ? 'bg-[#d8f0c4] text-[#0e2a07] shadow-sm dark:bg-[#1a3816] dark:text-[#76d446]'
@@ -138,7 +138,7 @@ export default function Sidebar() {
                   }`
                 }
               >
-                <item.icon className={isCollapsed ? 'h-[20px] w-[20px]' : 'h-[18px] w-[18px] shrink-0'} />
+                <item.icon className={isCollapsed ? 'h-[19px] w-[19px]' : 'h-[17px] w-[17px] shrink-0'} />
                 {!isCollapsed && <span className="truncate">{item.name}</span>}
               </NavLink>
             ))}
