@@ -342,3 +342,26 @@ ightarrow$ Rekap mutasi finansial periodik.
 * **Solusi & Perbaikan**:
   * Membangun `MonthCalendarModal` lengkap dengan tombol navigasi antar bulan (`‹` / `›`), grid 7 hari (`MIN` s/d `SAB`), highlight hijau nominal harian, ringkasan bulanan, dan klik tanggal untuk memfilter transaksi.
   * Memperbarui tombol dan modal **`Tutup Buku & Backup`** di Hero Dashboard sehingga proses tutup periode gajian berjalan mandiri di server lokal.
+
+### 7. Peningkatan: Header Hero Extended Creative dengan Animasi Organik
+* **Kebutuhan**: Mengganti banner hero dengan versi `Header_Hero_Extended_Creative.html` yang memiliki efek animasi hidup tanpa ada pemotongan gambar secara kasar (*zero brutal cropping*).
+* **Solusi & Perbaikan**:
+  * Mengintegrasikan elemen artistik latar belakang: bukit hijau organik (`hillBreath`), koin melayang (`float1`, `float2`, `float3`), kapsul & cincin geometris (`drift`, `ringFloat`), bintik pola (`dotsMove`), lengkungan aksen (`arcSway`), gelombang ganda SVG (`waveMove`), dan sapuan kilau cahaya (`lightSweep`).
+  * Ilustrasi dedaunan diselaraskan dengan masking gradien halus dan animasi ayunan angin sepoi-sepoi (`artBreeze 7s`).
+
+### 8. Peningkatan: Pewarnaan Permanen Kategori & Dukungan Penuh Filter Pemasukan
+* **Kebutuhan**: Donut chart dan grafik tren harus menampilkan warna khas masing-masing kategori (bukan seragam hijau), dan filter `Pemasukan` harus menampilkan total dan grafik mutasi uang masuk.
+* **Solusi & Perbaikan**:
+  * Mengunci mapping warna kategori (*Transportasi = Teal `#16b896`, Makan = Amber `#f59e0b`, Belanja = Ungu `#6952ec`, Tagihan = Oranye `#f77132`, Pemasukan = Hijau Emerald `#10b981`*).
+  * Menyelaraskan filter kategori agar saat `Pemasukan` / `Gaji` dipilih, sistem memproses data uang masuk periode aktif (15 transaksi masuk - Rp 5.079.840) ke kartu metrik, grafik tren harian, dan donut chart.
+
+### 9. Peningkatan: Proteksi Tabungan & Investasi saat Tutup Buku, Tab Transfer/Cairkan/Reset, & Tarik Tunai Gaji
+* **Kebutuhan**: Saat Tutup Buku & Backup dilakukan, seluruh saldo dan transaksi operasional kembali 0 untuk periode baru, **kecuali Tabungan & Investasi** yang merupakan aset akumulatif jangka panjang. Tabungan harus memiliki tab setor, pencairan/transfer ke bank/GoPay/cash untuk pembayaran, dan tombol reset tersendiri. Ditambah fitur tarik tunai / pindah saldo gaji antar dompet.
+* **Solusi & Perbaikan**:
+  * **Backend**: Memperbarui `/api/recaps/new` dan `archiveFirestoreCollection` agar mengecualikan kategori `Tabungan` dan `Investasi` dari proses pengarsipan otomatis.
+  * **Modal Tabungan (3 Tab)**:
+    1. ➕ **Setor Tabungan**: Menambah alokasi tabungan/investasi dari dompet sumber.
+    2. 🔄 **Tarik / Pindah ke Dompet**: Mencairkan dana tabungan ke rekening/GoPay/Cash untuk pembayaran kebutuhan.
+    3. ⚠️ **Reset Tabungan**: Tombol reset khusus dengan konfirmasi untuk mengosongkan akumulasi tabungan ke Rp 0 saat diinginkan.
+  * **Modal Pindah Saldo / Tarik Tunai Gaji**: Menambahkan tombol dan modal `Tarik Saldo / Tunai` pada Hero Dashboard untuk memindahkan saldo (misal dari gaji BCA/Superbank ditarik tunai menjadi saldo Cash atau ditransfer ke GoPay).
+

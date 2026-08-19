@@ -593,9 +593,25 @@ async function cancelExpenseRecordsByMessageIds(userId, messageIds = [], cancelM
             .collection('users').doc(userId).collection('expenses');
 
         for (const id of ids) {
+            db.prepare(`
+                UPDATE expenses
+                SET status = 'Cancelled',
+                    cancelled_at = datetime('now', 'localtime'),
+                    cancelled_by_message_id = ?
+                WHERE user_id = ? AND (source_message_id = ? OR source_message_id LIKE ?)
+            `).run(cancelMessageId, userId, id, `${id}_%`);
+
             const snapshot = await collectionRef
                 .where('source_message_id', '==', id)
                 .limit(10)
+                .get();
+            const snapshotOut = await collectionRef
+                .where('source_message_id', '==', `${id}_out`)
+                .limit(5)
+                .get();
+            const snapshotIn = await collectionRef
+                .where('source_message_id', '==', `${id}_in`)
+                .limit(5)
                 .get();
 
             if (snapshot.empty && !foundLocal.has(id)) {
@@ -742,6 +758,179 @@ function isRecentAppendMessage(message) {
     return ageMs > -120000 && ageMs < 10 * 60 * 1000;
 }
 
+
+function normalizeWalletName(rawName) {
+    if (!rawName) return 'Cash';
+    const s = String(rawName).trim().toLowerCase();
+    const clean = s.replace(/[^a-z0-9]/g, '');
+    if (clean.includes('superbank') || clean.includes('super')) return 'SUPERBANK';
+    if (clean.includes('bca')) return 'BCA';
+    if (clean.includes('gopay') || clean.includes('gojek')) return 'GOPAY';
+    if (clean.includes('dana')) return 'DANA';
+    if (clean.includes('ovo')) return 'OVO';
+    if (clean.includes('qris')) return 'QRIS';
+    if (clean.includes('shopee') || clean.includes('spay')) return 'SHOPEEPAY';
+    if (clean.includes('mandiri')) return 'MANDIRI';
+    if (clean.includes('bri')) return 'BRI';
+    if (clean.includes('bni')) return 'BNI';
+    if (clean.includes('jago')) return 'JAGO';
+    if (clean.includes('cimb')) return 'CIMB';
+    if (clean.includes('cash') || clean.includes('tunai')) return 'Cash';
+    if (clean.includes('tabung')) return 'Tabungan';
+    if (clean.includes('invest')) return 'Investasi';
+    return rawName.trim().toUpperCase();
+}
+
+function parseTransferTransaction(text) {
+    if (!text) return null;
+    const lower = text.toLowerCase().trim();
+
+    // Must have transfer/withdrawal/topup keywords or "dari ... ke ..."
+    const isTransfer = /\b(transfer|tf|pindah|pindahkan|tarik|tariktunai|topup|top\s*up|kirim)\b/i.test(lower) ||
+        (/\bdari\b/i.test(lower) && /\bke\b/i.test(lower));
+    if (!isTransfer) return null;
+
+    // Extract amount
+    const amtMatch = lower.match(/(?:rp\s*)?(\d+(?:[.,]\d+)?)(?:\s*(rb|ribu|k|jt|juta))?\b/i);
+    if (!amtMatch) return null;
+    const amount = parseAmountValue(amtMatch[1], amtMatch[2]);
+    if (!amount || amount <= 0) return null;
+
+    let fromWallet = '';
+    let toWallet = '';
+
+    // P1: top up [to] ... dari/via [from]
+    const topupMatch = lower.match(/\btop\s*up\s+([a-z0-9_\s]+?)(?:\s+(?:sebesar|sejumlah|rp|\d[a-z0-9,.]*))?\s+(?:dari|via|pake|pakai)\s+([a-z0-9_\s]+)/i);
+    if (topupMatch) {
+        toWallet = normalizeWalletName(topupMatch[1]);
+        fromWallet = normalizeWalletName(topupMatch[2]);
+    } else {
+        // P2: dari [from] ke [to]
+        const dariKeMatch = lower.match(/\bdari\s+([a-z0-9_\s]+?)\s+ke\s+([a-z0-9_\s]+?)(?:\s+(?:sebesar|sejumlah|rp|\d)|$)/i);
+        if (dariKeMatch) {
+            fromWallet = normalizeWalletName(dariKeMatch[1]);
+            toWallet = normalizeWalletName(dariKeMatch[2]);
+        } else {
+            // P3: transfer [from] ke [to]
+            const keMatch = lower.match(/(?:transfer|tf|pindah|kirim)\s+([a-z0-9_]+)\s+ke\s+([a-z0-9_]+)/i);
+            if (keMatch) {
+                fromWallet = normalizeWalletName(keMatch[1]);
+                toWallet = normalizeWalletName(keMatch[2]);
+            }
+        }
+    }
+
+    if (!fromWallet || !toWallet || fromWallet.toLowerCase() === toWallet.toLowerCase()) {
+        return null;
+    }
+
+    return {
+        isTransfer: true,
+        type: 'transfer',
+        amount,
+        fromWallet,
+        toWallet,
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        confidence: 'High',
+    };
+}
+
+async function saveTransferRecord(userId, phoneNumber, transferData, source = 'WhatsApp', messageId = null) {
+    const { amount, fromWallet, toWallet, date } = transferData;
+    const dateStr = date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const settings = await getUserSettings(userId).catch(() => ({}));
+    const activeRecapId = settings.active_recap_id || null;
+    const activeRecapName = settings.active_recap_name || null;
+
+    const outMessageId = messageId ? `${messageId}_out` : null;
+    const inMessageId = messageId ? `${messageId}_in` : null;
+
+    const outMerchant = `Transfer ke ${toWallet}`;
+    const inMerchant = `Terima transfer dari ${fromWallet}`;
+
+    // 1. Pengurangan Saldo di Dompet Sumber (Expense / Outflow)
+    db.prepare(`
+        INSERT INTO expenses (user_id, phone_number, merchant, category, amount, date, confidence, payment_channel, type, status, source, source_message_id, recap_id, recap_name, recap_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(userId, phoneNumber, outMerchant, 'Transfer', amount, dateStr, 'High', fromWallet, 'expense', 'Saved', source, outMessageId || messageId, activeRecapId, activeRecapName, 'active');
+
+    // 2. Penambahan Saldo di Dompet Tujuan (Income / Inflow)
+    db.prepare(`
+        INSERT INTO expenses (user_id, phone_number, merchant, category, amount, date, confidence, payment_channel, type, status, source, source_message_id, recap_id, recap_name, recap_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(userId, phoneNumber, inMerchant, 'Pemasukan', amount, dateStr, 'High', toWallet, 'income', 'Saved', source, inMessageId || messageId, activeRecapId, activeRecapName, 'active');
+
+    try {
+        const batch = getAdminFirestore().batch();
+        const col = getAdminFirestore().collection('users').doc(userId).collection('expenses');
+
+        const docOut = col.doc();
+        batch.set(docOut, {
+            source_message_id: outMessageId || messageId,
+            phone_number: phoneNumber,
+            merchant: outMerchant,
+            category: 'Transfer',
+            amount: Number(amount),
+            date: dateStr,
+            confidence: 'High',
+            payment_channel: fromWallet,
+            type: 'expense',
+            source,
+            status: 'Saved',
+            recap_id: activeRecapId,
+            recap_name: activeRecapName,
+            recap_status: 'active',
+            timestamp: FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
+        });
+
+        const docIn = col.doc();
+        batch.set(docIn, {
+            source_message_id: inMessageId || messageId,
+            phone_number: phoneNumber,
+            merchant: inMerchant,
+            category: 'Pemasukan',
+            amount: Number(amount),
+            date: dateStr,
+            confidence: 'High',
+            payment_channel: toWallet,
+            type: 'income',
+            source,
+            status: 'Saved',
+            recap_id: activeRecapId,
+            recap_name: activeRecapName,
+            recap_status: 'active',
+            timestamp: FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
+        });
+
+        await batch.commit();
+    } catch (err) {
+        console.error(`[${userId}] Firestore transfer save failed: ${err.message}`);
+    }
+
+    return {
+        amount,
+        fromWallet,
+        toWallet,
+    };
+}
+
+function buildTransferReply(transferData, messageId) {
+    const { amount, fromWallet, toWallet } = transferData;
+    return [
+        '🔄 *Transfer Antar Dompet Tercatat*',
+        '━━━━━━━━━━━━━━━━━━',
+        `📤 Dari     : ${fromWallet} (-${formatCurrencyId(amount)})`,
+        `📥 Ke       : ${toWallet} (+${formatCurrencyId(amount)})`,
+        `💰 Jumlah   : ${formatCurrencyId(amount)}`,
+        `📂 Kategori : Transfer / Pindah Saldo`,
+        '━━━━━━━━━━━━━━━━━━',
+        messageId ? `🆔 Message ID : ${messageId}` : '',
+        '✅ Saldo kedua dompet otomatis terupdate',
+    ].filter(Boolean).join('\n');
+}
+
 async function extractExpenseWithAI(text, settings = {}, userId = '') {
     const apiKey = settings.groq_key || fallbackGroqKey;
     if (!apiKey) {
@@ -757,12 +946,14 @@ async function extractExpenseWithAI(text, settings = {}, userId = '') {
         You are an AI assistant that extracts expense data from casual WhatsApp messages in Indonesian.
         Users will use informal formats like "75rb" (means 75,000), "120k" (means 120,000), "pake" (means using), "grab" etc.
         Extract the following information from the text:
-        - type (string: "expense" if they spent money, or "income" if they received money like salary/gaji)
-        - merchant (string, e.g., "Nasi Padang", "Shopee", "Kantor", "Gaji")
+        - type (string: "expense" if they spent money, "income" if they received money like salary/gaji, or "transfer" if they moved money from one wallet/bank to another, e.g. "transfer 30000 dari Superbank ke BCA")
+        - merchant (string, e.g., "Nasi Padang", "Shopee", "Kantor", "Gaji", "Transfer ke BCA")
         - amount (number, the true numerical value, e.g., if user says "75rb", output 75000)
-        - category (string: choose the best category from the user's configured category rules below. Prefer exact keyword/item matches. If the message says "gorengan" and Snack exists, use "Snack", not "Makan".)
+        - category (string: choose the best category from the user's configured category rules below)
         - date (string, formatted as "MMM DD, YYYY". If relative like "today", use today's date)
         - payment_channel (string: extract the bank or payment method used, e.g., "SUPERBANK", "BCA", "GOPAY", "QRIS", "TRANSFER", "OVO", "Cash". If not mentioned, default to "Cash")
+        - from_wallet (string: if type is transfer, the source wallet name, e.g. "SUPERBANK")
+        - to_wallet (string: if type is transfer, the destination wallet name, e.g. "BCA")
 
         User expense categories:
         ${expenseCategories || '- Belanja, Tagihan, Makan, Snack, Transportasi, Keluarga, Rumah, Hiburan, Perawatan, Sosial, Kesehatan, Tabungan, Lainnya'}
@@ -1274,6 +1465,18 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
             const command = cmd;
         if (!command.startsWith('saldo') && !command.startsWith('laporan') && !isCancelCommand) {
                 const extractStartedAt = Date.now();
+
+                // 1. Cek apakah ini transaksi Transfer / Pindah Saldo antar dompet
+                const localTransfer = parseTransferTransaction(text);
+                if (localTransfer) {
+                    console.log(`[${userId}] Transfer parser matched for ${messageId || 'no-id'} in ${Date.now() - extractStartedAt}ms: ${localTransfer.fromWallet} -> ${localTransfer.toWallet} (${localTransfer.amount})`);
+                    await saveTransferRecord(userId, conversationPhone, localTransfer, 'WhatsApp', messageId);
+                    const transferReply = buildTransferReply(localTransfer, messageId);
+                    await sendReply(transferReply);
+                    console.log(`[${userId}] WhatsApp transfer flow completed for ${messageId || 'no-id'} in ${Date.now() - startedAt}ms`);
+                    return;
+                }
+
                 extracted = parseLocalTransaction(text, userId);
                 if (extracted) {
                     console.log(`[${userId}] Local transaction parser completed for ${messageId || 'no-id'} in ${Date.now() - extractStartedAt}ms`);
@@ -1281,6 +1484,26 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
                     extracted = await extractExpenseWithAI(text, userSettings, userId);
                     console.log(`[${userId}] AI extraction completed for ${messageId || 'no-id'} in ${Date.now() - extractStartedAt}ms`);
                 }
+
+                // Jika AI mendeteksi transfer
+                if (extracted && (extracted.type === 'transfer' || (extracted.from_wallet && extracted.to_wallet))) {
+                    const aiTransferData = {
+                        isTransfer: true,
+                        type: 'transfer',
+                        amount: Number(extracted.amount || 0),
+                        fromWallet: normalizeWalletName(extracted.from_wallet || extracted.payment_channel || 'Cash'),
+                        toWallet: normalizeWalletName(extracted.to_wallet || 'BCA'),
+                        date: extracted.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    };
+                    if (aiTransferData.amount > 0 && aiTransferData.fromWallet !== aiTransferData.toWallet) {
+                        await saveTransferRecord(userId, conversationPhone, aiTransferData, 'WhatsApp', messageId);
+                        const transferReply = buildTransferReply(aiTransferData, messageId);
+                        await sendReply(transferReply);
+                        console.log(`[${userId}] WhatsApp AI transfer flow completed for ${messageId || 'no-id'} in ${Date.now() - startedAt}ms`);
+                        return;
+                    }
+                }
+
                 if (extracted?.amount && extracted?.type) {
                     aiResult = {
                         cat: extracted.category || 'Lainnya',
