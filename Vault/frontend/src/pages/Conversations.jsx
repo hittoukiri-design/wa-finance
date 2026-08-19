@@ -94,14 +94,14 @@ function StatusBadge({ children, tone = 'emerald' }) {
   const tones = {
     emerald: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
     amber: 'border-amber-500/30 bg-amber-500/15 text-amber-800 dark:text-amber-300',
-    slate: 'border-[#dcebd0] bg-[#eef7e6] text-slate-600 dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-400',
+    slate: 'border-[#d6e4be] bg-[#eaf2da] text-slate-600 dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-400',
   };
   return <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${tones[tone] || tones.slate}`}>{children}</span>;
 }
 
 function TimelineItem({ icon: Icon, title, detail, tone = 'emerald' }) {
   const tones = {
-    emerald: 'bg-[#d8f0c4] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]',
+    emerald: 'bg-[#c3ef92] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]',
     blue: 'bg-sky-500/20 text-sky-700 dark:text-sky-300',
     violet: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300',
   };
@@ -252,15 +252,15 @@ export default function Conversations() {
       <div className="grid min-h-0 flex-1 gap-5 xl:grid-cols-[330px_minmax(0,1fr)_300px]">
         
         {/* Contact List Pane */}
-        <section className="flex min-h-[560px] flex-col overflow-hidden rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
-          <div className="border-b border-[#dcebd0] p-4 dark:border-[#243e1c]">
+        <section className="flex min-h-[560px] flex-col overflow-hidden rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <div className="border-b border-[#d6e4be] p-4 dark:border-[#243e1c]">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Cari chat..."
-                className="w-full rounded-full border border-[#dcebd0] bg-white py-2 pl-9 pr-3 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+                className="w-full rounded-full border border-[#d6e4be] bg-white py-2 pl-9 pr-3 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
               />
             </div>
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -276,7 +276,7 @@ export default function Conversations() {
                   className={`rounded-full px-3 py-1 text-[11px] font-black transition ${
                     filterMode === key
                       ? 'bg-[#1a5611] text-white dark:bg-[#76d446] dark:text-[#0d170a]'
-                      : 'border border-[#dcebd0] bg-white text-slate-600 hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-300'
+                      : 'border border-[#d6e4be] bg-white text-slate-600 hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-300'
                   }`}
                 >
                   {label}
@@ -292,7 +292,7 @@ export default function Conversations() {
                 onClick={() => setSelectedPhone(thread.phone)}
                 className={`flex w-full gap-3 rounded-2xl border p-3 text-left transition ${
                   selected?.phone === thread.phone
-                    ? 'border-[#76d446] bg-[#d8f0c4] dark:border-[#76d446] dark:bg-[#1b3816]'
+                    ? 'border-[#76d446] bg-[#c3ef92] dark:border-[#76d446] dark:bg-[#1b3816]'
                     : 'border-transparent bg-white/60 hover:bg-white dark:bg-white/5 dark:hover:bg-white/10'
                 }`}
               >
@@ -317,16 +317,16 @@ export default function Conversations() {
               <div className="p-8 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">Belum ada percakapan.</div>
             )}
           </div>
-          <div className="border-t border-[#dcebd0] px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:border-[#243e1c] dark:text-slate-400">
+          <div className="border-t border-[#d6e4be] px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:border-[#243e1c] dark:text-slate-400">
             Menampilkan {threads.length} percakapan
           </div>
         </section>
 
         {/* Chat Message Pane */}
-        <section className="flex min-h-[560px] flex-col overflow-hidden rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+        <section className="flex min-h-[560px] flex-col overflow-hidden rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
           {selected ? (
             <>
-              <div className="flex items-center justify-between gap-4 border-b border-[#dcebd0] p-4 dark:border-[#243e1c]">
+              <div className="flex items-center justify-between gap-4 border-b border-[#d6e4be] p-4 dark:border-[#243e1c]">
                 <div className="flex min-w-0 items-center gap-3">
                   <WhatsAppAvatar />
                   <div className="min-w-0">
@@ -361,7 +361,7 @@ export default function Conversations() {
 
               <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
                 {selectedDate && (
-                  <div className="self-center rounded-full bg-[#d8f0c4] px-4 py-1 text-[10px] font-black uppercase tracking-wider text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
+                  <div className="self-center rounded-full bg-[#c3ef92] px-4 py-1 text-[10px] font-black uppercase tracking-wider text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
                     {dateLabel(selectedDate)}
                   </div>
                 )}
@@ -376,7 +376,7 @@ export default function Conversations() {
                         className={`rounded-2xl px-4 py-2.5 text-xs font-medium shadow-sm leading-relaxed ${
                           isBot
                             ? 'bg-[#1a5611] text-white dark:bg-[#76d446] dark:text-[#0d170a]'
-                            : 'border border-[#dcebd0] bg-white text-[#0e2a07] dark:border-[#263e1d] dark:bg-[#18291a] dark:text-[#f3ffe9]'
+                            : 'border border-[#d6e4be] bg-white text-[#0e2a07] dark:border-[#263e1d] dark:bg-[#18291a] dark:text-[#f3ffe9]'
                         }`}
                       >
                         <p className="whitespace-pre-wrap">{item.message}</p>
@@ -397,7 +397,7 @@ export default function Conversations() {
         </section>
 
         {/* Transaction Extraction Preview Pane */}
-        <section className="flex min-h-[560px] flex-col rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+        <section className="flex min-h-[560px] flex-col rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
           <div className="mb-4 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-[#1a5611] dark:text-[#76d446]" />
             <h3 className="text-xs font-black uppercase tracking-wider text-[#358219] dark:text-[#76d446]">
@@ -407,7 +407,7 @@ export default function Conversations() {
 
           {selectedExpense ? (
             <div className="space-y-4">
-              <div className="rounded-2xl border border-[#dcebd0] bg-white/80 p-4 shadow-sm dark:border-[#263e1d] dark:bg-[#162718]">
+              <div className="rounded-2xl border border-[#d6e4be] bg-white/80 p-4 shadow-sm dark:border-[#263e1d] dark:bg-[#162718]">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pesan Asli</span>
                 <p className="mt-1 text-xs font-bold text-[#0e2a07] dark:text-[#f3ffe9] italic">
                   “{selectedExpense.message}”
@@ -431,7 +431,7 @@ export default function Conversations() {
                 </div>
               </div>
 
-              <div className="mt-4 border-t border-[#dcebd0] pt-4 dark:border-[#243e1c]">
+              <div className="mt-4 border-t border-[#d6e4be] pt-4 dark:border-[#243e1c]">
                 <TimelineItem icon={CheckCircle2} title="Terekstraksi AI" detail="Format transaksi valid dan tersimpan di database." />
               </div>
             </div>

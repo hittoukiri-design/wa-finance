@@ -427,7 +427,7 @@ export default function Dompet() {
       )}
 
       {/* ════ SECTION 1: SUMBER DANA / DOMPET ════ */}
-      <div className="rounded-[22px] border border-[#dcebd0] bg-[#f7fbf3] p-6 shadow-sm dark:border-[#244618] dark:bg-[#0c180e]">
+      <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#244618] dark:bg-[#0c180e]">
         
         {/* Header Bar */}
         <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
@@ -447,7 +447,7 @@ export default function Dompet() {
             <select
               value={walletPageSize}
               onChange={(e) => setWalletPageSize(Number(e.target.value))}
-              className="rounded-full border border-[#dcebd0] bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 outline-none dark:border-[#263e1d] dark:bg-[#122214] dark:text-slate-200"
+              className="rounded-full border border-[#d6e4be] bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 outline-none dark:border-[#263e1d] dark:bg-[#122214] dark:text-slate-200"
             >
               <option value={10}>10 baris</option>
               <option value={25}>25 baris</option>
@@ -471,10 +471,10 @@ export default function Dompet() {
             return (
               <div
                 key={w.id}
-                className={`flex items-center justify-between rounded-2xl border border-[#dcebd0] px-5 py-4 transition ${
+                className={`flex items-center justify-between rounded-2xl border border-[#d6e4be] px-5 py-4 transition ${
                   isInactive
                     ? 'bg-[#f0f5ec]/50 opacity-60 dark:bg-[#111f13]/40'
-                    : 'bg-[#eaf4e2] hover:border-[#b8dc9f] dark:bg-[#142616] dark:border-[#263e1d] dark:hover:border-[#38642a]'
+                    : 'bg-[#f5faeb] hover:border-[#b8dc9f] dark:bg-[#142616] dark:border-[#263e1d] dark:hover:border-[#38642a]'
                 }`}
               >
                 <div className="flex items-center gap-3.5">
@@ -532,7 +532,7 @@ export default function Dompet() {
       </div>
 
       {/* ════ SECTION 2: PROTEKSI BUDGET / KATEGORI ════ */}
-      <div className="rounded-[22px] border border-[#dcebd0] bg-[#f7fbf3] p-6 shadow-sm dark:border-[#244618] dark:bg-[#0c180e]">
+      <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#244618] dark:bg-[#0c180e]">
         
         {/* Header Bar */}
         <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
@@ -552,7 +552,7 @@ export default function Dompet() {
             <select
               value={categoryPageSize}
               onChange={(e) => setCategoryPageSize(Number(e.target.value))}
-              className="rounded-full border border-[#dcebd0] bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 outline-none dark:border-[#263e1d] dark:bg-[#122214] dark:text-slate-200"
+              className="rounded-full border border-[#d6e4be] bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 outline-none dark:border-[#263e1d] dark:bg-[#122214] dark:text-slate-200"
             >
               <option value={10}>10 baris</option>
               <option value={25}>25 baris</option>
@@ -577,10 +577,10 @@ export default function Dompet() {
             return (
               <div
                 key={cat.id}
-                className={`flex items-center justify-between rounded-2xl border border-[#dcebd0] px-5 py-4 transition ${
+                className={`flex items-center justify-between rounded-2xl border border-[#d6e4be] px-5 py-4 transition ${
                   isInactive
                     ? 'bg-[#f0f5ec]/50 opacity-60 dark:bg-[#111f13]/40'
-                    : 'bg-[#eaf4e2] hover:border-[#b8dc9f] dark:bg-[#142616] dark:border-[#263e1d] dark:hover:border-[#38642a]'
+                    : 'bg-[#f5faeb] hover:border-[#b8dc9f] dark:bg-[#142616] dark:border-[#263e1d] dark:hover:border-[#38642a]'
                 }`}
               >
                 <div className="flex items-center gap-3.5">

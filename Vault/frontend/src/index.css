@@ -23,7 +23,7 @@
   }
 
   body {
-    background: #f4f7fb;
+    background: #f5faeb;
     color: #0f172a;
     font-family: 'Inter', system-ui, sans-serif;
     margin: 0;
@@ -57,7 +57,7 @@ html[data-theme="light"] .app-shell,
 html[data-theme="light"] .app-main,
 html[data-theme="light"] .app-sidebar,
 html[data-theme="light"] [class*="bg-[#071019]"] {
-  background-color: #f4f7fb !important;
+  background-color: #f5faeb !important;
 }
 
 html[data-theme="light"] [class*="bg-[#0b141c]"],
@@ -66,8 +66,8 @@ html[data-theme="light"] [class*="bg-[#101b26]"],
 html[data-theme="light"] [class*="bg-[#111a31]"],
 html[data-theme="light"] [class*="bg-[#08151d]"],
 html[data-theme="light"] [class*="bg-[#1b2746]"] {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
+  background-color: #eaf2da !important;
+  border-color: #d6e4be !important;
 }
 
 html[data-theme="light"] [class*="bg-slate-900"],
@@ -151,7 +151,7 @@ html[data-theme="light"] ::-webkit-scrollbar-thumb { background: #b8c4d3; }
 /* --- Broad light-mode safety net: catches components with hardcoded dark classes --- */
 html[data-theme="light"] .app-main { color: #16233a; }
 html[data-theme="light"] .app-main [class*="bg-[#0"],
-html[data-theme="light"] .app-main [class*="bg-[#1"] { background-color: #ffffff !important; color: #16233a !important; }
+html[data-theme="light"] .app-main [class*="bg-[#1"] { background-color: #eaf2da !important; color: #16233a !important; }
 html[data-theme="light"] .app-main [class*="text-white"],
 html[data-theme="light"] .app-main [class*="text-slate-100"],
 html[data-theme="light"] .app-main [class*="text-slate-200"],
@@ -166,7 +166,7 @@ html[data-theme="light"] .app-main select,
 html[data-theme="light"] .app-main textarea { background-color: #f8fafc !important; color: #16233a !important; border-color: #cbd5e1 !important; }
 
 html[data-theme="dark"] body {
-  background: #071019;
+    background: #f5faeb;
   color: #ffffff;
 }
 
@@ -6637,7 +6637,7 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   background-position: center right;
   background-size: 100% 100%;
   background-repeat: no-repeat;
-  border: 1px solid #dcebd0;
+  border: 1px solid #d6e4be;
   border-radius: 20px;
   padding: 22px 28px;
   margin-bottom: 14px;
@@ -6779,7 +6779,7 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   padding: 3px 8px;
   border-radius: 9999px;
   background-color: #f1f8eb;
-  border: 1px solid #dcebd0;
+  border: 1px solid #d6e4be;
   font-size: 10px;
   font-weight: 700;
   color: var(--text-muted);
@@ -7349,7 +7349,7 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   background-image: url('/hero-banner-bg.png');
   background-position: right center;
   background-size: 100% 100%;
-  border: 1px solid #dcebd0;
+  border: 1px solid #d6e4be;
   border-radius: 18px;
   display: flex;
   align-items: center;
@@ -7414,7 +7414,7 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   background-position: center;
   background-size: 100% 100%;
   background-repeat: no-repeat;
-  border: 1px solid #dcebd0;
+  border: 1px solid #d6e4be;
   border-radius: 18px;
   padding: 14px 24px;
   display: flex;
@@ -7443,7 +7443,7 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   gap: 5px;
   padding: 6px 14px;
   border-radius: 9999px;
-  border: 1px solid #dcebd0;
+  border: 1px solid #d6e4be;
   background-color: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(4px);
   color: var(--text-main);
@@ -7522,7 +7522,7 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
 
 [data-theme="light"] .tx-cat-card-box, html:not(.dark) .tx-cat-card-box {
   background-color: #eef7e6;
-  border-color: #dcebd0;
+  border-color: #d6e4be;
 }
 
 .tx-cat-card-box:hover, .tx-cat-card-box.active {
@@ -7914,7 +7914,7 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
 
 [data-theme="light"] .tx-stat-box, html:not(.dark) .tx-stat-box {
   background-color: #eef7e6 !important;
-  border-color: #dcebd0 !important;
+  border-color: #d6e4be !important;
 }
 
 .tx-stat-box-head {

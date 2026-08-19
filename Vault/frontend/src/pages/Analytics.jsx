@@ -148,7 +148,7 @@ function getAccount(item) {
 function AnalyticsTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl border border-[#dcebd0] bg-[#eef7e6] px-3.5 py-2 text-xs shadow-xl dark:border-[#263e1d] dark:bg-[#112013]">
+    <div className="rounded-xl border border-[#d6e4be] bg-[#eaf2da] px-3.5 py-2 text-xs shadow-xl dark:border-[#263e1d] dark:bg-[#112013]">
       <p className="font-bold text-[#0e2a07] dark:text-[#f3ffe9]">{label}</p>
       <p className="mt-0.5 font-extrabold text-[#1a5611] dark:text-[#76d446]">{currency(payload[0].value)}</p>
     </div>
@@ -157,7 +157,7 @@ function AnalyticsTooltip({ active, payload, label }) {
 
 function EmptyAnalytics({ text }) {
   return (
-    <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-[#dcebd0] text-center text-xs font-semibold text-slate-500 dark:border-[#263e1d] dark:text-slate-400">
+    <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-[#d6e4be] text-center text-xs font-semibold text-slate-500 dark:border-[#263e1d] dark:text-slate-400">
       {text}
     </div>
   );
@@ -167,9 +167,9 @@ function MetricCard({ icon: Icon, label, value, detail, delta, neutral = false }
   const isDown = delta < 0;
   const DeltaIcon = isDown ? ArrowDown : ArrowUp;
   return (
-    <section className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm transition hover:border-[#b8dc9f] dark:border-[#243e1c] dark:bg-[#121e14] dark:hover:border-[#38642a]">
+    <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm transition hover:border-[#b8dc9f] dark:border-[#243e1c] dark:bg-[#121e14] dark:hover:border-[#38642a]">
       <div className="flex items-center gap-3.5">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#d8f0c4] text-[#1a5611] shadow-sm dark:bg-[#1b3816] dark:text-[#76d446]">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#c3ef92] text-[#1a5611] shadow-sm dark:bg-[#1b3816] dark:text-[#76d446]">
           <Icon className="h-6 w-6" />
         </span>
         <div className="min-w-0">
@@ -193,7 +193,7 @@ function MetricCard({ icon: Icon, label, value, detail, delta, neutral = false }
 function InsightItem({ icon: Icon, children }) {
   return (
     <div className="flex gap-3.5">
-      <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d8f0c4] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
+      <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#c3ef92] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
         <Icon className="h-5 w-5" />
       </span>
       <p className="text-xs font-medium leading-relaxed text-[#1e3c15] dark:text-[#cde8bd]">{children}</p>
@@ -206,7 +206,7 @@ function SelectPill({ value, onChange, options }) {
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="rounded-full border border-[#dcebd0] bg-white px-3.5 py-1.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+      className="rounded-full border border-[#d6e4be] bg-white px-3.5 py-1.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>{option.label}</option>
@@ -384,7 +384,7 @@ export default function Analytics() {
       <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
         
         {/* Spending Trend Area Chart */}
-        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
               Spending Trend <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
@@ -416,7 +416,7 @@ export default function Analytics() {
         </div>
 
         {/* Spend by Category Progress Breakdown */}
-        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
               Spend by Category <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
@@ -429,14 +429,14 @@ export default function Analytics() {
               {analytics.categories.slice(0, 6).map((item) => (
                 <div key={item.name} className="grid grid-cols-[105px_1fr_95px_45px] items-center gap-3 text-xs font-bold">
                   <span className="truncate text-[#0e2a07] dark:text-[#f3ffe9]">{item.name}</span>
-                  <span className="h-2.5 overflow-hidden rounded-full bg-[#d8f0c4] dark:bg-[#1c3818]">
+                  <span className="h-2.5 overflow-hidden rounded-full bg-[#c3ef92] dark:bg-[#1c3818]">
                     <span className="block h-full rounded-full bg-gradient-to-r from-[#76d446] to-[#4a8c2c]" style={{ width: `${Math.max(4, item.percent)}%` }} />
                   </span>
                   <span className="text-right text-[#1a5611] dark:text-[#76d446]">{currency(item.value)}</span>
                   <span className="text-right text-slate-500 dark:text-slate-400">{item.percent.toFixed(1)}%</span>
                 </div>
               ))}
-              <div className="flex items-center justify-between border-t border-[#dcebd0] pt-3 text-xs font-black dark:border-[#243e1c]">
+              <div className="flex items-center justify-between border-t border-[#d6e4be] pt-3 text-xs font-black dark:border-[#243e1c]">
                 <span className="text-[#0e2a07] dark:text-[#f3ffe9]">Total Kategori</span>
                 <strong className="text-[#1a5611] dark:text-[#76d446]">{currency(analytics.categoryTotal)}</strong>
               </div>
@@ -452,12 +452,12 @@ export default function Analytics() {
       <section className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
         
         {/* AI Insights Card */}
-        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
               <Sparkles className="h-4 w-4 text-[#358219] dark:text-[#76d446]" /> AI Insights
             </h2>
-            <span className="rounded-full bg-[#d8f0c4] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#1a5611] dark:bg-[#1a3816] dark:text-[#76d446]">
+            <span className="rounded-full bg-[#c3ef92] px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#1a5611] dark:bg-[#1a3816] dark:text-[#76d446]">
               Data-driven
             </span>
           </div>
@@ -468,14 +468,14 @@ export default function Analytics() {
             <InsightItem icon={Brain}>{analytics.insights[2]}</InsightItem>
           </div>
 
-          <div className="mt-5 flex items-center justify-between border-t border-[#dcebd0] pt-3 text-[11px] text-[#436d32] dark:border-[#243e1c] dark:text-[#8bb37a]">
+          <div className="mt-5 flex items-center justify-between border-t border-[#d6e4be] pt-3 text-[11px] text-[#436d32] dark:border-[#243e1c] dark:text-[#8bb37a]">
             <span>Insight dibuat dari data transaksi tersimpan real-time.</span>
             <span className="font-bold text-[#1a5611] dark:text-[#76d446]">AI-Ready</span>
           </div>
         </div>
 
         {/* Pengeluaran per Rekening Donut Breakdown */}
-        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
           <h2 className="mb-4 flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
             Pengeluaran per Rekening <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
           </h2>
@@ -517,7 +517,7 @@ export default function Analytics() {
       </section>
 
       {/* ── Security Banner ── */}
-      <section className="flex flex-col gap-3 rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-4 text-xs text-[#285814] dark:border-[#243e1c] dark:bg-[#121e14] dark:text-[#b8d8a7] md:flex-row md:items-center md:justify-between">
+      <section className="flex flex-col gap-3 rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-4 text-xs text-[#285814] dark:border-[#243e1c] dark:bg-[#121e14] dark:text-[#b8d8a7] md:flex-row md:items-center md:justify-between">
         <div className="flex items-start gap-2.5">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#1a5611] dark:text-[#76d446]" />
           <p>

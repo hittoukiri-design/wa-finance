@@ -44,8 +44,8 @@ export default function Sidebar() {
     <aside
       className={`app-sidebar hidden h-screen shrink-0 flex-col border-r transition-all duration-300 ease-in-out md:flex ${
         isCollapsed
-          ? 'w-[76px] border-[#dcebd0] bg-[#f4faef] dark:border-[#263e1d] dark:bg-[#0c180e]'
-          : 'w-[250px] border-[#dcebd0] bg-[#f4faef] dark:border-[#263e1d] dark:bg-[#0c180e]'
+          ? 'w-[76px] border-[#d6e4be] bg-[#f5faeb] dark:border-[#263e1d] dark:bg-[#0c180e]'
+          : 'w-[250px] border-[#d6e4be] bg-[#f5faeb] dark:border-[#263e1d] dark:bg-[#0c180e]'
       }`}
     >
       {/* ── Top Header / Brand ── */}
@@ -97,8 +97,8 @@ export default function Sidebar() {
                       : 'gap-3 px-3.5 py-2 text-[13px]'
                   } ${
                     isActive
-                      ? 'bg-[#d8f0c4] text-[#0e2a07] shadow-sm dark:bg-[#1a3816] dark:text-[#76d446]'
-                      : 'text-slate-700 hover:bg-[#e6f4dc] hover:text-[#0e2a07] dark:text-slate-300 dark:hover:bg-[#142616] dark:hover:text-white'
+                      ? 'bg-[#c3ef92] text-[#0e2a07] shadow-sm dark:bg-[#1a3816] dark:text-[#76d446]'
+                      : 'text-slate-700 hover:bg-[#eaf2da] hover:text-[#0e2a07] dark:text-slate-300 dark:hover:bg-[#142616] dark:hover:text-white'
                   }`
                 }
               >
@@ -129,7 +129,7 @@ export default function Sidebar() {
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between rounded-xl border border-[#dcebd0] bg-[#eaf4e2] p-2.5 dark:border-[#263e1d] dark:bg-[#132212]">
+          <div className="flex items-center justify-between rounded-xl border border-[#d6e4be] bg-[#eaf2da] p-2.5 dark:border-[#263e1d] dark:bg-[#132212]">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a5611] text-xs font-black text-white dark:bg-[#76d446] dark:text-[#0d170a]">
                 {(user?.displayName || user?.email || 'CH').slice(0, 2).toUpperCase()}

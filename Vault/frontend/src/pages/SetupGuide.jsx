@@ -65,11 +65,11 @@ export default function SetupGuide() {
         subtitle="Panduan konfigurasi WhatsApp bot, kategori custom, dan arsip legacy Google Apps Script."
       />
 
-      <section className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14] md:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#dcebd0] pb-6 dark:border-[#243e1c]">
+      <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14] md:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#d6e4be] pb-6 dark:border-[#243e1c]">
           <div>
             <h1 className="flex items-center gap-2.5 text-lg font-black text-[#0e2a07] dark:text-[#f3ffe9]">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#d8f0c4] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#c3ef92] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
                 <FileCode2 className="h-5 w-5" />
               </span>
               Arsitektur & Konfigurasi Sistem
@@ -89,7 +89,7 @@ export default function SetupGuide() {
         <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           
           {/* Steps List */}
-          <div className="rounded-2xl border border-[#dcebd0] bg-white/70 p-6 dark:border-[#263e1d] dark:bg-[#162718]">
+          <div className="rounded-2xl border border-[#d6e4be] bg-white/70 p-6 dark:border-[#263e1d] dark:bg-[#162718]">
             <h2 className="flex items-center gap-2 text-sm font-black text-[#0e2a07] dark:text-[#f3ffe9]">
               <Sparkles className="h-4 w-4 text-[#1a5611] dark:text-[#76d446]" /> Langkah Integrasi
             </h2>
@@ -122,14 +122,14 @@ export default function SetupGuide() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={backupScript}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#dcebd0] bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-200"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#d6e4be] bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-200"
                 >
                   {backedUp ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Download className="h-3.5 w-3.5" />}
                   {backedUp ? 'Saved' : 'Download'}
                 </button>
                 <button
                   onClick={copyCode}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#dcebd0] bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-200"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#d6e4be] bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-200"
                 >
                   {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Clipboard className="h-3.5 w-3.5" />}
                   {copied ? 'Copied' : 'Salin'}
@@ -137,14 +137,14 @@ export default function SetupGuide() {
               </div>
             </div>
 
-            <pre className="h-[380px] overflow-auto rounded-2xl border border-[#dcebd0] bg-white p-4 font-mono text-[11px] leading-relaxed text-[#0e2a07] shadow-inner dark:border-[#263e1d] dark:bg-[#0d170a] dark:text-[#d4f0c0]">
+            <pre className="h-[380px] overflow-auto rounded-2xl border border-[#d6e4be] bg-white p-4 font-mono text-[11px] leading-relaxed text-[#0e2a07] shadow-inner dark:border-[#263e1d] dark:bg-[#0d170a] dark:text-[#d4f0c0]">
               <code>{SCRIPT_TEMPLATE}</code>
             </pre>
           </div>
 
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#dcebd0] pt-4 text-xs font-bold text-[#436d32] dark:border-[#243e1c] dark:text-[#8bb37a]">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#d6e4be] pt-4 text-xs font-bold text-[#436d32] dark:border-[#243e1c] dark:text-[#8bb37a]">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-[#1a5611] dark:text-[#76d446]" />
             Sistem siap digunakan untuk pencatatan multi-user.

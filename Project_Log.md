@@ -99,7 +99,11 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
 - ✅ **Pembersihan Total Garis Pemisah Header Brand Sidebar (`Sidebar.jsx`)**:
   - Menghapus garis horizontal pemisah (`border-b border-[#e5eedc]`) di bawah nama aplikasi `WA Finance / GATEWAY PLATFORM` pada mode expanded/penuh.
   - Sidebar kini tampil 100% seamless, bersih, dan menyatu tanpa garis pemisah yang mengganggu di bawah judul maupun antar menu.
-- ✅ **Build production terbaru** (`index-DYIo0Opb.js` & `index-iovkVKgo.css`) telah aktif dan live di container Mac mini.
+- ✅ **Pembaruan Palet Warna Light Mode Kustom (`#f5faeb`, `#eaf2da`, `#c3ef92`)**:
+  - **Background Light Mode**: Diubah menjadi `#f5faeb` yang lebih lembut dan nyaman dipandang.
+  - **Card Containers**: Diubah menjadi `#eaf2da` (dengan border harmonis `#d6e4be`) pada seluruh dashboard, transaksi, dompet, analitik, dan pengaturan.
+  - **Hero & Banner Green**: Diubah menjadi hijau cerah lembut `#c3ef92` pada banner arus kas transaksi, hero dashboard, dan tombol aksen utama.
+- ✅ **Build production terbaru** (`index-6ITs67Mr.js` & `index-C6VTT9RV.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

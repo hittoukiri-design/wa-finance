@@ -73,7 +73,7 @@ function SectionTitle({ icon: Icon, title, description, children }) {
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h2 className="flex items-center gap-2.5 text-lg font-black text-[#0e2a07] dark:text-[#f3ffe9]">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#d8f0c4] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#c3ef92] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
             <Icon className="h-5 w-5" />
           </span>
           {title}
@@ -202,7 +202,7 @@ export default function Settings() {
         
         {/* Left Side: Profile & System Info */}
         <aside className="space-y-5 xl:sticky xl:top-6">
-          <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-6 text-center shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 text-center shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#1a5611] text-2xl font-black text-white shadow-md dark:bg-[#76d446] dark:text-[#0d170a]">
               {(user?.displayName || user?.email || 'CH').slice(0, 2).toUpperCase()}
             </div>
@@ -217,12 +217,12 @@ export default function Settings() {
             </button>
           </div>
 
-          <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
             <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-[#358219] dark:text-[#76d446]">
               <Gauge className="h-4 w-4" /> System Info
             </h3>
             <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between rounded-xl border border-[#dcebd0] bg-white/70 px-3.5 py-2.5 dark:border-[#263e1d] dark:bg-[#162718]">
+              <div className="flex items-center justify-between rounded-xl border border-[#d6e4be] bg-white/70 px-3.5 py-2.5 dark:border-[#263e1d] dark:bg-[#162718]">
                 <span className="text-xs font-bold text-[#436d32] dark:text-[#8bb37a]">Backend API</span>
                 <span className={`rounded-full px-2.5 py-0.5 text-[9.5px] font-black uppercase ${
                   backendStatus === 'ok' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-red-500/20 text-red-700 dark:text-red-300'
@@ -230,7 +230,7 @@ export default function Settings() {
                   {backendStatus === 'ok' ? 'ONLINE (OK)' : 'OFFLINE'}
                 </span>
               </div>
-              <div className="flex items-center justify-between rounded-xl border border-[#dcebd0] bg-white/70 px-3.5 py-2.5 dark:border-[#263e1d] dark:bg-[#162718]">
+              <div className="flex items-center justify-between rounded-xl border border-[#d6e4be] bg-white/70 px-3.5 py-2.5 dark:border-[#263e1d] dark:bg-[#162718]">
                 <span className="text-xs font-bold text-[#436d32] dark:text-[#8bb37a]">Database</span>
                 <span className="text-xs font-black text-[#1a5611] dark:text-[#76d446]">Firestore Multi-User</span>
               </div>
@@ -242,7 +242,7 @@ export default function Settings() {
         <div className="space-y-5">
           
           {/* AI Configuration */}
-          <section className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
             <SectionTitle
               icon={Sparkles}
               title="Konfigurasi AI"
@@ -259,7 +259,7 @@ export default function Settings() {
                     value={settings.groq_api_key}
                     onChange={(event) => setSettings((current) => ({ ...current, groq_api_key: event.target.value }))}
                     placeholder={hasSavedKey ? 'API key tersimpan (isi untuk mengganti)' : 'gsk_...'}
-                    className="w-full rounded-xl border border-[#dcebd0] bg-white py-2.5 pl-10 pr-3.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+                    className="w-full rounded-xl border border-[#d6e4be] bg-white py-2.5 pl-10 pr-3.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
                   />
                 </div>
               </div>
@@ -269,7 +269,7 @@ export default function Settings() {
                 <select
                   value={settings.ai_model}
                   onChange={(event) => setSettings((current) => ({ ...current, ai_model: event.target.value }))}
-                  className="w-full rounded-xl border border-[#dcebd0] bg-white px-3.5 py-2.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+                  className="w-full rounded-xl border border-[#d6e4be] bg-white px-3.5 py-2.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
                 >
                   {AI_MODEL_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
@@ -283,7 +283,7 @@ export default function Settings() {
                   rows="3"
                   value={settings.system_prompt}
                   onChange={(event) => setSettings((current) => ({ ...current, system_prompt: event.target.value }))}
-                  className="w-full resize-y rounded-xl border border-[#dcebd0] bg-white px-3.5 py-2.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+                  className="w-full resize-y rounded-xl border border-[#d6e4be] bg-white px-3.5 py-2.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
                 />
               </div>
             </div>
@@ -299,7 +299,7 @@ export default function Settings() {
           </section>
 
           {/* Legacy Apps Script / Sheet */}
-          <section className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
             <SectionTitle
               icon={FileCode2}
               title="Google Apps Script (Opsional)"
@@ -329,7 +329,7 @@ export default function Settings() {
                   value={settings.apps_script_url}
                   onChange={(event) => setSettings((current) => ({ ...current, apps_script_url: event.target.value }))}
                   placeholder="https://script.google.com/macros/s/.../exec"
-                  className="w-full rounded-xl border border-[#dcebd0] bg-white px-3.5 py-2.5 font-mono text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+                  className="w-full rounded-xl border border-[#d6e4be] bg-white px-3.5 py-2.5 font-mono text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
                 />
               </div>
 
@@ -351,7 +351,7 @@ export default function Settings() {
                   value={settings.spreadsheet_id}
                   onChange={(event) => setSettings((current) => ({ ...current, spreadsheet_id: event.target.value }))}
                   placeholder="ID Spreadsheet Google"
-                  className="w-full rounded-xl border border-[#dcebd0] bg-white px-3.5 py-2.5 font-mono text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+                  className="w-full rounded-xl border border-[#d6e4be] bg-white px-3.5 py-2.5 font-mono text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
                 />
               </div>
             </div>

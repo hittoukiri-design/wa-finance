@@ -110,7 +110,7 @@ export default function Header({ title, subtitle }) {
         <button
           onClick={toggleSidebar}
           title={isCollapsed ? 'Tampilkan sidebar' : 'Sembunyikan sidebar'}
-          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#dcebd0] bg-[#f4faef] text-[#358219] shadow-sm transition hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#122214] dark:text-[#76d446]"
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#d6e4be] bg-[#f5faeb] text-[#358219] shadow-sm transition hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#122214] dark:text-[#76d446]"
         >
           {isCollapsed ? <Menu width="18" height="18" /> : <ChevronLeft width="19" height="19" />}
         </button>
@@ -133,7 +133,7 @@ export default function Header({ title, subtitle }) {
           <button
             onClick={() => setShowFilter((v) => !v)}
             title="Filter tanggal & sumber dana"
-            className="inline-flex items-center gap-2 rounded-full border border-[#dcebd0] bg-[#f4faef] px-3.5 py-1.5 text-xs font-bold text-[#0e2a07] shadow-sm transition hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#122214] dark:text-[#f3ffe9]"
+            className="inline-flex items-center gap-2 rounded-full border border-[#d6e4be] bg-[#f5faeb] px-3.5 py-1.5 text-xs font-bold text-[#0e2a07] shadow-sm transition hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#122214] dark:text-[#f3ffe9]"
           >
             <SlidersHorizontal width="13" height="13" className="text-[#358219] dark:text-[#76d446]" />
             <span>{filterMonth}</span>
@@ -141,12 +141,12 @@ export default function Header({ title, subtitle }) {
 
           {/* Filter Popover Dropdown (Matching Screenshot media_1787109418862.png) */}
           {showFilter && (
-            <div className="absolute right-0 top-11 z-50 w-72 rounded-2xl border border-[#dcebd0] bg-[#eef7e6] p-4 shadow-2xl backdrop-blur-md dark:border-[#263e1d] dark:bg-[#112013]">
+            <div className="absolute right-0 top-11 z-50 w-72 rounded-2xl border border-[#d6e4be] bg-[#eaf2da] p-4 shadow-2xl backdrop-blur-md dark:border-[#263e1d] dark:bg-[#112013]">
               <div className="space-y-2.5">
                 {/* 1. Bulan */}
                 <div>
                   <label className="mb-1 block text-[10px] font-bold uppercase text-[#436d32] dark:text-[#76d446]">Bulan</label>
-                  <div className="flex items-center justify-between rounded-xl border border-[#dcebd0] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] dark:border-[#263e1d] dark:bg-[#162718] dark:text-white">
+                  <div className="flex items-center justify-between rounded-xl border border-[#d6e4be] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] dark:border-[#263e1d] dark:bg-[#162718] dark:text-white">
                     <span>{filterMonth}</span>
                     <Calendar width="14" height="14" className="text-[#358219] dark:text-[#76d446]" />
                   </div>
@@ -160,7 +160,7 @@ export default function Header({ title, subtitle }) {
                       type="date"
                       value={filterStart}
                       onChange={(e) => setFilterStart(e.target.value)}
-                      className="w-full rounded-xl border border-[#dcebd0] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
+                      className="w-full rounded-xl border border-[#d6e4be] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
                     />
                   </div>
                 </div>
@@ -173,7 +173,7 @@ export default function Header({ title, subtitle }) {
                       type="date"
                       value={filterEnd}
                       onChange={(e) => setFilterEnd(e.target.value)}
-                      className="w-full rounded-xl border border-[#dcebd0] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
+                      className="w-full rounded-xl border border-[#d6e4be] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
                     />
                   </div>
                 </div>
@@ -184,7 +184,7 @@ export default function Header({ title, subtitle }) {
                   <select
                     value={filterWallet}
                     onChange={(e) => setFilterWallet(e.target.value)}
-                    className="w-full rounded-xl border border-[#dcebd0] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
+                    className="w-full rounded-xl border border-[#d6e4be] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
                   >
                     <option value="Semua dompet">Semua dompet</option>
                     <option value="Bank">Bank</option>
@@ -201,7 +201,7 @@ export default function Header({ title, subtitle }) {
                   <select
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
-                    className="w-full rounded-xl border border-[#dcebd0] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
+                    className="w-full rounded-xl border border-[#d6e4be] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
                   >
                     <option value="Semua kategori">Semua kategori</option>
                     <option value="Makan">Makan</option>
@@ -222,7 +222,7 @@ export default function Header({ title, subtitle }) {
                   <button
                     type="button"
                     onClick={handleResetFilter}
-                    className="inline-flex items-center gap-1 rounded-full border border-[#dcebd0] bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-200"
+                    className="inline-flex items-center gap-1 rounded-full border border-[#d6e4be] bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-200"
                   >
                     <RotateCcw width="12" height="12" />
                     Reset
@@ -246,7 +246,7 @@ export default function Header({ title, subtitle }) {
           onClick={toggleTheme}
           title={theme === 'dark' ? 'Aktifkan light mode' : 'Aktifkan dark mode'}
           aria-label={theme === 'dark' ? 'Aktifkan light mode' : 'Aktifkan dark mode'}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#dcebd0] bg-[#f4faef] text-slate-700 shadow-sm transition hover:bg-[#e4f2da] hover:text-amber-600 dark:border-[#263e1d] dark:bg-[#122214] dark:text-slate-300 dark:hover:text-amber-400"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d6e4be] bg-[#f5faeb] text-slate-700 shadow-sm transition hover:bg-[#e4f2da] hover:text-amber-600 dark:border-[#263e1d] dark:bg-[#122214] dark:text-slate-300 dark:hover:text-amber-400"
         >
           {theme === 'dark' ? <Sun width="16" height="16" /> : <Moon width="16" height="16" />}
         </button>
@@ -254,7 +254,7 @@ export default function Header({ title, subtitle }) {
         {/* User Initials Circle */}
         <div
           title={user?.displayName || user?.email || 'User'}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-[#d8f0c4] text-xs font-black text-[#1a5611] shadow-sm dark:bg-[#1b3816] dark:text-[#76d446]"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-[#c3ef92] text-xs font-black text-[#1a5611] shadow-sm dark:bg-[#1b3816] dark:text-[#76d446]"
         >
           {userInitials}
         </div>

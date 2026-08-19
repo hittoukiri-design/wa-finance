@@ -82,13 +82,13 @@ export default function WhatsApp() {
       ? 'border-red-500/30 bg-red-500/15 text-red-800 dark:text-red-300'
       : hasQr
         ? 'border-amber-500/30 bg-amber-500/15 text-amber-800 dark:text-amber-300'
-        : 'border-[#dcebd0] bg-[#eef7e6] text-slate-600 dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-400';
+        : 'border-[#d6e4be] bg-[#eaf2da] text-slate-600 dark:border-[#263e1d] dark:bg-[#162718] dark:text-slate-400';
 
   let qrVisual;
   if (hasQr) {
     qrVisual = (
       <>
-        <div className="rounded-2xl bg-white p-4 shadow-xl border border-[#dcebd0] dark:border-none">
+        <div className="rounded-2xl bg-white p-4 shadow-xl border border-[#d6e4be] dark:border-none">
           <QRCodeSVG value={status.qr} size={210} />
         </div>
         <h3 className="mt-5 text-lg font-black text-[#0e2a07] dark:text-[#f3ffe9]">Scan dengan WhatsApp</h3>
@@ -130,7 +130,7 @@ export default function WhatsApp() {
         subtitle="Kelola koneksi bot WhatsApp, scan QR, dan kirim pesan notifikasi transaksi."
       />
 
-      <section className="flex flex-col gap-3 rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-4 text-xs text-[#285814] dark:border-[#243e1c] dark:bg-[#121e14] dark:text-[#b8d8a7] md:flex-row md:items-center md:justify-between">
+      <section className="flex flex-col gap-3 rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-4 text-xs text-[#285814] dark:border-[#243e1c] dark:bg-[#121e14] dark:text-[#b8d8a7] md:flex-row md:items-center md:justify-between">
         <div className="flex items-start gap-2.5">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#1a5611] dark:text-[#76d446]" />
           <p>
@@ -145,9 +145,9 @@ export default function WhatsApp() {
       <div className="grid gap-6 lg:grid-cols-2">
 
         {/* LEFT — Quick Send */}
-        <section className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+        <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
           <div className="mb-5 flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#d8f0c4] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#c3ef92] text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
               <Send className="h-5 w-5" />
             </span>
             <div>
@@ -177,7 +177,7 @@ export default function WhatsApp() {
                   value={quickTo}
                   onChange={e => setQuickTo(e.target.value)}
                   placeholder="628123456789"
-                  className="w-full rounded-xl border border-[#dcebd0] bg-white py-2.5 pl-10 pr-4 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+                  className="w-full rounded-xl border border-[#d6e4be] bg-white py-2.5 pl-10 pr-4 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
                 />
               </div>
             </div>
@@ -191,7 +191,7 @@ export default function WhatsApp() {
                 value={quickMsg}
                 onChange={e => setQuickMsg(e.target.value)}
                 placeholder="Tulis pesan..."
-                className="w-full resize-none rounded-xl border border-[#dcebd0] bg-white px-3.5 py-2.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
+                className="w-full resize-none rounded-xl border border-[#d6e4be] bg-white px-3.5 py-2.5 text-xs font-bold text-[#0e2a07] outline-none shadow-sm transition focus:border-[#76d446] dark:border-[#263e1d] dark:bg-[#162718] dark:text-[#f3ffe9]"
               />
             </div>
 
@@ -213,7 +213,7 @@ export default function WhatsApp() {
         </section>
 
         {/* RIGHT — QR Code */}
-        <section className="flex min-h-[400px] flex-col items-center justify-center rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-6 text-center shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+        <section className="flex min-h-[400px] flex-col items-center justify-center rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-6 text-center shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
           <div className="mb-4 flex w-full items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-bold text-[#436d32] dark:text-[#8bb37a]">
               <Smartphone className="h-4 w-4 text-[#1a5611] dark:text-[#76d446]" />

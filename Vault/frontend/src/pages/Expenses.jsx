@@ -545,7 +545,7 @@ export default function Expenses() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-4 w-full">
         
         {/* Card 1: Banner Card (Arus Kas - Daftar Transaksi) */}
-        <div className="relative overflow-hidden rounded-[22px] bg-[#87e33e] p-5 shadow-md flex flex-col justify-between min-h-[145px] text-[#0d2207] border border-[#74d32a]">
+        <div className="relative overflow-hidden rounded-[22px] bg-[#c3ef92] p-5 shadow-md flex flex-col justify-between min-h-[145px] text-[#0d2207] border border-[#74d32a]">
           {/* Decorative background shapes */}
           <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full border-[8px] border-white/20" />
           <div className="pointer-events-none absolute right-10 -bottom-8 h-20 w-36 rounded-full border-[6px] border-white/15" />
@@ -581,13 +581,13 @@ export default function Expenses() {
         </div>
 
         {/* Card 2: Total Pengeluaran */}
-        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm flex flex-col justify-between min-h-[145px] dark:border-[#243e1c] dark:bg-[#121e14]">
+        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm flex flex-col justify-between min-h-[145px] dark:border-[#243e1c] dark:bg-[#121e14]">
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#358219] dark:text-[#76d446]">
                 TOTAL PENGELUARAN
               </span>
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#d8f0c4] text-[#1a5611] dark:bg-[#1a3518] dark:text-[#76d446]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#c3ef92] text-[#1a5611] dark:bg-[#1a3518] dark:text-[#76d446]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
               </div>
             </div>
@@ -615,13 +615,13 @@ export default function Expenses() {
         </div>
 
         {/* Card 3: Jumlah Transaksi */}
-        <div className="rounded-[22px] border border-[#dcebd0] bg-[#eef7e6] p-5 shadow-sm flex flex-col justify-between min-h-[145px] dark:border-[#243e1c] dark:bg-[#121e14]">
+        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm flex flex-col justify-between min-h-[145px] dark:border-[#243e1c] dark:bg-[#121e14]">
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#358219] dark:text-[#76d446]">
                 JUMLAH TRANSAKSI
               </span>
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#d8f0c4] text-[#1a5611] dark:bg-[#1a3518] dark:text-[#76d446]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#c3ef92] text-[#1a5611] dark:bg-[#1a3518] dark:text-[#76d446]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
               </div>
             </div>

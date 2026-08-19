@@ -27,7 +27,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
 import { listConversations, listExpenses } from '../lib/firestore';
-import { createNewRecap, getBackendSettings, whatsappApi } from '../lib/whatsapp-api';
+import { createNewRecap, downloadExcelReport, getBackendSettings, whatsappApi } from '../lib/whatsapp-api';
 
 const CATEGORY_COLORS = ['#2f781c', '#6952ec', '#f77132', '#f59e0b', '#16b896', '#389ef2', '#94a3b8'];
 const DEFAULT_BUDGET_THRESHOLDS = [80, 90, 95, 100];
@@ -179,6 +179,25 @@ export default function Dashboard() {
 
   const activePeriodStart = useMemo(() => dateFromInput(activeRecapStartDate) || startOfMonth(new Date()), [activeRecapStartDate]);
   const activePeriodEnd = useMemo(() => endOfMonth(activePeriodStart), [activePeriodStart]);
+
+  const exportExcel = async () => {
+    setError('');
+    try {
+      const blob = await downloadExcelReport({
+        recapId: 'active',
+        startDate: dateKey(activePeriodStart),
+        endDate: dateKey(activePeriodEnd),
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${dateKey(new Date())} - WA Finance Report.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (reason) {
+      setError(reason.message || 'Laporan Excel gagal dibuat.');
+    }
+  };
 
   const activePeriodExpenses = useMemo(() => expenses.filter((item) => {
     const date = getExpenseDate(item);
@@ -505,7 +524,7 @@ export default function Dashboard() {
         </div>
 
         <div className="hero-buttons-exact">
-          <button className="btn-hero-solid-green" onClick={() => navigate('/expenses')}>
+          <button className="btn-hero-solid-green" onClick={exportExcel}>
             <FileSpreadsheet width="13" height="13" />
             Excel
           </button>
@@ -782,7 +801,7 @@ export default function Dashboard() {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-[#dcebd0] text-center">
+              <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-[#d6e4be] text-center">
                 <BarChart3 className="h-7 w-7 text-[#8ca37d]" />
                 <p className="mt-2 text-xs text-[#567245]">Trend muncul setelah transaksi tersimpan.</p>
               </div>
@@ -834,7 +853,7 @@ export default function Dashboard() {
                 </div>
               </>
             ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center rounded-xl border border-dashed border-[#dcebd0] text-center">
+              <div className="flex h-full w-full flex-col items-center justify-center rounded-xl border border-dashed border-[#d6e4be] text-center">
                 <PieChartIcon className="h-7 w-7 text-[#8ca37d]" />
                 <p className="mt-2 text-xs text-[#567245]">Kategori muncul sesuai filter periode.</p>
               </div>
