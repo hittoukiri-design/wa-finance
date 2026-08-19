@@ -7557,9 +7557,13 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   text-align: right;
 }
 
-/* Motivational Quote Card with Exact Mint Leave Wind Animation */
+/* Motivational Quote Card (Clean, Seamless & Pristine) */
 .quote-motivational-card {
   background-color: #f7faef;
+  background-image: url('/mint-leave-exact.png');
+  background-position: right center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   border: 1px solid #d6e4be;
   border-radius: 20px;
   display: flex;
@@ -7570,129 +7574,21 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   overflow: hidden;
   min-height: 135px;
   width: 100%;
-  box-shadow: 0 8px 24px rgba(45, 83, 30, 0.07);
+  box-shadow: 0 4px 16px rgba(45, 83, 30, 0.05);
   transition: all 0.3s ease;
-}
-
-.quote-animated-wrap {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  border-radius: 20px;
-}
-
-.quote-mint-base {
-  position: absolute;
-  inset: 0;
-  background-image: url('/mint-leave-exact.png');
-  background-size: cover;
-  background-position: right center;
-  background-repeat: no-repeat;
-  transition: opacity 0.3s ease;
-}
-
-.quote-mint-clean {
-  position: absolute;
-  right: -1%;
-  top: 3%;
-  width: 38%;
-  height: 98%;
-  background:
-    radial-gradient(circle at 70% 30%, rgba(237, 246, 223, 0.7) 0 22%, transparent 54%),
-    linear-gradient(145deg, rgba(242, 248, 231, 0.88) 0%, rgba(226, 240, 203, 0.8) 58%, rgba(205, 227, 171, 0.74) 100%);
-  clip-path: polygon(18% 0, 100% 0, 100% 100%, 0 100%, 8% 62%, 14% 35%);
-  filter: blur(0.4px);
-}
-
-.quote-mint-plant {
-  position: absolute;
-  inset: 0;
-  background-image: url('/mint-leave-exact.png');
-  background-size: cover;
-  background-position: right center;
-  background-repeat: no-repeat;
-  clip-path: polygon(
-    72% 15%,
-    84% 14%,
-    98% 24%,
-    99% 100%,
-    80% 100%,
-    77% 78%,
-    73% 61%,
-    69% 47%
-  );
-  transform-origin: 86% 96%;
-  animation: mintWind 4.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
-  will-change: transform;
-  filter: drop-shadow(0 8px 8px rgba(45, 87, 30, 0.04));
-  transition: opacity 0.3s ease;
-}
-
-.quote-float-orb {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(181, 211, 129, 0.18);
-  pointer-events: none;
-}
-
-.quote-float-orb.o1 {
-  width: 36px;
-  height: 36px;
-  left: 9%;
-  top: 27%;
-  animation: float1 7s ease-in-out infinite;
-}
-
-.quote-float-orb.o2 {
-  width: 20px;
-  height: 20px;
-  left: 48%;
-  top: 47%;
-  animation: float2 8s ease-in-out infinite 0.6s;
-}
-
-.quote-breeze-line {
-  position: absolute;
-  left: -8%;
-  bottom: 11%;
-  width: 118%;
-  height: 20%;
-  border-top: 2px solid rgba(119, 168, 77, 0.18);
-  border-radius: 50%;
-  transform: rotate(-1deg);
-  animation: breeze 9s ease-in-out infinite alternate;
-  pointer-events: none;
-}
-
-@keyframes mintWind {
-  0%   { transform: rotate(-3.2deg) translateX(-3px); }
-  35%  { transform: rotate(-1.2deg) translateX(-1px); }
-  65%  { transform: rotate(1.3deg) translateX(2px); }
-  100% { transform: rotate(3.8deg) translateX(5px); }
 }
 
 /* ── Dark Mode Luxury Styling (Matching Hero Header Perfection) ── */
 [data-theme="dark"] .quote-motivational-card, html.dark .quote-motivational-card {
   background:
-    radial-gradient(circle at 18% 50%, rgba(36, 70, 24, 0.5) 0 25%, transparent 26%),
-    linear-gradient(105deg, #0b180d 0%, #0f2312 45%, #142e18 100%);
-  border-color: #244618;
+    radial-gradient(circle at 18% 50%, rgba(36, 70, 24, 0.45) 0 25%, transparent 26%),
+    linear-gradient(105deg, rgba(11, 24, 13, 0.94) 0%, rgba(15, 35, 18, 0.84) 45%, rgba(20, 46, 24, 0.65) 100%),
+    url('/mint-leave-exact.png');
+  background-position: right center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border: 1px solid #244618;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(118, 212, 70, 0.18);
-}
-
-[data-theme="dark"] .quote-mint-base, html.dark .quote-mint-base {
-  opacity: 0.55;
-  mix-blend-mode: luminosity;
-}
-
-[data-theme="dark"] .quote-mint-clean, html.dark .quote-mint-clean {
-  background: linear-gradient(145deg, rgba(11, 24, 13, 0.85) 0%, rgba(15, 35, 18, 0.75) 58%, rgba(20, 46, 24, 0.65) 100%);
-}
-
-[data-theme="dark"] .quote-mint-plant, html.dark .quote-mint-plant {
-  opacity: 0.65;
-  mix-blend-mode: luminosity;
 }
 
 .quote-left-block {
@@ -7701,7 +7597,7 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   gap: 16px;
   position: relative;
   z-index: 2;
-  max-width: 68%;
+  max-width: 65%;
 }
 
 .quote-icon-leaf {
@@ -7725,7 +7621,7 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
 }
 
 .quote-text-p {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 800;
   color: #13440b;
   line-height: 1.45;
