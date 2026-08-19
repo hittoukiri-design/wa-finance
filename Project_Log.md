@@ -202,3 +202,10 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - Konfirmasi & validasi alur edit kategori transaksi langsung melalui tombol `✏️` pada tabel aktivitas `Expenses.jsx`.
   - Pemetaan kata kunci cerdas (*Bensin* -> *Transportasi*, *Kosan* -> *Rumah*, *Kopi/Nasi* -> *Makan*).
   - Sinkronisasi master Daily Report & Project Log.
+- ✅ **Laporan Kendala, RCA, & Peningkatan Fitur Final (19 Agustus 2026)**:
+  - **Fix Crash Layar Putih**: Memperbaiki missing icon `X` dan missing `useCallback` import di `Dashboard.jsx`.
+  - **Fix Logika Payday Cycle (Rolling Period)**: Memperbaiki batas tanggal `activePeriodEnd` sehingga seluruh transaksi siklus gajian aktif (misal 31 Juli - sekarang) terhitung akurat dan presisi.
+  - **Pembersihan Google Sheets**: Menghapus total form Apps Script usang dari `Settings.jsx`.
+  - **Timestamp & History Backup**: Menambahkan panel info waktu backup terakhir (03:15 WIB) dan riwayat snapshot di `/settings`.
+  - **Modal Kalender Bulanan ("Lihat Satu Bulan")**: Mengimplementasikan pop-up kalender bulanan interaktif lengkap dengan nominal harian hijau (`343rb`, `1jt`, dll) dan kemampuan Recall data bulan lalu.
+  - **Tutup Buku & Backup Gajian**: Mengaktifkan alur tutup periode mandiri di server.
