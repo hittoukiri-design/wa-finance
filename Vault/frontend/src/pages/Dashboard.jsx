@@ -310,6 +310,9 @@ export default function Dashboard() {
 
   const activePeriodExpenses = useMemo(() => expenses.filter(matchesFilter), [expenses, matchesFilter]);
   const activePeriodIncomes = useMemo(() => incomes.filter(matchesFilter), [incomes, matchesFilter]);
+  const allPeriodTransactions = useMemo(() => {
+    return [...expenses, ...incomes].filter(matchesFilter);
+  }, [expenses, incomes, matchesFilter]);
 
   const filteredCategoryExpenses = useMemo(() => (
     expenses.filter((item) => isInRange(item, categoryRange, activePeriodStart))
@@ -767,17 +770,17 @@ export default function Dashboard() {
   const recentTransactions = useMemo(() => {
     if (selectedDayIndex !== null && weekDays[selectedDayIndex]) {
       const targetDateKey = weekDays[selectedDayIndex].key;
-      return activePeriodExpenses
+      return allPeriodTransactions
         .filter((item) => {
           const d = getExpenseDate(item);
           return d ? dateKey(d) === targetDateKey : false;
         })
         .sort((a, b) => (getExpenseDate(b)?.getTime() || 0) - (getExpenseDate(a)?.getTime() || 0));
     }
-    return [...activePeriodExpenses]
+    return [...allPeriodTransactions]
       .sort((a, b) => (getExpenseDate(b)?.getTime() || 0) - (getExpenseDate(a)?.getTime() || 0))
       .slice(0, 5);
-  }, [activePeriodExpenses, selectedDayIndex, weekDays]);
+  }, [allPeriodTransactions, selectedDayIndex, weekDays]);
 
   const saveBudget = async () => {
     const parsed = Math.max(0, Math.round(Number(String(budgetInput || '').replace(/[^0-9]/g, ''))));
@@ -1347,7 +1350,15 @@ export default function Dashboard() {
                       <td>
                         <span className="pill-tag-category">{item.category || 'Lainnya'}</span>
                       </td>
-                      <td className="tx-amt-green">{currency(item.amount)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 800 }}>
+                        {item.type === 'income' ? (
+                          <span className="text-emerald-600 dark:text-emerald-400">+{currency(item.amount)}</span>
+                        ) : item.type === 'savings' || String(item.category || '').toLowerCase().includes('tabung') ? (
+                          <span className="text-indigo-600 dark:text-indigo-400">🏦 {currency(item.amount)}</span>
+                        ) : (
+                          <span className="text-[#0e2a07] dark:text-[#f3ffe9]">{currency(item.amount)}</span>
+                        )}
+                      </td>
                       <td style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{item.source || 'WhatsApp'}</td>
                     </tr>
                   );
