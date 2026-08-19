@@ -54,6 +54,8 @@ const CATEGORY_EMOJIS = {
   Lainnya: '🏷️',
 };
 
+const COMMON_EMOJIS = ['🍜', '🛒', '🚗', '💳', '🏠', '🏥', '🎓', '🎮', '🐱', '🤝', '👥', '💰', '☕', '📈', '✈️', '🎁', '⚡', '🏷️'];
+
 function getCategoryIcon(name) {
   return CATEGORY_EMOJIS[name] || '🏷️';
 }
@@ -65,13 +67,17 @@ export default function Dompet() {
   const [busy, setBusy] = useState(true);
   const [notice, setNotice] = useState('');
 
-  // Modals state
+  // Wallet Modal state
   const [editingWallet, setEditingWallet] = useState(null);
   const [walletForm, setWalletForm] = useState({ id: '', name: '', initial_balance: '', threshold: '20%' });
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
+  const [deletingWallet, setDeletingWallet] = useState(null);
 
+  // Category Modal state
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryForm, setCategoryForm] = useState({ id: '', name: '', emoji: '🏷️', budget: '', threshold: '80%' });
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState(null);
 
   // Rows state
   const [walletPageSize, setWalletPageSize] = useState(10);
@@ -103,6 +109,7 @@ export default function Dompet() {
     const walletExpenseMap = {};
     const walletIncomeMap = {};
     const discoveredWallets = new Set(['Bank', 'Cash', 'Utama']);
+    const deletedWallets = new Set((savedSettings.deleted_wallets || []).map((w) => String(w).toLowerCase()));
 
     expenses.forEach((e) => {
       const wName = String(e.payment_channel || e.rekening || 'Cash').trim();
@@ -122,30 +129,36 @@ export default function Dompet() {
       if (sw.name) discoveredWallets.add(sw.name);
     });
 
-    return Array.from(discoveredWallets).map((wName) => {
-      const sw = savedMap[wName.toLowerCase()];
-      const totalIncome = walletIncomeMap[wName] || 0;
-      const totalExpense = walletExpenseMap[wName] || 0;
-      const initialBal = sw && sw.initial_balance !== undefined ? Number(sw.initial_balance) : (sw?.balance || 0);
-      const liveBal = initialBal + totalIncome - totalExpense;
+    return Array.from(discoveredWallets)
+      .filter((wName) => !deletedWallets.has(wName.toLowerCase()))
+      .map((wName) => {
+        const sw = savedMap[wName.toLowerCase()];
+        const totalIncome = walletIncomeMap[wName] || 0;
+        const totalExpense = walletExpenseMap[wName] || 0;
+        const initialBal = sw && sw.initial_balance !== undefined ? Number(sw.initial_balance) : (sw?.balance || 0);
+        const liveBal = initialBal + totalIncome - totalExpense;
 
-      return {
-        id: sw?.id || `w-${wName.toLowerCase().replace(/\s+/g, '-')}`,
-        name: sw?.name || wName,
-        threshold: sw?.threshold || '20%',
-        balance: liveBal,
-        initial_balance: initialBal,
-        is_active: sw ? sw.is_active !== false : true,
-      };
-    });
+        return {
+          id: sw?.id || `w-${wName.toLowerCase().replace(/\s+/g, '-')}`,
+          name: sw?.name || wName,
+          threshold: sw?.threshold || '20%',
+          balance: liveBal,
+          initial_balance: initialBal,
+          is_active: sw ? sw.is_active !== false : true,
+        };
+      });
   }, [expenses, savedSettings]);
 
   // ── Calculate Real Category Spending vs Budget Limits ──
   const computedCategories = useMemo(() => {
     const catSpentMap = {};
+    const discoveredCategories = new Set(BASE_CATEGORIES.map((b) => b.name));
+    const deletedCategories = new Set((savedSettings.deleted_categories || []).map((c) => String(c).toLowerCase()));
+
     expenses.forEach((e) => {
       if (String(e.type || '').toLowerCase() !== 'income') {
         const cat = e.category || 'Lainnya';
+        discoveredCategories.add(cat);
         catSpentMap[cat] = (catSpentMap[cat] || 0) + Number(e.amount || 0);
       }
     });
@@ -155,26 +168,31 @@ export default function Dompet() {
       : [];
     const savedCatMap = {};
     savedCategoryBudgets.forEach((sc) => {
-      savedCatMap[sc.id || sc.name.toLowerCase()] = sc;
+      savedCatMap[sc.name.toLowerCase()] = sc;
+      if (sc.name) discoveredCategories.add(sc.name);
     });
 
-    return BASE_CATEGORIES.map((base) => {
-      const sc = savedCatMap[base.id] || savedCatMap[base.name.toLowerCase()];
-      const spent = catSpentMap[base.name] || 0;
-      const budget = sc?.budget !== undefined ? Number(sc.budget) : base.defaultBudget;
-      const threshold = sc?.threshold || base.threshold;
-      const is_active = sc ? sc.is_active !== false : true;
+    return Array.from(discoveredCategories)
+      .filter((cName) => !deletedCategories.has(cName.toLowerCase()))
+      .map((cName) => {
+        const sc = savedCatMap[cName.toLowerCase()];
+        const base = BASE_CATEGORIES.find((b) => b.name.toLowerCase() === cName.toLowerCase());
+        const spent = catSpentMap[cName] || 0;
+        const budget = sc?.budget !== undefined ? Number(sc.budget) : (base?.defaultBudget || 0);
+        const threshold = sc?.threshold || base?.threshold || '80%';
+        const emoji = sc?.emoji || base?.emoji || getCategoryIcon(cName);
+        const is_active = sc ? sc.is_active !== false : true;
 
-      return {
-        id: base.id,
-        name: base.name,
-        emoji: base.emoji,
-        budget,
-        spent,
-        threshold,
-        is_active,
-      };
-    });
+        return {
+          id: sc?.id || base?.id || `cat-${cName.toLowerCase().replace(/\s+/g, '-')}`,
+          name: sc?.name || cName,
+          emoji,
+          budget,
+          spent,
+          threshold,
+          is_active,
+        };
+      });
   }, [expenses, savedSettings]);
 
   // ── Handlers for Wallet ──
@@ -217,7 +235,16 @@ export default function Dompet() {
         threshold: walletForm.threshold.trim() || '20%',
         is_active: true,
       };
+      // remove from deleted_wallets if previously deleted
+      const nextDeleted = (savedSettings.deleted_wallets || []).filter((name) => name.toLowerCase() !== newWallet.name.toLowerCase());
       updated = [...currentSaved.filter((w) => w.name.toLowerCase() !== newWallet.name.toLowerCase()), newWallet];
+      setSavedSettings((prev) => ({ ...prev, wallets: updated, deleted_wallets: nextDeleted }));
+      try {
+        await saveSettings(user.uid, { wallets: updated, deleted_wallets: nextDeleted });
+        setNotice(`Dompet ${newWallet.name} berhasil ditambahkan.`);
+      } catch (err) {
+        setNotice(err.message || 'Gagal menyimpan dompet.');
+      }
     } else {
       updated = computedWallets.map((w) => {
         if (w.id === walletForm.id || w.name.toLowerCase() === walletForm.name.trim().toLowerCase()) {
@@ -230,15 +257,31 @@ export default function Dompet() {
         }
         return w;
       });
+      setSavedSettings((prev) => ({ ...prev, wallets: updated }));
+      try {
+        await saveSettings(user.uid, { wallets: updated });
+        setNotice('Perubahan dompet berhasil disimpan.');
+      } catch (err) {
+        setNotice(err.message || 'Gagal menyimpan dompet.');
+      }
     }
 
-    setSavedSettings((prev) => ({ ...prev, wallets: updated }));
     setEditingWallet(null);
+  };
+
+  const handleDeleteWallet = async () => {
+    if (!deletingWallet) return;
+    const wName = deletingWallet.name;
+    const nextSaved = (savedSettings.wallets || []).filter((w) => w.name.toLowerCase() !== wName.toLowerCase());
+    const nextDeleted = Array.from(new Set([...(savedSettings.deleted_wallets || []), wName]));
+
+    setSavedSettings((prev) => ({ ...prev, wallets: nextSaved, deleted_wallets: nextDeleted }));
+    setDeletingWallet(null);
     try {
-      await saveSettings(user.uid, { wallets: updated });
-      setNotice('Dompet berhasil disimpan.');
+      await saveSettings(user.uid, { wallets: nextSaved, deleted_wallets: nextDeleted });
+      setNotice(`Dompet ${wName} berhasil dihapus.`);
     } catch (err) {
-      setNotice(err.message || 'Gagal menyimpan dompet ke cloud.');
+      setNotice('Gagal menghapus dompet dari server.');
     }
   };
 
@@ -258,8 +301,21 @@ export default function Dompet() {
     }
   };
 
-  // ── Handlers for Category Budget ──
+  // ── Handlers for Category ──
+  const handleOpenCreateCategory = () => {
+    setIsCreatingCategory(true);
+    setEditingCategory({ id: '', name: '', emoji: '🏷️', budget: '', threshold: '80%' });
+    setCategoryForm({
+      id: `cat-${Date.now()}`,
+      name: '',
+      emoji: '🏷️',
+      budget: '',
+      threshold: '80%',
+    });
+  };
+
   const handleOpenEditCategory = (cat) => {
+    setIsCreatingCategory(false);
     setEditingCategory(cat);
     setCategoryForm({
       id: cat.id,
@@ -272,24 +328,72 @@ export default function Dompet() {
 
   const handleSaveCategory = async (e) => {
     e.preventDefault();
-    const updated = computedCategories.map((cat) => {
-      if (cat.id === categoryForm.id) {
-        return {
-          ...cat,
-          budget: Number(categoryForm.budget || 0),
-          threshold: categoryForm.threshold.trim() || '80%',
-        };
-      }
-      return cat;
-    });
+    if (!categoryForm.name.trim()) {
+      setNotice('Nama kategori wajib diisi.');
+      return;
+    }
 
-    setSavedSettings((prev) => ({ ...prev, category_budgets: updated }));
+    const currentSaved = savedSettings.category_budgets && Array.isArray(savedSettings.category_budgets)
+      ? savedSettings.category_budgets
+      : [];
+
+    let updated;
+    if (isCreatingCategory) {
+      const newCat = {
+        id: categoryForm.id || `cat-${Date.now()}`,
+        name: categoryForm.name.trim(),
+        emoji: categoryForm.emoji || '🏷️',
+        budget: Number(categoryForm.budget || 0),
+        threshold: categoryForm.threshold.trim() || '80%',
+        is_active: true,
+      };
+      const nextDeleted = (savedSettings.deleted_categories || []).filter((name) => name.toLowerCase() !== newCat.name.toLowerCase());
+      updated = [...currentSaved.filter((c) => c.name.toLowerCase() !== newCat.name.toLowerCase()), newCat];
+      setSavedSettings((prev) => ({ ...prev, category_budgets: updated, deleted_categories: nextDeleted }));
+      try {
+        await saveSettings(user.uid, { category_budgets: updated, deleted_categories: nextDeleted });
+        setNotice(`Kategori ${newCat.name} berhasil ditambahkan.`);
+      } catch (err) {
+        setNotice(err.message || 'Gagal menyimpan kategori.');
+      }
+    } else {
+      updated = computedCategories.map((cat) => {
+        if (cat.id === categoryForm.id || cat.name.toLowerCase() === categoryForm.name.trim().toLowerCase()) {
+          return {
+            ...cat,
+            name: categoryForm.name.trim(),
+            emoji: categoryForm.emoji || '🏷️',
+            budget: Number(categoryForm.budget || 0),
+            threshold: categoryForm.threshold.trim() || '80%',
+          };
+        }
+        return cat;
+      });
+      setSavedSettings((prev) => ({ ...prev, category_budgets: updated }));
+      try {
+        await saveSettings(user.uid, { category_budgets: updated });
+        setNotice('Perubahan kategori berhasil disimpan.');
+      } catch (err) {
+        setNotice(err.message || 'Gagal menyimpan kategori.');
+      }
+    }
+
     setEditingCategory(null);
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!deletingCategory) return;
+    const catName = deletingCategory.name;
+    const nextSaved = (savedSettings.category_budgets || []).filter((c) => c.name.toLowerCase() !== catName.toLowerCase());
+    const nextDeleted = Array.from(new Set([...(savedSettings.deleted_categories || []), catName]));
+
+    setSavedSettings((prev) => ({ ...prev, category_budgets: nextSaved, deleted_categories: nextDeleted }));
+    setDeletingCategory(null);
     try {
-      await saveSettings(user.uid, { category_budgets: updated });
-      setNotice('Budget kategori berhasil disimpan.');
+      await saveSettings(user.uid, { category_budgets: nextSaved, deleted_categories: nextDeleted });
+      setNotice(`Kategori ${catName} berhasil dihapus.`);
     } catch (err) {
-      setNotice(err.message || 'Gagal menyimpan budget kategori.');
+      setNotice('Gagal menghapus kategori dari server.');
     }
   };
 
@@ -401,6 +505,13 @@ export default function Dompet() {
                       <Pencil width="16" height="16" />
                     </button>
                     <button
+                      onClick={() => setDeletingWallet(w)}
+                      title="Hapus dompet"
+                      className="rounded-lg p-2 text-red-500 transition hover:bg-red-500/10 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/20"
+                    >
+                      <Trash2 width="16" height="16" />
+                    </button>
+                    <button
                       onClick={() => handleToggleWallet(w)}
                       title={w.is_active ? 'Nonaktifkan dompet' : 'Aktifkan dompet'}
                       className={`rounded-lg p-2 transition ${
@@ -447,6 +558,14 @@ export default function Dompet() {
               <option value={25}>25 baris</option>
               <option value={50}>50 baris</option>
             </select>
+
+            <button
+              onClick={handleOpenCreateCategory}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#1a5611] px-4 py-2 text-xs font-bold text-white shadow transition hover:bg-[#123d0c] dark:bg-[#76d446] dark:text-[#0d170a]"
+            >
+              <Plus width="14" height="14" />
+              Tambah kategori
+            </button>
           </div>
         </div>
 
@@ -487,6 +606,13 @@ export default function Dompet() {
                     className="rounded-lg p-2 text-slate-600 transition hover:bg-white/60 hover:text-black dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
                   >
                     <Pencil width="16" height="16" />
+                  </button>
+                  <button
+                    onClick={() => setDeletingCategory(cat)}
+                    title="Hapus kategori"
+                    className="rounded-lg p-2 text-red-500 transition hover:bg-red-500/10 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/20"
+                  >
+                    <Trash2 width="16" height="16" />
                   </button>
                   <button
                     onClick={() => handleToggleCategory(cat)}
@@ -578,13 +704,47 @@ export default function Dompet() {
         </div>
       )}
 
-      {/* ════ MODAL: EDIT BUDGET KATEGORI ════ */}
+      {/* ════ MODAL: DELETE CONFIRMATION WALLET ════ */}
+      {deletingWallet && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-[22px] border border-red-500/30 bg-[#141d16] p-6 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/20 text-red-400">
+                <Trash2 width="20" height="20" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white">Hapus Dompet?</h3>
+                <p className="text-xs text-slate-400">Dompet <strong className="text-white">{deletingWallet.name}</strong> akan dihapus dari daftar.</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeletingWallet(null)}
+                className="rounded-full border border-slate-700 px-5 py-2 text-xs font-bold text-slate-300 hover:bg-white/5"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteWallet}
+                className="rounded-full bg-red-600 px-6 py-2 text-xs font-black text-white hover:bg-red-500"
+              >
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════ MODAL: EDIT / CREATE CATEGORY ════ */}
       {editingCategory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
           <div className="w-full max-w-md rounded-[22px] border border-[#263e1d] bg-[#101b12] p-6 shadow-2xl dark:border-[#263e1d] dark:bg-[#101b12]">
             <div className="flex items-center justify-between border-b border-[#243a1a] pb-4">
               <h2 className="text-lg font-bold text-white">
-                Edit Budget: {editingCategory.name}
+                {isCreatingCategory ? 'Tambah Kategori Baru' : `Edit Budget: ${editingCategory.name}`}
               </h2>
               <button
                 type="button"
@@ -597,13 +757,41 @@ export default function Dompet() {
 
             <form onSubmit={handleSaveCategory} className="mt-4 space-y-4">
               <div>
-                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Budget Bulanan (Rp)</label>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Nama Kategori</label>
                 <input
                   required
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm((c) => ({ ...c, name: e.target.value }))}
+                  placeholder="Contoh: Kopi, Hobi, Investasi"
+                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Pilih Emoji</label>
+                <div className="flex flex-wrap gap-2 rounded-xl border border-[#2b4421] bg-[#162519] p-3">
+                  {COMMON_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setCategoryForm((c) => ({ ...c, emoji }))}
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg text-lg transition ${
+                        categoryForm.emoji === emoji ? 'bg-[#76d446]/30 ring-2 ring-[#76d446]' : 'hover:bg-white/10'
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Budget Bulanan (Rp)</label>
+                <input
                   type="number"
                   value={categoryForm.budget}
                   onChange={(e) => setCategoryForm((c) => ({ ...c, budget: e.target.value }))}
-                  placeholder="Contoh: 1200000"
+                  placeholder="Contoh: 1200000 (kosongkan jika tidak dibatasi)"
                   className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
                 />
               </div>
@@ -634,6 +822,40 @@ export default function Dompet() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ════ MODAL: DELETE CONFIRMATION CATEGORY ════ */}
+      {deletingCategory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-[22px] border border-red-500/30 bg-[#141d16] p-6 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/20 text-red-400">
+                <Trash2 width="20" height="20" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white">Hapus Kategori?</h3>
+                <p className="text-xs text-slate-400">Kategori <strong className="text-white">{deletingCategory.emoji} {deletingCategory.name}</strong> akan dihapus dari daftar.</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeletingCategory(null)}
+                className="rounded-full border border-slate-700 px-5 py-2 text-xs font-bold text-slate-300 hover:bg-white/5"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteCategory}
+                className="rounded-full bg-red-600 px-6 py-2 text-xs font-black text-white hover:bg-red-500"
+              >
+                Hapus
+              </button>
+            </div>
           </div>
         </div>
       )}

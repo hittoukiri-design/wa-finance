@@ -92,7 +92,11 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Penggabungan Cards Kategori ke dalam Menu Dompet**: Menu sidebar dikembalikan rapi (hanya `Dashboard`, `Transaksi`, dan `Dompet` di bawah grup `APLIKASI`). Menu **Dompet** (`/dompet`) memuat langsung 2 section lengkap:
     1. **SUMBER DANA (Dompet)**: Daftar rekening & dompet nyata dengan saldo real-time dari transaksi, tombol `+ Buat dompet`, edit penyesuaian saldo awal, dan alert threshold.
     2. **PROTEKSI BUDGET (Kategori)**: 12 kategori keuangan lengkap dengan pengeluaran riil periode aktif (`terpakai Rp ...`), persentase budget, form edit limit bulanan, dan toggle limit.
-- ✅ **Build production terbaru** (`index-ByHqiZmf.js` & `index-ssnLAAa3.css`) telah aktif dan live di container Mac mini.
+- ✅ **Fitur Hapus Dompet, Tambah Kategori, & Hapus Kategori (`Dompet.jsx`)**:
+  - **Hapus Dompet (`Trash2`)**: Menambahkan tombol icon tong sampah 🗑️ di sebelah tombol pensil pada setiap baris dompet. Dilengkapi dialog konfirmasi hapus dan sinkronisasi realtime ke Firestore (`deleted_wallets`).
+  - **Tambah Kategori (`+ Tambah kategori`)**: Menambahkan tombol `+ Tambah kategori` di header section Proteksi Budget, lengkap dengan modal input: Nama Kategori, Picker Emoji, Budget Bulanan, dan Ambang Alert WhatsApp.
+  - **Hapus Kategori (`Trash2`)**: Menambahkan tombol icon tong sampah 🗑️ di sebelah tombol pensil pada setiap baris kategori. Dilengkapi dialog konfirmasi dan sinkronisasi realtime ke Firestore (`deleted_categories`).
+- ✅ **Build production terbaru** (`index-CZiaLMMf.js` & `index-CzA8Fuxc.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.
