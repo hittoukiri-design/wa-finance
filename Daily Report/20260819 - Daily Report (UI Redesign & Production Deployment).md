@@ -400,6 +400,15 @@ ightarrow$ Rekap mutasi finansial periodik.
   * Mengganti aset background dengan artwork pemandangan daun baru berbasis `background-size: 100% 100%` sehingga seluruh ornamen daun di sisi kanan dan lengkungan visual di sisi kiri dapat meregang secara lentur mengikuti ukuran layar browser.
   * Di mode **Dark Mode**, mengganti efek *overlay blend* yang sebelumnya membuat gambar terlihat buram/gelap menjadi arsitektur **Gradien Obsidian-Forest Mewah** (`radial-gradient` + `linear-gradient(105deg, ...)`), dipadu dengan badge tunas hijau ber-efek glow neon lembut (`rgba(74, 222, 128, 0.22)`), border berkilau zamrud (`#244618`), dan tipografi putih bercahaya (`#f3ffe9`) berbayang halus.
 
+### 14. Perbaikan: Garis Putih Bocor (*Subpixel Slide Seam Artifact*) pada Kartu Saldo ATM
+* **Gejala**: Terdapat garis vertikal putih/krem halus yang bocor tepat di sebelah kanan nominal angka (misal di samping angka `Rp 0`) pada kartu geser saldo.
+* **Root Cause (RCA)**: Pada carousel kartu ATM, slide disusun berjejer dalam flex container dengan transisi `translateX`. Karena `.saldo-chip-icon` (ikon microchip ATM) pada slide berikutnya belum memiliki warna dark mode (masih warna putih krem terang `#e5edd8`) dan tepi slide menyentuh batas viewport tanpa isolasi, pembagian piksel pecahan (*subpixel antialiasing*) di browser menyebabkan 1px tepi chip terang dari kartu sebelah bocor ke viewport kartu aktif.
+* **Solusi & Perbaikan**:
+  * Mengisolasi viewport carousel dengan `isolation: isolate; contain: paint;` dan memberi `overflow: hidden; box-sizing: border-box; padding: 0 4px;` pada setiap `.saldo-slide-item`.
+  * Memberikan warna Dark Mode yang sesuai untuk `.saldo-chip-icon` (`#1e3518` dan `#2d4f24`) agar tidak ada elemen terang yang kontras di latar gelap.
+  * Memberikan `padding-right: 2px` pada `.saldo-main-amount` sehingga teks nominal tidak pernah menyentuh atau terpotong di tepi kanan kartu.
+
+
 
 
 
