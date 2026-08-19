@@ -16,6 +16,7 @@ import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/useAuth';
 import { ThemeProvider } from './context/ThemeContext';
 import { SidebarProvider } from './context/SidebarContext';
+import { FilterProvider } from './context/FilterContext';
 
 function ProtectedApp() {
   const { user, loading } = useAuth();
@@ -72,7 +73,9 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <SidebarProvider>
-          <ProtectedApp />
+          <FilterProvider>
+            <ProtectedApp />
+          </FilterProvider>
         </SidebarProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
+import { useFilter } from '../context/FilterContext';
 import { listExpenses } from '../lib/firestore';
 import { getBackendSettings } from '../lib/whatsapp-api';
 

@@ -174,7 +174,15 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Quick Action "+ Catat" di Dashboard**: Pengguna bisa langsung mengklik kartu Tabungan atau tombol `+ Catat` di Dashboard untuk membuka modal pencatatan tabungan/investasi secara instan tanpa perlu berpindah halaman.
   - **Input Transaksi Manual (`/expenses`)**: Menambahkan 3 tombol tipe transaksi (↘ Pengeluaran, ↗ Pemasukan, 🏦 Tabungan) serta mendaftarkan kategori `Tabungan` (🏦) dan `Investasi` (📈).
   - **Kategori Dompet (`/dompet`)**: Menambahkan pos `Tabungan` dan `Investasi` ke dalam daftar kategori proteksi budget agar dapat dipantau alokasinya.
-- ✅ **Build production terbaru** (`index-6SMwMm3j.js` & `index-CCZlvJAj.css`) telah aktif dan live di container Mac mini.
+- ✅ **Audit Menyeluruh & Pengembangan Penuh Engine Filter Global (`Header.jsx`, `FilterContext.jsx`, `Dashboard.jsx`, `Expenses.jsx`, `Analytics.jsx`)**:
+  - **Filter Popover Fungsional**: Popover Filter Header kini 100% aktif dan terintegrasi dengan Global Filter State. Memfilter rentang tanggal, rekening/dompet, dan kategori di seluruh halaman Dashboard, Transaksi, dan Analitik.
+  - **Daftar Dompet & Kategori Dinamis**: Dropdown Dompet dan Kategori pada popover kini membaca langsung dari data konfigurasi riil pengguna (BCA, SUPERBANK, Cash, GoPay, DANA, dll).
+  - **Active Filter Banner**: Menampilkan banner indikator filter aktif yang mencantumkan detail filter dan tombol `✕ Reset Filter` untuk menghapus filter seketika.
+  - **Interaktivitas Strip Kalender 7 Hari**: Klik pada tanggal/hari di strip 7 hari kini memfilter tabel Transaksi Terbaru secara instan ke hari yang dipilih lengkap dengan tombol `✕ Tampilkan Semua`.
+  - **Navigasi Minggu (`‹` dan `›`)**: Tombol panah kini berfungsi menggeser minggu mundur atau maju secara real-time.
+  - **Tombol Hero Header Diperjelas**: Tombol `Excel` (unduh .xlsx), `Cetak PDF` (window.print/PDF format), dan `Tutup Periode` (backup arsip ke Google Sheets).
+  - **Dokumentasi Panduan Penggunaan**: Menulis buku panduan komprehensif di `PANDUAN_PENGGUNAAN.md`.
+- ✅ **Build production terbaru** (`index-BwNN6qhK.js` & `index-COTc-TRh.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

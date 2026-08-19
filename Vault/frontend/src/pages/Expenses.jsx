@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
+import { useFilter } from '../context/FilterContext';
 import { addExpense, deleteExpense, listExpenses, updateExpense } from '../lib/firestore';
 import { downloadExcelReport, getBackendSettings, listCategories as listBackendCategories, listRecaps } from '../lib/whatsapp-api';
 
@@ -220,13 +221,22 @@ function merchantInitial(merchant) {
 
 export default function Expenses() {
   const { user } = useAuth();
+  const {
+    startDate: globalStart,
+    endDate: globalEnd,
+    wallet: globalWallet,
+    category: globalCategory,
+    isFiltered: globalIsFiltered,
+    resetFilters: resetGlobalFilters,
+  } = useFilter();
+
   const [expenses, setExpenses] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [startDate, setStartDate] = useState(() => dateInputValue(startOfMonth()));
-  const [endDate, setEndDate] = useState(() => dateInputValue(endOfMonth()));
+  const [startDate, setStartDate] = useState(() => globalStart || dateInputValue(startOfMonth()));
+  const [endDate, setEndDate] = useState(() => globalEnd || dateInputValue(endOfMonth()));
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showForm, setShowForm] = useState(false);
@@ -276,6 +286,12 @@ export default function Expenses() {
   }, [user.uid, recapFilter]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (globalStart) setStartDate(globalStart);
+    if (globalEnd) setEndDate(globalEnd);
+    if (globalCategory && globalCategory !== 'Semua kategori') setCategoryFilter(globalCategory);
+  }, [globalStart, globalEnd, globalCategory]);
 
   const categoryIconMap = useMemo(() => Object.fromEntries(
     categories.map((category) => [category.name, category.emoji || '🏷️'])
@@ -394,6 +410,10 @@ export default function Expenses() {
         if (rangeEnd && itemDate > rangeEnd) return false;
         if (typeFilter !== 'all' && getType(item) !== typeFilter) return false;
         if (categoryFilter !== 'all' && getCategory(item) !== categoryFilter) return false;
+        if (globalWallet && globalWallet !== 'Semua dompet') {
+          const w = getAccount(item).toLowerCase();
+          if (w !== globalWallet.toLowerCase()) return false;
+        }
         if (!term) return true;
         return [
           getMerchant(item),

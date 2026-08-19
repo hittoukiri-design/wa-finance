@@ -15,6 +15,7 @@ import {
 import { useTheme } from '../context/useTheme';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/useAuth';
+import { useFilter } from '../context/FilterContext';
 import { getWhatsAppStatus } from '../lib/whatsapp-api';
 
 function currentMonthYear() {
@@ -32,23 +33,38 @@ export default function Header({ title, subtitle }) {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const {
+    startDate,
+    endDate,
+    wallet,
+    category,
+    walletsList,
+    categoriesList,
+    isFiltered,
+    activeFiltersCount,
+    applyFilters,
+    resetFilters,
+  } = useFilter();
+
   const [waStatus, setWaStatus] = useState({ status: 'checking' });
 
   // Filter Popover state
   const [showFilter, setShowFilter] = useState(false);
   const filterRef = useRef(null);
 
-  const [filterMonth, setFilterMonth] = useState(() => currentMonthYear());
-  const [filterStart, setFilterStart] = useState(() => {
-    const d = new Date();
-    return dateInputValue(new Date(d.getFullYear(), d.getMonth(), 1));
-  });
-  const [filterEnd, setFilterEnd] = useState(() => {
-    const d = new Date();
-    return dateInputValue(new Date(d.getFullYear(), d.getMonth() + 1, 0));
-  });
-  const [filterWallet, setFilterWallet] = useState('Semua dompet');
-  const [filterCategory, setFilterCategory] = useState('Semua kategori');
+  // Local draft state for popover
+  const [draftStart, setDraftStart] = useState(startDate);
+  const [draftEnd, setDraftEnd] = useState(endDate);
+  const [draftWallet, setDraftWallet] = useState(wallet);
+  const [draftCategory, setDraftCategory] = useState(category);
+
+  // Sync draft state when popover opens or global filter changes
+  useEffect(() => {
+    setDraftStart(startDate);
+    setDraftEnd(endDate);
+    setDraftWallet(wallet);
+    setDraftCategory(category);
+  }, [startDate, endDate, wallet, category, showFilter]);
 
   // WhatsApp status polling
   useEffect(() => {
@@ -86,17 +102,33 @@ export default function Header({ title, subtitle }) {
   }, [showFilter]);
 
   const handleResetFilter = () => {
-    const d = new Date();
-    setFilterMonth(currentMonthYear());
-    setFilterStart(dateInputValue(new Date(d.getFullYear(), d.getMonth(), 1)));
-    setFilterEnd(dateInputValue(new Date(d.getFullYear(), d.getMonth() + 1, 0)));
-    setFilterWallet('Semua dompet');
-    setFilterCategory('Semua kategori');
+    resetFilters();
+    setDraftStart(defaultStart);
+    setDraftEnd(defaultEnd);
+    setDraftWallet('Semua dompet');
+    setDraftCategory('Semua kategori');
+    setShowFilter(false);
   };
 
   const handleApplyFilter = () => {
+    applyFilters({
+      startDate: draftStart,
+      endDate: draftEnd,
+      wallet: draftWallet,
+      category: draftCategory,
+    });
     setShowFilter(false);
   };
+
+  const activeMonthLabel = useMemo(() => {
+    if (draftStart) {
+      const [y, m] = draftStart.split('-').map(Number);
+      if (y && m) {
+        return new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date(y, m - 1, 1));
+      }
+    }
+    return currentMonthYear();
+  }, [draftStart]);
 
   const userInitials = useMemo(() => {
     const name = user?.displayName || user?.email || 'CH';
@@ -132,14 +164,23 @@ export default function Header({ title, subtitle }) {
         <div className="relative" ref={filterRef}>
           <button
             onClick={() => setShowFilter((v) => !v)}
-            title="Filter tanggal & sumber dana"
-            className="inline-flex items-center gap-2 rounded-full border border-[#d6e4be] bg-[#f5faeb] px-3.5 py-1.5 text-xs font-bold text-[#0e2a07] shadow-sm transition hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#122214] dark:text-[#f3ffe9]"
+            title="Filter tanggal, dompet, & kategori"
+            className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-bold shadow-sm transition ${
+              isFiltered
+                ? 'border-[#76d446] bg-[#e3f7d8] text-[#123d0c] ring-2 ring-[#76d446]/30 dark:border-[#76d446] dark:bg-[#1b381a] dark:text-[#a3f37b]'
+                : 'border-[#d6e4be] bg-[#f5faeb] text-[#0e2a07] hover:bg-[#e4f2da] dark:border-[#263e1d] dark:bg-[#122214] dark:text-[#f3ffe9]'
+            }`}
           >
             <SlidersHorizontal width="13" height="13" className="text-[#358219] dark:text-[#76d446]" />
-            <span>{filterMonth}</span>
+            <span>{activeMonthLabel}</span>
+            {isFiltered && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#1a5611] text-[9px] font-black text-white dark:bg-[#76d446] dark:text-[#0d170a]">
+                {activeFiltersCount}
+              </span>
+            )}
           </button>
 
-          {/* Filter Popover Dropdown (Matching Screenshot media_1787109418862.png) */}
+          {/* Filter Popover Dropdown (Matching Screenshot media_1787116940805.png) */}
           {showFilter && (
             <div className="absolute right-0 top-11 z-50 w-72 rounded-2xl border border-[#d6e4be] bg-[#eaf2da] p-4 shadow-2xl backdrop-blur-md dark:border-[#263e1d] dark:bg-[#112013]">
               <div className="space-y-2.5">
@@ -147,7 +188,7 @@ export default function Header({ title, subtitle }) {
                 <div>
                   <label className="mb-1 block text-[10px] font-bold uppercase text-[#436d32] dark:text-[#76d446]">Bulan</label>
                   <div className="flex items-center justify-between rounded-xl border border-[#d6e4be] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] dark:border-[#263e1d] dark:bg-[#162718] dark:text-white">
-                    <span>{filterMonth}</span>
+                    <span>{activeMonthLabel}</span>
                     <Calendar width="14" height="14" className="text-[#358219] dark:text-[#76d446]" />
                   </div>
                 </div>
@@ -158,8 +199,8 @@ export default function Header({ title, subtitle }) {
                   <div className="relative">
                     <input
                       type="date"
-                      value={filterStart}
-                      onChange={(e) => setFilterStart(e.target.value)}
+                      value={draftStart}
+                      onChange={(e) => setDraftStart(e.target.value)}
                       className="w-full rounded-xl border border-[#d6e4be] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
                     />
                   </div>
@@ -171,8 +212,8 @@ export default function Header({ title, subtitle }) {
                   <div className="relative">
                     <input
                       type="date"
-                      value={filterEnd}
-                      onChange={(e) => setFilterEnd(e.target.value)}
+                      value={draftEnd}
+                      onChange={(e) => setDraftEnd(e.target.value)}
                       className="w-full rounded-xl border border-[#d6e4be] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
                     />
                   </div>
@@ -182,16 +223,14 @@ export default function Header({ title, subtitle }) {
                 <div>
                   <label className="mb-1 block text-[10px] font-bold uppercase text-[#436d32] dark:text-[#76d446]">Dompet</label>
                   <select
-                    value={filterWallet}
-                    onChange={(e) => setFilterWallet(e.target.value)}
+                    value={draftWallet}
+                    onChange={(e) => setDraftWallet(e.target.value)}
                     className="w-full rounded-xl border border-[#d6e4be] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
                   >
                     <option value="Semua dompet">Semua dompet</option>
-                    <option value="Bank">Bank</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Utama">Utama</option>
-                    <option value="BCA">BCA</option>
-                    <option value="SUPERBANK">SUPERBANK</option>
+                    {walletsList.filter((w) => w !== 'Semua dompet').map((w) => (
+                      <option key={w} value={w}>{w}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -199,21 +238,14 @@ export default function Header({ title, subtitle }) {
                 <div>
                   <label className="mb-1 block text-[10px] font-bold uppercase text-[#436d32] dark:text-[#76d446]">Kategori</label>
                   <select
-                    value={filterCategory}
-                    onChange={(e) => setFilterCategory(e.target.value)}
+                    value={draftCategory}
+                    onChange={(e) => setDraftCategory(e.target.value)}
                     className="w-full rounded-xl border border-[#d6e4be] bg-white/80 px-3 py-2 text-xs font-bold text-[#0e2a07] outline-none dark:border-[#263e1d] dark:bg-[#162718] dark:text-white"
                   >
                     <option value="Semua kategori">Semua kategori</option>
-                    <option value="Makan">Makan</option>
-                    <option value="Belanja">Belanja</option>
-                    <option value="Transportasi">Transportasi</option>
-                    <option value="Tagihan">Tagihan</option>
-                    <option value="Rumah">Rumah</option>
-                    <option value="Kesehatan">Kesehatan</option>
-                    <option value="Pendidikan">Pendidikan</option>
-                    <option value="Hiburan">Hiburan</option>
-                    <option value="Sosial">Sosial</option>
-                    <option value="Lainnya">Lainnya</option>
+                    {categoriesList.filter((c) => c !== 'Semua kategori').map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
 

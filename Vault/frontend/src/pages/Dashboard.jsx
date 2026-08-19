@@ -27,6 +27,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
+import { useFilter } from '../context/FilterContext';
 import { addExpense, getSettings, listConversations, listExpenses } from '../lib/firestore';
 import { createNewRecap, downloadExcelReport, getBackendSettings, whatsappApi } from '../lib/whatsapp-api';
 
@@ -136,6 +137,15 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [expenses, setExpenses] = useState([]);
   const [incomes, setIncomes] = useState([]);
+  const {
+    startDate: filterStartDate,
+    endDate: filterEndDate,
+    wallet: filterWallet,
+    category: filterCategory,
+    isFiltered,
+    resetFilters,
+  } = useFilter();
+
   const [conversations, setConversations] = useState([]);
   const [trendRange, setTrendRange] = useState('daily');
   const [categoryRange, setCategoryRange] = useState('month');
@@ -160,6 +170,7 @@ export default function Dashboard() {
     payment_channel: 'BCA',
     date: dateKey(new Date()),
   }));
+  const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDayIndex, setSelectedDayIndex] = useState(null);
   const [recapForm, setRecapForm] = useState(() => ({
     name: `Periode ${new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date())}`,
@@ -192,8 +203,36 @@ export default function Dashboard() {
     return () => { active = false; };
   }, [user.uid]);
 
-  const activePeriodStart = useMemo(() => dateFromInput(activeRecapStartDate) || startOfMonth(new Date()), [activeRecapStartDate]);
-  const activePeriodEnd = useMemo(() => endOfMonth(activePeriodStart), [activePeriodStart]);
+  const activePeriodStart = useMemo(() => {
+    if (isFiltered && filterStartDate) {
+      return dateFromInput(filterStartDate) || startOfMonth(new Date());
+    }
+    return dateFromInput(activeRecapStartDate) || startOfMonth(new Date());
+  }, [isFiltered, filterStartDate, activeRecapStartDate]);
+
+  const activePeriodEnd = useMemo(() => {
+    if (isFiltered && filterEndDate) {
+      return dateFromInput(filterEndDate, true) || endOfMonth(activePeriodStart);
+    }
+    return endOfMonth(activePeriodStart);
+  }, [isFiltered, filterEndDate, activePeriodStart]);
+
+  const matchesFilter = useCallback((item) => {
+    const d = getExpenseDate(item);
+    if (!d || d < activePeriodStart || d > activePeriodEnd) return false;
+
+    if (filterWallet && filterWallet !== 'Semua dompet') {
+      const ch = String(item.payment_channel || item.rekening || '').trim().toLowerCase();
+      if (ch !== filterWallet.toLowerCase()) return false;
+    }
+
+    if (filterCategory && filterCategory !== 'Semua kategori') {
+      const cat = String(item.category || '').trim().toLowerCase();
+      if (cat !== filterCategory.toLowerCase()) return false;
+    }
+
+    return true;
+  }, [activePeriodStart, activePeriodEnd, filterWallet, filterCategory]);
 
   const exportExcel = async () => {
     setError('');
@@ -262,15 +301,8 @@ export default function Dashboard() {
     }
   };
 
-  const activePeriodExpenses = useMemo(() => expenses.filter((item) => {
-    const date = getExpenseDate(item);
-    return date ? date >= activePeriodStart : false;
-  }), [expenses, activePeriodStart]);
-
-  const activePeriodIncomes = useMemo(() => incomes.filter((item) => {
-    const date = getExpenseDate(item);
-    return date ? date >= activePeriodStart : false;
-  }), [incomes, activePeriodStart]);
+  const activePeriodExpenses = useMemo(() => expenses.filter(matchesFilter), [expenses, matchesFilter]);
+  const activePeriodIncomes = useMemo(() => incomes.filter(matchesFilter), [incomes, matchesFilter]);
 
   const filteredCategoryExpenses = useMemo(() => (
     expenses.filter((item) => isInRange(item, categoryRange, activePeriodStart))
@@ -288,13 +320,12 @@ export default function Dashboard() {
   // Active period savings & investment total
   const activePeriodSavings = useMemo(() => {
     return [...expenses, ...incomes].filter((item) => {
-      const d = getExpenseDate(item);
-      if (!d || d < activePeriodStart) return false;
+      if (!matchesFilter(item)) return false;
       const t = String(item.type || '').toLowerCase();
       const cat = String(item.category || '').toLowerCase();
       return t === 'savings' || cat.includes('tabung') || cat.includes('invest');
     });
-  }, [expenses, incomes, activePeriodStart]);
+  }, [expenses, incomes, matchesFilter]);
 
   const totalSavings = useMemo(() => {
     return activePeriodSavings.reduce((sum, item) => sum + Number(item.amount || 0), 0);
@@ -359,28 +390,38 @@ export default function Dashboard() {
     return getExpenseDate(sorted[0]);
   }, [activePeriodExpenses]);
 
-  // 7-day strip
+  // 7-day strip with weekOffset navigation
   const weekDays = useMemo(() => {
     const today = startOfDay(new Date());
+    const base = addDays(today, weekOffset * 7);
+    const dow = base.getDay();
+    const monday = addDays(base, -(dow === 0 ? 6 : dow - 1));
+    const names = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB'];
     const txDates = new Set(
       activePeriodExpenses
         .map((e) => { const d = getExpenseDate(e); return d ? dateKey(d) : null; })
         .filter(Boolean)
     );
-    const dow = today.getDay();
-    const monday = addDays(today, -(dow === 0 ? 6 : dow - 1));
-    const names = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB'];
     return Array.from({ length: 7 }, (_, i) => {
       const d = addDays(monday, i);
       return {
         key: dateKey(d),
+        dateObj: d,
         day: names[d.getDay()],
         date: d.getDate(),
         isToday: dateKey(d) === dateKey(today),
         hasTx: txDates.has(dateKey(d)),
       };
     });
-  }, [activePeriodExpenses]);
+  }, [activePeriodExpenses, weekOffset]);
+
+  const currentWeekLabel = useMemo(() => {
+    if (weekOffset === 0) return 'Minggu Ini';
+    if (!weekDays.length) return '';
+    const s = weekDays[0].dateObj;
+    const e = weekDays[6].dateObj;
+    return `${s.getDate()} ${new Intl.DateTimeFormat('id-ID', { month: 'short' }).format(s)} - ${e.getDate()} ${new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(e)}`;
+  }, [weekOffset, weekDays]);
 
   // Saldo per Dompet
   const saldoPerDompet = useMemo(() => {
@@ -716,11 +757,20 @@ export default function Dashboard() {
       }));
   }, [filteredCategoryExpenses]);
 
-  const recentTransactions = useMemo(() => (
-    [...expenses]
+  const recentTransactions = useMemo(() => {
+    if (selectedDayIndex !== null && weekDays[selectedDayIndex]) {
+      const targetDateKey = weekDays[selectedDayIndex].key;
+      return activePeriodExpenses
+        .filter((item) => {
+          const d = getExpenseDate(item);
+          return d ? dateKey(d) === targetDateKey : false;
+        })
+        .sort((a, b) => (getExpenseDate(b)?.getTime() || 0) - (getExpenseDate(a)?.getTime() || 0));
+    }
+    return [...activePeriodExpenses]
       .sort((a, b) => (getExpenseDate(b)?.getTime() || 0) - (getExpenseDate(a)?.getTime() || 0))
-      .slice(0, 5)
-  ), [expenses]);
+      .slice(0, 5);
+  }, [activePeriodExpenses, selectedDayIndex, weekDays]);
 
   const saveBudget = async () => {
     const parsed = Math.max(0, Math.round(Number(String(budgetInput || '').replace(/[^0-9]/g, ''))));
@@ -802,14 +852,22 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="hero-buttons-exact">
-          <button className="btn-hero-solid-green" onClick={exportExcel}>
+        <div className="hero-buttons-exact flex items-center gap-2">
+          <button className="btn-hero-solid-green" onClick={exportExcel} title="Download Laporan Excel (.xlsx)">
             <FileSpreadsheet width="13" height="13" />
             Excel
           </button>
-          <button className="btn-hero-solid-green" onClick={() => setShowRecapModal(true)}>
+          <button className="btn-hero-solid-green" onClick={() => window.print()} title="Cetak / Simpan ke PDF">
             <FileText width="13" height="13" />
-            PDF
+            Cetak PDF
+          </button>
+          <button
+            className="btn-hero-solid-green !bg-[#1b3b18] hover:!bg-[#244f20] dark:!bg-[#152e18] dark:hover:!bg-[#1d4222]"
+            onClick={() => setShowRecapModal(true)}
+            title="Tutup Periode & Backup ke Google Sheets"
+          >
+            <Archive width="13" height="13" />
+            Tutup Periode
           </button>
         </div>
       </div>
@@ -830,11 +888,11 @@ export default function Dashboard() {
           </div>
 
           <div className="week-selector-bar">
-            <button onClick={() => navigate('/expenses')}>‹</button>
+            <button type="button" title="Minggu sebelumnya" onClick={() => { setWeekOffset((w) => w - 1); setSelectedDayIndex(null); }}>‹</button>
             <span className="week-selector-title">
-              {new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date())}
+              {currentWeekLabel}
             </span>
-            <button onClick={() => navigate('/expenses')}>›</button>
+            <button type="button" title="Minggu berikutnya" onClick={() => { setWeekOffset((w) => w + 1); setSelectedDayIndex(null); }}>›</button>
           </div>
 
           <div className="week-days-flex">
@@ -1237,7 +1295,22 @@ export default function Dashboard() {
         {/* Recent Transactions */}
         <div className="box-card">
           <div className="card-header-flex">
-            <span className="card-title-main">Recent Transactions</span>
+            <div className="flex items-center gap-2">
+              <span className="card-title-main">
+                {selectedDayIndex !== null && weekDays[selectedDayIndex]
+                  ? `Transaksi • ${weekDays[selectedDayIndex].day} ${weekDays[selectedDayIndex].date}`
+                  : 'Recent Transactions'}
+              </span>
+              {selectedDayIndex !== null && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDayIndex(null)}
+                  className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300"
+                >
+                  ✕ Tampilkan Semua
+                </button>
+              )}
+            </div>
             <button className="card-select-pill" onClick={() => navigate('/expenses')}>
               View all transactions
             </button>
