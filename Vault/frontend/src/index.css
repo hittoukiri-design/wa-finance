@@ -6628,34 +6628,35 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   position: relative;
 }
 
-/* 1. HERO BANNER CAPSULE */
+/* 1. HERO BANNER CAPSULE WITH LIVING ANIMATION */
 .hero-banner-exact {
   position: relative;
   overflow: hidden;
   background-color: #ebf5dc;
   border: 1px solid #d6e4be;
-  border-radius: 22px;
+  border-radius: 24px;
   padding: 24px 28px;
   margin-bottom: 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 148px;
-  box-shadow: var(--shadow-card);
+  min-height: 152px;
+  box-shadow: 0 14px 40px rgba(38, 86, 25, 0.08);
 }
 
 [data-theme="dark"] .hero-banner-exact, html.dark .hero-banner-exact {
   background-color: #101c11;
   border-color: #244618;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
 }
 
 .hero-banner-art-wrap {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  height: 100%;
-  width: 55%;
+  top: -4%;
+  bottom: -4%;
+  right: -1%;
+  height: 108%;
+  width: 62%;
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -6670,8 +6671,10 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   max-width: 100%;
   object-fit: contain;
   object-position: right center;
-  opacity: 0.95;
-  transition: opacity 0.3s ease;
+  opacity: 0.96;
+  transform-origin: center right;
+  animation: heroDrift 12s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 [data-theme="dark"] .hero-banner-art-img, html.dark .hero-banner-art-img {
@@ -6679,9 +6682,101 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   mix-blend-mode: luminosity;
 }
 
+.hero-light-sweep {
+  position: absolute;
+  inset: -10%;
+  background:
+    radial-gradient(circle at 72% 42%, rgba(255, 255, 255, 0.22), transparent 26%),
+    radial-gradient(circle at 84% 78%, rgba(177, 221, 126, 0.22), transparent 30%),
+    linear-gradient(110deg, transparent 0 45%, rgba(255, 255, 255, 0.12) 52%, transparent 60%);
+  mix-blend-mode: screen;
+  animation: lightSweep 9s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hero-float-orb {
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(179, 211, 126, 0.25);
+  backdrop-filter: blur(1px);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hero-float-orb.orb1 {
+  width: 36px;
+  height: 36px;
+  right: 28%;
+  top: 36%;
+  animation: floatA 6s ease-in-out infinite;
+}
+
+.hero-float-orb.orb2 {
+  width: 16px;
+  height: 16px;
+  right: 18%;
+  top: 18%;
+  animation: floatB 7s ease-in-out infinite 0.8s;
+}
+
+.hero-float-orb.orb3 {
+  width: 24px;
+  height: 24px;
+  right: 8%;
+  bottom: 24%;
+  animation: floatC 8s ease-in-out infinite 0.3s;
+}
+
+.hero-wave-glow {
+  position: absolute;
+  left: -5%;
+  bottom: 0;
+  width: 110%;
+  height: 28%;
+  opacity: 0.22;
+  filter: blur(12px);
+  background: linear-gradient(90deg, transparent, rgba(127, 178, 77, 0.45), transparent);
+  transform: skewY(-2deg);
+  animation: waveGlow 10s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes heroDrift {
+  0%   { transform: scale(1.012) translate3d(-0.4%, 0.2%, 0); }
+  50%  { transform: scale(1.028) translate3d(0.2%, -0.4%, 0); }
+  100% { transform: scale(1.018) translate3d(0.5%, 0.3%, 0); }
+}
+
+@keyframes lightSweep {
+  from { transform: translateX(-3%) scale(1); opacity: 0.45; }
+  to   { transform: translateX(3%) scale(1.04); opacity: 0.85; }
+}
+
+@keyframes floatA {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(6px, -10px); }
+}
+
+@keyframes floatB {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-7px, 7px); }
+}
+
+@keyframes floatC {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(5px, -6px); }
+}
+
+@keyframes waveGlow {
+  from { transform: translateX(-2%) skewY(-2deg) scaleX(1); }
+  to   { transform: translateX(3%) skewY(-1deg) scaleX(1.05); }
+}
+
 .hero-content-exact-left {
   position: relative;
-  z-index: 2;
+  z-index: 5;
   max-width: 60%;
 }
 

@@ -897,6 +897,13 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Living Animated Atmosphere Elements */}
+        <span className="hero-light-sweep" />
+        <span className="hero-float-orb orb1" />
+        <span className="hero-float-orb orb2" />
+        <span className="hero-float-orb orb3" />
+        <span className="hero-wave-glow" />
+
         {/* Precise Full-Height Uncropped Artwork Illustration */}
         <div className="hero-banner-art-wrap">
           <img
