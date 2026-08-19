@@ -190,6 +190,15 @@ async function archiveFirestoreCollection(userId, collectionName, recap) {
         if (['cancelled', 'canceled', 'dibatalkan'].includes(status)) continue;
         if (recapStatus === 'archived') continue;
 
+        if (collectionName === 'expenses') {
+            const cat = String(data.category || '').toLowerCase();
+            const type = String(data.type || '').toLowerCase();
+            if (type === 'savings' || cat.includes('tabung') || cat.includes('invest')) {
+                // Preserve Tabungan & Investasi active across period close as requested
+                continue;
+            }
+        }
+
         batch.update(docItem.ref, {
             recap_id: recap.id,
             recap_name: recap.name,
@@ -572,6 +581,9 @@ app.post('/api/recaps/new', authenticate, async (req, res) => {
                     archived_at = datetime('now', 'localtime')
                 WHERE user_id = ?
                   AND ${activeWhere}
+                  AND LOWER(COALESCE(type, '')) != 'savings'
+                  AND LOWER(COALESCE(category, '')) NOT LIKE '%tabung%'
+                  AND LOWER(COALESCE(category, '')) NOT LIKE '%invest%'
                   AND COALESCE(recap_status, 'active') != 'archived'
             `).run(recapId, recapName, req.userId);
 

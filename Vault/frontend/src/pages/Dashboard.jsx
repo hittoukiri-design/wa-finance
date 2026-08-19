@@ -209,6 +209,7 @@ export default function Dashboard() {
   const [selectedCalendarDateKey, setSelectedCalendarDateKey] = useState(null);
   const [recapBusy, setRecapBusy] = useState(false);
   const [showSavingsModal, setShowSavingsModal] = useState(false);
+  const [savingsTab, setSavingsTab] = useState('deposit'); // 'deposit' | 'transfer' | 'reset'
   const [savingsBusy, setSavingsBusy] = useState(false);
   const [savingsNotice, setSavingsNotice] = useState('');
   const [savingsForm, setSavingsForm] = useState(() => ({
@@ -216,6 +217,25 @@ export default function Dashboard() {
     merchant: 'Nabung Bulanan',
     category: 'Tabungan',
     payment_channel: 'BCA',
+    date: dateKey(new Date()),
+  }));
+  const [savingsTransferForm, setSavingsTransferForm] = useState(() => ({
+    amount: '',
+    source: 'Tabungan',
+    destination: 'BCA',
+    merchant: 'Pencairan Tabungan untuk Keperluan',
+    date: dateKey(new Date()),
+  }));
+
+  // Pindah Saldo / Tarik Tunai Gaji Antar Dompet
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferBusy, setTransferBusy] = useState(false);
+  const [transferNotice, setTransferNotice] = useState('');
+  const [walletTransferForm, setWalletTransferForm] = useState(() => ({
+    fromWallet: 'BCA',
+    toWallet: 'Cash',
+    amount: '',
+    notes: 'Tarik tunai gaji untuk pegangan cash',
     date: dateKey(new Date()),
   }));
   const [weekOffset, setWeekOffset] = useState(0);
@@ -354,6 +374,192 @@ export default function Dashboard() {
     }
   };
 
+  // 1. Tarik Tabungan / Investasi ke Rekening/GoPay/Cash
+  const handleTransferSavings = async (e) => {
+    e.preventDefault();
+    const amt = Number(savingsTransferForm.amount || 0);
+    if (amt <= 0) {
+      setSavingsNotice('Nominal pencairan wajib diisi.');
+      return;
+    }
+    setSavingsBusy(true);
+    setSavingsNotice('');
+    try {
+      // 1. Outflow dari Tabungan
+      const outRef = await addExpense(user.uid, {
+        merchant: `Tarik ${savingsTransferForm.source} ke ${savingsTransferForm.destination} (${savingsTransferForm.merchant || 'Pencairan'})`,
+        amount: amt,
+        date: savingsTransferForm.date,
+        payment_channel: savingsTransferForm.source,
+        category: savingsTransferForm.source,
+        type: 'expense',
+        source: 'Manual',
+      });
+      // 2. Inflow ke Rekening / Dompet Tujuan
+      const inRef = await addExpense(user.uid, {
+        merchant: `Masuk dari ${savingsTransferForm.source} (${savingsTransferForm.merchant || 'Pencairan'})`,
+        amount: amt,
+        date: savingsTransferForm.date,
+        payment_channel: savingsTransferForm.destination,
+        category: 'Pemasukan',
+        type: 'income',
+        source: 'Manual',
+      });
+
+      const txOut = {
+        id: outRef.id,
+        merchant: `Tarik ${savingsTransferForm.source} ke ${savingsTransferForm.destination}`,
+        amount: amt,
+        date: savingsTransferForm.date,
+        payment_channel: savingsTransferForm.source,
+        category: savingsTransferForm.source,
+        type: 'expense',
+        status: 'Approved',
+        createdAt: new Date(),
+      };
+      const txIn = {
+        id: inRef.id,
+        merchant: `Masuk dari ${savingsTransferForm.source}`,
+        amount: amt,
+        date: savingsTransferForm.date,
+        payment_channel: savingsTransferForm.destination,
+        category: 'Pemasukan',
+        type: 'income',
+        status: 'Approved',
+        createdAt: new Date(),
+      };
+
+      setExpenses((prev) => [txOut, ...prev]);
+      setIncomes((prev) => [txIn, ...prev]);
+      setShowSavingsModal(false);
+      setSavingsTransferForm({
+        amount: '',
+        source: 'Tabungan',
+        destination: 'BCA',
+        merchant: 'Pencairan Tabungan untuk Keperluan',
+        date: dateKey(new Date()),
+      });
+    } catch (err) {
+      setSavingsNotice(err.message || 'Gagal mencairkan tabungan.');
+    } finally {
+      setSavingsBusy(false);
+    }
+  };
+
+  // 2. Reset Khusus Saldo Tabungan & Investasi
+  const handleResetSavings = async () => {
+    if (!window.confirm('Reset saldo Tabungan & Investasi menjadi Rp 0 sekarang?')) return;
+    setSavingsBusy(true);
+    setSavingsNotice('');
+    try {
+      const amtToReset = totalSavings;
+      if (amtToReset > 0) {
+        const resetRef = await addExpense(user.uid, {
+          merchant: 'Reset Saldo Tabungan & Investasi',
+          amount: amtToReset,
+          date: dateKey(new Date()),
+          payment_channel: 'Tabungan',
+          category: 'Tabungan',
+          type: 'expense',
+          source: 'Manual',
+        });
+        const resetTx = {
+          id: resetRef.id,
+          merchant: 'Reset Saldo Tabungan & Investasi',
+          amount: amtToReset,
+          date: dateKey(new Date()),
+          payment_channel: 'Tabungan',
+          category: 'Tabungan',
+          type: 'expense',
+          status: 'Approved',
+          createdAt: new Date(),
+        };
+        setExpenses((prev) => [resetTx, ...prev]);
+      }
+      setShowSavingsModal(false);
+    } catch (err) {
+      setSavingsNotice(err.message || 'Gagal mereset tabungan.');
+    } finally {
+      setSavingsBusy(false);
+    }
+  };
+
+  // 3. Pindah Saldo / Tarik Tunai Gaji Antar Dompet
+  const handleWalletTransfer = async (e) => {
+    e.preventDefault();
+    const amt = Number(walletTransferForm.amount || 0);
+    if (amt <= 0) {
+      setTransferNotice('Nominal transfer / tarik tunai wajib diisi.');
+      return;
+    }
+    if (walletTransferForm.fromWallet === walletTransferForm.toWallet) {
+      setTransferNotice('Dompet sumber dan tujuan tidak boleh sama.');
+      return;
+    }
+    setTransferBusy(true);
+    setTransferNotice('');
+    try {
+      // 1. Catat pengeluaran di dompet sumber
+      const outRef = await addExpense(user.uid, {
+        merchant: `Tarik / Transfer ke ${walletTransferForm.toWallet} (${walletTransferForm.notes || 'Pindah saldo'})`,
+        amount: amt,
+        date: walletTransferForm.date,
+        payment_channel: walletTransferForm.fromWallet,
+        category: 'Transfer',
+        type: 'expense',
+        source: 'Manual',
+      });
+      // 2. Catat pemasukan di dompet tujuan
+      const inRef = await addExpense(user.uid, {
+        merchant: `Terima tarik tunai / transfer dari ${walletTransferForm.fromWallet} (${walletTransferForm.notes || 'Pindah saldo'})`,
+        amount: amt,
+        date: walletTransferForm.date,
+        payment_channel: walletTransferForm.toWallet,
+        category: 'Pemasukan',
+        type: 'income',
+        source: 'Manual',
+      });
+
+      const txOut = {
+        id: outRef.id,
+        merchant: `Tarik ke ${walletTransferForm.toWallet}`,
+        amount: amt,
+        date: walletTransferForm.date,
+        payment_channel: walletTransferForm.fromWallet,
+        category: 'Transfer',
+        type: 'expense',
+        status: 'Approved',
+        createdAt: new Date(),
+      };
+      const txIn = {
+        id: inRef.id,
+        merchant: `Terima dari ${walletTransferForm.fromWallet}`,
+        amount: amt,
+        date: walletTransferForm.date,
+        payment_channel: walletTransferForm.toWallet,
+        category: 'Pemasukan',
+        type: 'income',
+        status: 'Approved',
+        createdAt: new Date(),
+      };
+
+      setExpenses((prev) => [txOut, ...prev]);
+      setIncomes((prev) => [txIn, ...prev]);
+      setShowTransferModal(false);
+      setWalletTransferForm({
+        fromWallet: 'BCA',
+        toWallet: 'Cash',
+        amount: '',
+        notes: 'Tarik tunai gaji untuk pegangan cash',
+        date: dateKey(new Date()),
+      });
+    } catch (err) {
+      setTransferNotice(err.message || 'Gagal memproses pindah saldo.');
+    } finally {
+      setTransferBusy(false);
+    }
+  };
+
   const isFilteringIncome = isFiltered && isIncomeCategory(filterCategory);
   const isFilteringExpenseCategory = isFiltered && filterCategory && filterCategory !== 'Semua kategori' && !isIncomeCategory(filterCategory);
 
@@ -386,18 +592,25 @@ export default function Dashboard() {
     .reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const totalIncome = salaryIncomePeriod + extraIncomePeriod;
 
-  // Active period savings & investment total
+  // Persistent savings & investment total (survives period closures, tracks deposits & withdrawals)
   const activePeriodSavings = useMemo(() => {
     return [...expenses, ...incomes].filter((item) => {
-      if (!matchesFilter(item)) return false;
       const t = String(item.type || '').toLowerCase();
       const cat = String(item.category || '').toLowerCase();
       return t === 'savings' || cat.includes('tabung') || cat.includes('invest');
     });
-  }, [expenses, incomes, matchesFilter]);
+  }, [expenses, incomes]);
 
   const totalSavings = useMemo(() => {
-    return activePeriodSavings.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return activePeriodSavings.reduce((sum, item) => {
+      const t = String(item.type || '').toLowerCase();
+      const cat = String(item.category || '').toLowerCase();
+      const amt = Number(item.amount || 0);
+      if (t === 'savings') return sum + amt;
+      if (t === 'income') return sum + amt;
+      if (t === 'expense' && (cat.includes('tabung') || cat.includes('invest'))) return sum - amt;
+      return sum + amt;
+    }, 0);
   }, [activePeriodSavings]);
 
   const budgetUsed = monthlyBudget ? (totalMonth / monthlyBudget) * 100 : 0;
@@ -964,6 +1177,14 @@ export default function Dashboard() {
             >
               <FileText width="11" height="11" />
               Cetak PDF
+            </button>
+            <button
+              onClick={() => setShowTransferModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#2d5f1e]/30 bg-[#245c10]/90 px-3 py-1 text-[11px] font-bold text-[#bbf7d0] shadow-sm backdrop-blur-sm transition hover:bg-[#1a460b] dark:border-[#38642a] dark:bg-[#1a3816]/90 dark:text-[#a3e635] dark:hover:bg-[#234e1e]"
+              title="Tarik Tunai Gaji / Pindah Saldo Antar Dompet"
+            >
+              <CreditCard width="11" height="11" />
+              Tarik Saldo / Tunai
             </button>
             <button
               onClick={() => setShowRecapModal(true)}
@@ -1694,26 +1915,66 @@ export default function Dashboard() {
       })()}
 
 
-      {/* ════ MODAL: CATAT TABUNGAN / INVESTASI ════ */}
+      {/* ════ MODAL: KELOLA TABUNGAN & INVESTASI (SETOR / TARIK / RESET) ════ */}
       {showSavingsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
-          <div className="w-full max-w-md rounded-[22px] border border-[#263e1d] bg-[#101b12] p-6 shadow-2xl dark:border-[#263e1d] dark:bg-[#101b12]">
+          <div className="w-full max-w-md rounded-[24px] border border-[#263e1d] bg-[#101b12] p-6 shadow-2xl">
+            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#243a1a] pb-4">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400">
-                  <Wallet width="18" height="18" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400 shadow-inner">
+                  <Wallet width="20" height="20" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Catat Tabungan / Investasi</h2>
-                  <p className="text-xs text-slate-400">Simpan dana ke pos tabungan atau aset investasi.</p>
+                  <h2 className="text-lg font-bold text-white">Tabungan & Investasi</h2>
+                  <p className="text-xs font-medium text-[#86efac]">
+                    Saldo Terkumpul: <span className="font-black text-white">{currency(totalSavings)}</span>
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowSavingsModal(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
               >
                 <X width="18" height="18" />
+              </button>
+            </div>
+
+            {/* 3 Nav Tabs */}
+            <div className="mt-4 flex rounded-xl bg-[#162618] p-1 border border-[#243d1f]">
+              <button
+                type="button"
+                onClick={() => setSavingsTab('deposit')}
+                className={`flex-1 rounded-lg py-1.5 text-center text-xs font-bold transition ${
+                  savingsTab === 'deposit'
+                    ? 'bg-[#76d446] text-[#0d170a] shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                ➕ Setor Tabungan
+              </button>
+              <button
+                type="button"
+                onClick={() => setSavingsTab('transfer')}
+                className={`flex-1 rounded-lg py-1.5 text-center text-xs font-bold transition ${
+                  savingsTab === 'transfer'
+                    ? 'bg-[#76d446] text-[#0d170a] shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                🔄 Tarik / Pindah
+              </button>
+              <button
+                type="button"
+                onClick={() => setSavingsTab('reset')}
+                className={`flex-1 rounded-lg py-1.5 text-center text-xs font-bold transition ${
+                  savingsTab === 'reset'
+                    ? 'bg-rose-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                ⚠️ Reset
               </button>
             </div>
 
@@ -1723,36 +1984,250 @@ export default function Dashboard() {
               </div>
             )}
 
-            <form onSubmit={handleSaveSavings} className="mt-4 space-y-4">
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Nominal Tabungan (Rp)</label>
-                <input
-                  required
-                  type="number"
-                  value={savingsForm.amount}
-                  onChange={(e) => setSavingsForm((c) => ({ ...c, amount: e.target.value }))}
-                  placeholder="Contoh: 500000"
-                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
-                />
-              </div>
+            {/* TAB 1: SETOR TABUNGAN */}
+            {savingsTab === 'deposit' && (
+              <form onSubmit={handleSaveSavings} className="mt-4 space-y-4">
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Nominal Setor (Rp)</label>
+                  <input
+                    required
+                    type="number"
+                    value={savingsForm.amount}
+                    onChange={(e) => setSavingsForm((c) => ({ ...c, amount: e.target.value }))}
+                    placeholder="Contoh: 500000"
+                    className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  />
+                </div>
 
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Keterangan / Tujuan Tabungan</label>
-                <input
-                  required
-                  value={savingsForm.merchant}
-                  onChange={(e) => setSavingsForm((c) => ({ ...c, merchant: e.target.value }))}
-                  placeholder="Contoh: Nabung Dana Darurat, Beli Reksadana Bibit, Emas"
-                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
-                />
-              </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Keterangan / Tujuan Simpanan</label>
+                  <input
+                    required
+                    value={savingsForm.merchant}
+                    onChange={(e) => setSavingsForm((c) => ({ ...c, merchant: e.target.value }))}
+                    placeholder="Contoh: Nabung Dana Darurat, Reksadana Bibit, Emas"
+                    className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  />
+                </div>
 
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold text-slate-400">Sumber Dompet</label>
+                    <select
+                      value={savingsForm.payment_channel}
+                      onChange={(e) => setSavingsForm((c) => ({ ...c, payment_channel: e.target.value }))}
+                      className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                    >
+                      {(savedWallets.length ? savedWallets.map((w) => w.name) : ['BCA', 'SUPERBANK', 'Cash', 'GOPAY', 'DANA']).map((w) => (
+                        <option key={w} value={w}>{w}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold text-slate-400">Pos Simpanan</label>
+                    <select
+                      value={savingsForm.category}
+                      onChange={(e) => setSavingsForm((c) => ({ ...c, category: e.target.value }))}
+                      className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                    >
+                      <option value="Tabungan">🏦 Tabungan</option>
+                      <option value="Investasi">📈 Investasi</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Tanggal</label>
+                  <input
+                    required
+                    type="date"
+                    value={savingsForm.date}
+                    onChange={(e) => setSavingsForm((c) => ({ ...c, date: e.target.value }))}
+                    className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  />
+                </div>
+
+                <div className="mt-6 flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSavingsModal(false)}
+                    className="rounded-full border border-slate-700 bg-transparent px-6 py-2 text-xs font-bold text-slate-300 hover:bg-white/5"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingsBusy}
+                    className="rounded-full bg-[#76d446] px-7 py-2 text-xs font-black text-[#0d170a] shadow-lg transition hover:bg-[#64be36] disabled:opacity-50"
+                  >
+                    {savingsBusy ? 'Menyimpan...' : 'Simpan ke Tabungan'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB 2: TARIK / TRANSFER TABUNGAN KE BANK / GOPAY / CASH */}
+            {savingsTab === 'transfer' && (
+              <form onSubmit={handleTransferSavings} className="mt-4 space-y-4">
+                <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-200">
+                  Uang tabungan akan dicairkan dan otomatis menambah saldo dompet/rekening tujuan untuk pembayaran.
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Nominal Pencairan (Rp)</label>
+                  <input
+                    required
+                    type="number"
+                    value={savingsTransferForm.amount}
+                    onChange={(e) => setSavingsTransferForm((c) => ({ ...c, amount: e.target.value }))}
+                    placeholder="Contoh: 300000"
+                    className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold text-slate-400">Dari Pos</label>
+                    <select
+                      value={savingsTransferForm.source}
+                      onChange={(e) => setSavingsTransferForm((c) => ({ ...c, source: e.target.value }))}
+                      className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                    >
+                      <option value="Tabungan">🏦 Tabungan</option>
+                      <option value="Investasi">📈 Investasi</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold text-slate-400">Ke Rekening / Dompet</label>
+                    <select
+                      value={savingsTransferForm.destination}
+                      onChange={(e) => setSavingsTransferForm((c) => ({ ...c, destination: e.target.value }))}
+                      className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                    >
+                      {(savedWallets.length ? savedWallets.map((w) => w.name) : ['BCA', 'SUPERBANK', 'Cash', 'GOPAY', 'DANA']).map((w) => (
+                        <option key={w} value={w}>{w}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Keterangan Pencairan</label>
+                  <input
+                    required
+                    value={savingsTransferForm.merchant}
+                    onChange={(e) => setSavingsTransferForm((c) => ({ ...c, merchant: e.target.value }))}
+                    placeholder="Contoh: Bayar tagihan darurat, Belanja kebutuhan"
+                    className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Tanggal</label>
+                  <input
+                    required
+                    type="date"
+                    value={savingsTransferForm.date}
+                    onChange={(e) => setSavingsTransferForm((c) => ({ ...c, date: e.target.value }))}
+                    className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                  />
+                </div>
+
+                <div className="mt-6 flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSavingsModal(false)}
+                    className="rounded-full border border-slate-700 bg-transparent px-6 py-2 text-xs font-bold text-slate-300 hover:bg-white/5"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingsBusy}
+                    className="rounded-full bg-[#76d446] px-7 py-2 text-xs font-black text-[#0d170a] shadow-lg transition hover:bg-[#64be36] disabled:opacity-50"
+                  >
+                    {savingsBusy ? 'Memproses...' : 'Cairkan ke Dompet'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB 3: RESET TABUNGAN */}
+            {savingsTab === 'reset' && (
+              <div className="mt-4 space-y-4 text-center">
+                <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-left">
+                  <h3 className="text-sm font-bold text-rose-300">⚠️ Konfirmasi Reset Saldo Tabungan</h3>
+                  <p className="mt-1.5 text-xs leading-relaxed text-slate-300">
+                    Mereset akan mengosongkan total akumulasi tabungan & investasi aktif (<span className="font-bold text-white">{currency(totalSavings)}</span>) menjadi <span className="font-bold text-[#86efac]">Rp 0</span>.
+                  </p>
+                  <p className="mt-2 text-[11px] text-slate-400">
+                    *Gunakan ini jika dana tabungan telah dipindahkan ke aset fisik offline atau disetor keluar.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-center gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowSavingsModal(false)}
+                    className="rounded-full border border-slate-700 bg-transparent px-6 py-2 text-xs font-bold text-slate-300 hover:bg-white/5"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingsBusy || totalSavings <= 0}
+                    onClick={handleResetSavings}
+                    className="rounded-full bg-rose-600 px-7 py-2 text-xs font-black text-white shadow-lg transition hover:bg-rose-500 disabled:opacity-50"
+                  >
+                    {savingsBusy ? 'Mereset...' : 'Reset Tabungan ke Rp 0'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+
+      {/* ════ MODAL: TARIK SALDO GAJI / PINDAH SALDO ANTAR DOMPET ════ */}
+      {showTransferModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-[24px] border border-[#263e1d] bg-[#101b12] p-6 shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#243a1a] pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 shadow-inner">
+                  <CreditCard width="20" height="20" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Tarik Saldo / Pindah Dompet</h2>
+                  <p className="text-xs text-slate-400">Tarik tunai gaji atau transfer saldo antar rekening/dompet.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTransferModal(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
+              >
+                <X width="18" height="18" />
+              </button>
+            </div>
+
+            {transferNotice && (
+              <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300">
+                {transferNotice}
+              </div>
+            )}
+
+            <form onSubmit={handleWalletTransfer} className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Sumber Dompet</label>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Dari Dompet (Sumber)</label>
                   <select
-                    value={savingsForm.payment_channel}
-                    onChange={(e) => setSavingsForm((c) => ({ ...c, payment_channel: e.target.value }))}
+                    value={walletTransferForm.fromWallet}
+                    onChange={(e) => setWalletTransferForm((c) => ({ ...c, fromWallet: e.target.value }))}
                     className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
                   >
                     {(savedWallets.length ? savedWallets.map((w) => w.name) : ['BCA', 'SUPERBANK', 'Cash', 'GOPAY', 'DANA']).map((w) => (
@@ -1762,16 +2237,40 @@ export default function Dashboard() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Kategori</label>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-400">Ke Dompet (Tujuan)</label>
                   <select
-                    value={savingsForm.category}
-                    onChange={(e) => setSavingsForm((c) => ({ ...c, category: e.target.value }))}
+                    value={walletTransferForm.toWallet}
+                    onChange={(e) => setWalletTransferForm((c) => ({ ...c, toWallet: e.target.value }))}
                     className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
                   >
-                    <option value="Tabungan">🏦 Tabungan</option>
-                    <option value="Investasi">📈 Investasi</option>
+                    {(savedWallets.length ? savedWallets.map((w) => w.name) : ['Cash', 'BCA', 'SUPERBANK', 'GOPAY', 'DANA']).map((w) => (
+                      <option key={w} value={w}>{w}</option>
+                    ))}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Nominal Tarik / Pindah (Rp)</label>
+                <input
+                  required
+                  type="number"
+                  value={walletTransferForm.amount}
+                  onChange={(e) => setWalletTransferForm((c) => ({ ...c, amount: e.target.value }))}
+                  placeholder="Contoh: 1000000"
+                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Keterangan</label>
+                <input
+                  required
+                  value={walletTransferForm.notes}
+                  onChange={(e) => setWalletTransferForm((c) => ({ ...c, notes: e.target.value }))}
+                  placeholder="Contoh: Tarik tunai gaji untuk pegangan cash harian"
+                  className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
+                />
               </div>
 
               <div>
@@ -1779,8 +2278,8 @@ export default function Dashboard() {
                 <input
                   required
                   type="date"
-                  value={savingsForm.date}
-                  onChange={(e) => setSavingsForm((c) => ({ ...c, date: e.target.value }))}
+                  value={walletTransferForm.date}
+                  onChange={(e) => setWalletTransferForm((c) => ({ ...c, date: e.target.value }))}
                   className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
                 />
               </div>
@@ -1788,17 +2287,17 @@ export default function Dashboard() {
               <div className="mt-6 flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowSavingsModal(false)}
+                  onClick={() => setShowTransferModal(false)}
                   className="rounded-full border border-slate-700 bg-transparent px-6 py-2 text-xs font-bold text-slate-300 hover:bg-white/5"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={savingsBusy}
+                  disabled={transferBusy}
                   className="rounded-full bg-[#76d446] px-7 py-2 text-xs font-black text-[#0d170a] shadow-lg transition hover:bg-[#64be36] disabled:opacity-50"
                 >
-                  {savingsBusy ? 'Menyimpan...' : 'Simpan Tabungan'}
+                  {transferBusy ? 'Memproses...' : 'Proses Pindah / Tarik Saldo'}
                 </button>
               </div>
             </form>
