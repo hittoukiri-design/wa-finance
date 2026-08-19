@@ -365,3 +365,41 @@ ightarrow$ Rekap mutasi finansial periodik.
     3. ⚠️ **Reset Tabungan**: Tombol reset khusus dengan konfirmasi untuk mengosongkan akumulasi tabungan ke Rp 0 saat diinginkan.
   * **Modal Pindah Saldo / Tarik Tunai Gaji**: Menambahkan tombol dan modal `Tarik Saldo / Tunai` pada Hero Dashboard untuk memindahkan saldo (misal dari gaji BCA/Superbank ditarik tunai menjadi saldo Cash atau ditransfer ke GoPay).
 
+### 10. Peningkatan: Smart Dual-Ledger Transfer Engine di Bot WhatsApp
+* **Kebutuhan**: Bot WhatsApp harus bisa mengenali pesan transfer antar rekening (*"transfer 30000 dari Superbank ke BCA"*, *"dari Dana ke gopay 25000"*, *"tarik tunai 500rb dari BCA ke cash"*), memotong saldo rekening asal, dan menambah saldo rekening tujuan.
+* **Solusi & Perbaikan**:
+  * Mengembangkan parser transfer berbasis regex cerdas dan AI fallback (`parseTransferTransaction`, `saveTransferRecord`).
+  * Mencatat dua mutasi terkait secara bersamaan (*outflow* di dompet sumber, *inflow* di dompet tujuan) sehingga saldo dompet di dashboard otomatis tersinkronisasi.
+  * Mengirimkan balasan konfirmasi resmi WhatsApp dengan detail mutasi kedua dompet.
+
+### 11. Kendala & Solusi: Export Excel Menghilangkan Pie Chart & Grafik (Root Cause & Fix)
+* **Gejala**: Ketika file Excel di-download dari webapp, tampilan dashboard di Sheet1 menjadi polos/kosong tanpa 3 grafik visual (Line Chart tren harian, Pie Chart pengeluaran per kategori, dan Bar Chart rincian pengeluaran).
+* **Root Cause (RCA)**: Library Node.js `exceljs` memiliki keterbatasan struktural bawaan — saat `exceljs` membaca dan menulis ulang file `.xlsx`, engine `exceljs` secara otomatis membuang seluruh folder DrawingML dan grafik OpenXML (`xl/drawings/drawing1.xml`, `xl/drawings/charts/chart1.xml`, `chart2.xml`, `chart3.xml`, dan relasinya) karena tidak mendukung serialisasi chart XML.
+* **Solusi & Perbaikan**:
+  * Merombak engine `excelReport.js` dengan arsitektur **Lossless OpenXML Zip Streaming** menggunakan kombinasi `unzipper` dan `archiver`.
+  * Memperbarui template utama backend dengan template resmi `Redesign WA_Finance_Reporting_Dashboard.xlsx`.
+  * Menginjeksi data mutasi ke `xl/worksheets/sheet3.xml` (`Transaksi`) dan `sheet2.xml` (`Rekening`), sekaligus memperbarui nilai pre-kalkulasi formula dinamis di `sheet1.xml` (`Dashboard`) tanpa menyentuh atau menghapus file grafik DrawingML.
+  * **Hasil**: Hasil unduhan Excel kini 100% identik dengan template asli — lengkap dengan 3 grafik visual (Line Chart, Pie Chart, Bar Chart), 5 kartu KPI formula dinamis, dan tabel saldo interaktif.
+
+### 12. Kendala & Solusi: Double Counting Saldo Rekening di File Export Excel (RCA & Perbaikan Presisi)
+* **Gejala**: Pada file export Excel, saldo dompet (BCA, Cash, Superbank) sempat bernilai dua kali lipat lebih besar (BCA Rp 3.06jt, Cash -Rp 1.46jt, Superbank Rp 741rb) dibanding angka riil periode aktif (BCA Rp 1.05jt, Cash -Rp 487rb, Superbank Rp 183rb).
+* **Root Cause (RCA)**: Fungsi `calculateWalletRows` menginisialisasi saldo awal menggunakan nilai `wallet.balance` yang tersimpan di Firestore (yang sudah merupakan hasil akumulasi mutasi), lalu menambahkan lagi seluruh mutasi transaksi aktif di atasnya (*double counting*).
+* **Solusi & Perbaikan**:
+  * Mengubah `calculateWalletRows` agar berbasis `Number(wallet.initial_balance || 0)` sebagai saldo awal periode (`0`), lalu menghitung saldo riil murni dari mutasi transaksi aktif periode berjalan.
+  * Membersihkan konfigurasi `wallets` di Firestore `users/{uid}/settings/config` agar `initial_balance` bernilai `0`.
+  * **Hasil Verifikasi**:
+    * **BCA**: **Rp 961.797** *(Rp 1.051.105 awal - 2 tagihan XL hari ini: Rp 86.443 & Rp 2.865)*
+    * **SUPERBANK**: **Rp 183.658** *(Persis angka riil)*
+    * **Cash**: **-Rp 487.000** *(Persis angka riil)*
+    * **GOPAY / QRIS / Transfer / DANA**: **Rp 0**
+    * **Total Arus Kas / Saldo**: **Rp 658.455** *(5.079.840 - 4.421.385)*
+
+### 13. Peningkatan: Redesign Kartu Motivasi dengan Artwork Baru & Dark Mode Mewah (Zero Brutal Crop)
+* **Kebutuhan**: Mengganti latar belakang kartu kutipan motivasi (*"Catatan kecil hari ini, membawa perubahan besar di masa depan."*) dengan ilustrasi baru tanpa pemotongan kasar (*zero brutal crop* & *responsive stretch fit*), serta menyempurnakan tampilan Dark Mode agar sepadan dengan kemewahan Hero Header (*deep forest gradient, glowing emerald badge, & luminous typography*).
+* **Solusi & Perbaikan**:
+  * Mengganti aset background dengan artwork pemandangan daun baru berbasis `background-size: 100% 100%` sehingga seluruh ornamen daun di sisi kanan dan lengkungan visual di sisi kiri dapat meregang secara lentur mengikuti ukuran layar browser.
+  * Di mode **Dark Mode**, mengganti efek *overlay blend* yang sebelumnya membuat gambar terlihat buram/gelap menjadi arsitektur **Gradien Obsidian-Forest Mewah** (`radial-gradient` + `linear-gradient(105deg, ...)`), dipadu dengan badge tunas hijau ber-efek glow neon lembut (`rgba(74, 222, 128, 0.22)`), border berkilau zamrud (`#244618`), dan tipografi putih bercahaya (`#f3ffe9`) berbayang halus.
+
+
+
+
