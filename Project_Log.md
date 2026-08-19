@@ -143,7 +143,11 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Release V.2.0**: [https://github.com/hittoukiri-design/wa-finance/releases/tag/v.2.0](https://github.com/hittoukiri-design/wa-finance/releases/tag/v.2.0) (Botanical Theme, Otonom Firestore & SQLite, Master Excel On-The-Fly Template, Multi-Color Analytics, Pembersihan Google Apps Script).
   - **Release V.1.0**: [https://github.com/hittoukiri-design/wa-finance/releases/tag/v.1.0](https://github.com/hittoukiri-design/wa-finance/releases/tag/v.1.0) (Baseline Legacy Google Apps Script).
   - **Audit Keamanan & Privasi**: Dipastikan 100% bersih tanpa ada data sensitif, API key, kredensial Firebase, sesi WhatsApp, database SQLite lokal, atau laporan harian pribadi yang terunggah ke repositori.
-- ✅ **Build production terbaru** (`index-BieLRqFi.js` & `index-BOTHkDZy.css`) telah aktif dan live di container Mac mini.
+- ✅ **Fitur ATM Card Carousel Interaktif (Auto-Slide & Gesture Swipe) pada Dashboard (`Dashboard.jsx`)**:
+  - **Auto-Slide Otomatis**: Kartu ATM kini bergeser otomatis setiap 4.5 detik bergantian antara *Total Saldo/Budget* dan dompet-dompet spesifik (BCA, Cash, SUPERBANK, GOPAY, QRIS, DANA) lengkap dengan nomor kartu realistis dan jumlah transaksi. Otomatis berhenti (*pause*) saat kursor mouse diarahkan ke kartu.
+  - **Swipe / Geser Touch & Mouse**: Pengguna dapat menggeser kartu ke kiri/kanan dengan sentuhan (*touch swipe*) atau tarikan kursor mouse.
+  - **Tombol Navigasi Chevron & Titik Indikator Interaktif**: Tombol panah kiri/kanan muncul saat kartu di-hover, dan titik indikator di bawah kartu dapat diklik langsung untuk berpindah kartu secara instan dengan animasi transisi yang mulus.
+- ✅ **Build production terbaru** (`index-CsnhpD64.js` & `index-BtAUBXRl.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
 1. Review tampilan production di `https://api-finance.i729.my.id/m3-demo` bersama user.

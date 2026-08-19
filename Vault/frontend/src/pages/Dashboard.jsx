@@ -3,10 +3,13 @@ import {
   Archive,
   BarChart3,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   CreditCard,
   Edit3,
   FileSpreadsheet,
   FileText,
+  Landmark,
   PieChart as PieChartIcon,
   Save,
   Wallet,
@@ -324,6 +327,115 @@ export default function Dashboard() {
       }));
   }, [activePeriodExpenses]);
 
+  // ── ATM Card Carousel Slides & Gesture Handling ──
+  const [currentCardSlide, setCurrentCardSlide] = useState(0);
+  const [isCarouselHovered, setIsCarouselHovered] = useState(false);
+  const [touchStartX, setTouchStartX] = useState(null);
+  const [touchEndX, setTouchEndX] = useState(null);
+
+  const walletSlides = useMemo(() => {
+    const slides = [
+      {
+        id: 'total',
+        type: 'total',
+        title: 'TOTAL SALDO',
+        amount: monthlyBudget ? budgetRemaining : totalMonth,
+        isBudget: Boolean(monthlyBudget),
+        cardNumber: '•••• •••• •••• 0080',
+        bottomLeft: monthlyBudget ? `${budgetUsed.toFixed(1)}% budget terpakai` : 'Semua dompet',
+        bottomRight: `${saldoPerDompet.length || 3} dompet aktif`,
+        badgeColor: '#76d446',
+      }
+    ];
+
+    const walletExpenseMap = {};
+    const walletIncomeMap = {};
+    expenses.forEach((e) => {
+      const wName = String(e.payment_channel || e.rekening || 'Cash').trim();
+      const amt = Number(e.amount || 0);
+      if (String(e.type || '').toLowerCase() === 'income') {
+        walletIncomeMap[wName] = (walletIncomeMap[wName] || 0) + amt;
+      } else {
+        walletExpenseMap[wName] = (walletExpenseMap[wName] || 0) + amt;
+      }
+    });
+
+    const discovered = Array.from(new Set([
+      ...Object.keys(walletExpenseMap),
+      ...Object.keys(walletIncomeMap),
+      'BCA', 'Cash', 'SUPERBANK'
+    ])).filter(Boolean);
+
+    const WALLET_CONFIG = {
+      BCA: { digits: '8821', badgeColor: '#2f781c' },
+      Cash: { digits: 'TUNAI', badgeColor: '#f77132' },
+      SUPERBANK: { digits: '5920', badgeColor: '#6952ec' },
+      GOPAY: { digits: '0812', badgeColor: '#00aed6' },
+      QRIS: { digits: '9901', badgeColor: '#ea1d2c' },
+      DANA: { digits: '4410', badgeColor: '#118eea' },
+    };
+
+    discovered.slice(0, 5).forEach((wName) => {
+      const spent = walletExpenseMap[wName] || 0;
+      const count = activePeriodExpenses.filter((e) => String(e.payment_channel || e.rekening || 'Cash').trim() === wName).length;
+      const cfg = WALLET_CONFIG[wName] || { digits: '7721', badgeColor: '#76d446' };
+
+      slides.push({
+        id: wName,
+        type: 'wallet',
+        title: `DOMPET • ${wName.toUpperCase()}`,
+        amount: spent,
+        isBudget: false,
+        cardNumber: `${wName.toUpperCase()} •••• ${cfg.digits}`,
+        bottomLeft: `${count} transaksi di periode ini`,
+        bottomRight: 'Kanal Pembayaran',
+        badgeColor: cfg.badgeColor,
+      });
+    });
+
+    return slides;
+  }, [expenses, activePeriodExpenses, monthlyBudget, budgetRemaining, totalMonth, budgetUsed, saldoPerDompet]);
+
+  // Auto slide every 4.5 seconds (pauses on hover)
+  useEffect(() => {
+    if (isCarouselHovered || walletSlides.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentCardSlide((prev) => (prev + 1) % walletSlides.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [isCarouselHovered, walletSlides.length]);
+
+  const handlePrevSlide = (e) => {
+    e?.stopPropagation();
+    setCurrentCardSlide((prev) => (prev - 1 + walletSlides.length) % walletSlides.length);
+  };
+
+  const handleNextSlide = (e) => {
+    e?.stopPropagation();
+    setCurrentCardSlide((prev) => (prev + 1) % walletSlides.length);
+  };
+
+  const handleTouchStart = (e) => {
+    setTouchEndX(null);
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX || !touchEndX) return;
+    const distance = touchStartX - touchEndX;
+    if (distance > 40) {
+      // Swiped Left -> Next
+      setCurrentCardSlide((prev) => (prev + 1) % walletSlides.length);
+    } else if (distance < -40) {
+      // Swiped Right -> Prev
+      setCurrentCardSlide((prev) => (prev - 1 + walletSlides.length) % walletSlides.length);
+    }
+  };
+
   // Sparkline data calculations
   const expenseSparkline = useMemo(() => {
     const byDay = {};
@@ -605,70 +717,114 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Total Saldo Card */}
-        <div className="box-card total-saldo-card">
-          <div>
-            <div className="saldo-card-head">
-              <div className="saldo-card-label">
-                <Wallet width="14" height="14" />
-                TOTAL SALDO
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setBudgetEditing((v) => !v)}
-                  className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  title="Edit budget"
-                >
-                  <Edit3 width="13" height="13" />
-                </button>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d7a18" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-              </div>
-            </div>
+        {/* Total Saldo ATM Card Carousel with Auto-Slide & Swipe */}
+        <div
+          className="box-card total-saldo-card relative group overflow-hidden select-none cursor-grab active:cursor-grabbing"
+          onMouseEnter={() => setIsCarouselHovered(true)}
+          onMouseLeave={() => setIsCarouselHovered(false)}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Navigation Chevron Buttons (Visible on Hover / Click) */}
+          <button
+            type="button"
+            onClick={handlePrevSlide}
+            aria-label="Previous card"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 shadow-sm"
+          >
+            <ChevronLeft width="14" height="14" />
+          </button>
 
-            <div className="saldo-chip-icon">
-              <div></div><div></div><div></div><div></div>
-            </div>
+          <button
+            type="button"
+            onClick={handleNextSlide}
+            aria-label="Next card"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 shadow-sm"
+          >
+            <ChevronRight width="14" height="14" />
+          </button>
 
-            {budgetEditing ? (
-              <div className="my-2 flex gap-2">
-                <input
-                  value={budgetInput}
-                  onChange={(e) => setBudgetInput(e.target.value)}
-                  inputMode="numeric"
-                  placeholder="Budget bulanan..."
-                  className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                />
-                <button
-                  onClick={saveBudget}
-                  disabled={budgetBusy}
-                  className="flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1 text-white hover:bg-emerald-500 disabled:opacity-60"
-                >
-                  <Save width="14" height="14" />
-                </button>
-              </div>
-            ) : (
-              <div className="saldo-main-amount">
-                {loading ? '...' : currency(monthlyBudget ? budgetRemaining : totalMonth)}
-              </div>
-            )}
+          {/* Carousel Slide Track */}
+          <div
+            className="flex transition-transform duration-500 ease-out h-full"
+            style={{ transform: `translateX(-${currentCardSlide * 100}%)` }}
+          >
+            {walletSlides.map((slide) => (
+              <div key={slide.id} className="min-w-full flex flex-col justify-between h-full px-0.5">
+                <div>
+                  <div className="saldo-card-head">
+                    <div className="saldo-card-label" style={{ color: slide.badgeColor }}>
+                      <Wallet width="14" height="14" />
+                      {slide.title}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {slide.type === 'total' && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setBudgetEditing((v) => !v); }}
+                          className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          title="Edit budget"
+                        >
+                          <Edit3 width="13" height="13" />
+                        </button>
+                      )}
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={slide.badgeColor} strokeWidth="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+                      </svg>
+                    </div>
+                  </div>
 
-            <div className="saldo-card-number">•••• •••• •••• 0080</div>
+                  <div className="saldo-chip-icon">
+                    <div></div><div></div><div></div><div></div>
+                  </div>
+
+                  {slide.type === 'total' && budgetEditing ? (
+                    <div className="my-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        value={budgetInput}
+                        onChange={(e) => setBudgetInput(e.target.value)}
+                        inputMode="numeric"
+                        placeholder="Budget bulanan..."
+                        className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                      />
+                      <button
+                        onClick={saveBudget}
+                        disabled={budgetBusy}
+                        className="flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1 text-white hover:bg-emerald-500 disabled:opacity-60"
+                      >
+                        <Save width="14" height="14" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="saldo-main-amount">
+                      {loading ? '...' : currency(slide.amount)}
+                    </div>
+                  )}
+
+                  <div className="saldo-card-number">{slide.cardNumber}</div>
+                </div>
+
+                <div>
+                  <div className="saldo-card-bottom">
+                    <span className="saldo-wallet-name">{slide.bottomLeft}</span>
+                    <span className="saldo-wallet-sub">{slide.bottomRight}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
-          <div>
-            <div className="saldo-card-bottom">
-              <span className="saldo-wallet-name">
-                {monthlyBudget ? `${budgetUsed.toFixed(1)}% budget terpakai` : 'Semua dompet'}
-              </span>
-              <span className="saldo-wallet-sub">{saldoPerDompet.length || 3} dompet aktif</span>
-            </div>
-            <div className="saldo-pagination-dots">
-              <div className="saldo-dot active"></div>
-              <div className="saldo-dot"></div>
-              <div className="saldo-dot"></div>
-              <div className="saldo-dot"></div>
-            </div>
+          {/* Clickable Pagination Dots */}
+          <div className="saldo-pagination-dots z-20 relative mt-2">
+            {walletSlides.map((_, dotIdx) => (
+              <div
+                key={dotIdx}
+                onClick={(e) => { e.stopPropagation(); setCurrentCardSlide(dotIdx); }}
+                className={`saldo-dot transition-all duration-300 cursor-pointer ${dotIdx === currentCardSlide ? 'active !w-5 !bg-[#76d446]' : '!bg-white/30 hover:!bg-white/60'}`}
+                title={`Lihat kartu ${dotIdx + 1}`}
+              />
+            ))}
           </div>
         </div>
 
