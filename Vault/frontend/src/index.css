@@ -6632,27 +6632,51 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
 .hero-banner-exact {
   position: relative;
   overflow: hidden;
-  background-color: #f3f8ee;
-  background-image: url('/hero-banner-bg.png');
-  background-position: center right;
-  background-size: cover;
-  background-repeat: no-repeat;
+  background-color: #ebf5dc;
   border: 1px solid #d6e4be;
-  border-radius: 20px;
-  padding: 22px 28px;
+  border-radius: 22px;
+  padding: 24px 28px;
   margin-bottom: 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 142px;
+  min-height: 148px;
   box-shadow: var(--shadow-card);
 }
 
 [data-theme="dark"] .hero-banner-exact, html.dark .hero-banner-exact {
   background-color: #101c11;
   border-color: #244618;
-  background-image: linear-gradient(to right, rgba(16, 28, 17, 0.88), rgba(16, 28, 17, 0.45)), url('/hero-banner-bg.png');
-  background-blend-mode: normal;
+}
+
+.hero-banner-art-wrap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  height: 100%;
+  width: 55%;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.hero-banner-art-img {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: right center;
+  opacity: 0.95;
+  transition: opacity 0.3s ease;
+}
+
+[data-theme="dark"] .hero-banner-art-img, html.dark .hero-banner-art-img {
+  opacity: 0.45;
+  mix-blend-mode: luminosity;
 }
 
 .hero-content-exact-left {

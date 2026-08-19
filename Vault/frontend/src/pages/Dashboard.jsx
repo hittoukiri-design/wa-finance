@@ -893,6 +893,15 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
+        {/* Precise Full-Height Uncropped Artwork Illustration */}
+        <div className="hero-banner-art-wrap">
+          <img
+            src="/hero-banner-bg.png"
+            alt="Hero Artwork"
+            className="hero-banner-art-img"
+          />
+        </div>
       </div>
 
       {/* ════ 2. TOP SUB-ROW GRID ════ */}
