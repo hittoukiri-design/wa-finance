@@ -6635,7 +6635,7 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   background-color: #f3f8ee;
   background-image: url('/hero-banner-bg.png');
   background-position: center right;
-  background-size: 100% 100%;
+  background-size: cover;
   background-repeat: no-repeat;
   border: 1px solid #d6e4be;
   border-radius: 20px;
@@ -6644,14 +6644,15 @@ html[data-theme="dark"] .wa-skin-shell-transaction .wa-skin-main-shell {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 138px;
+  min-height: 142px;
   box-shadow: var(--shadow-card);
 }
 
 [data-theme="dark"] .hero-banner-exact, html.dark .hero-banner-exact {
-  background-color: #12250d;
+  background-color: #101c11;
   border-color: #244618;
-  background-blend-mode: overlay;
+  background-image: linear-gradient(to right, rgba(16, 28, 17, 0.88), rgba(16, 28, 17, 0.45)), url('/hero-banner-bg.png');
+  background-blend-mode: normal;
 }
 
 .hero-content-exact-left {
