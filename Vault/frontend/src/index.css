@@ -8307,3 +8307,49 @@ html.dark .user-avatar-pill, [data-theme="dark"] .user-avatar-pill {
   color: #76d446 !important;
   border: 1px solid #263e1d !important;
 }
+
+
+/* ════ PRINT & PDF STYLING (Lossless Charts, Crisp Colors & Executive Report Layout) ════ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #0e2a07 !important;
+    font-size: 11pt !important;
+  }
+
+  /* Hide navigation, sidebar, action buttons, modals during PDF print */
+  aside,
+  .hero-ext-actions,
+  .tx-pagination-bar,
+  .sidebar-toggle-btn {
+    display: none !important;
+  }
+
+  /* Keep charts, cards, and SVG graphics fully rendered */
+  .hero-ext-card,
+  .metric-mini-card,
+  .recharts-responsive-container,
+  .recharts-surface,
+  .recharts-wrapper,
+  svg {
+    display: block !important;
+    break-inside: avoid !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
