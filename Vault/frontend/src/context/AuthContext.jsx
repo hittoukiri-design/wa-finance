@@ -15,8 +15,6 @@ import {
 import { auth } from '../lib/firebase';
 import { AuthContext } from './auth-context';
 
-// This App was build by Chris Tambayong - Fumakill4
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

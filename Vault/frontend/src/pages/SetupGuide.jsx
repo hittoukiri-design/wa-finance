@@ -14,8 +14,6 @@ import {
 } from 'lucide-react';
 import SCRIPT_TEMPLATE from '../../../SCRIPT INPUT DATA WA TO GOOGLE SHEET.txt?raw';
 
-// This App was build by Chris Tambayong - Fumakill4
-
 const steps = [
   <>Buat Google Spreadsheet baru & buka Apps Script (<span className="text-slate-300">Extensions → Apps Script</span>).</>,
   <>Copy kode lengkap di samping ke project Apps Script Anda. Script ini adalah versi project WA Finance.</>,

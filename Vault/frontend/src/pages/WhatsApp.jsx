@@ -3,8 +3,6 @@ import { CheckCircle2, LockKeyhole, RefreshCw, Send, ShieldCheck, Smartphone, Us
 import { QRCodeSVG } from 'qrcode.react';
 import { connectWhatsApp, disconnectWhatsApp, getWhatsAppStatus, sendWhatsAppMessage } from '../lib/whatsapp-api';
 
-// This App was build by Chris Tambayong - Fumakill4
-
 export default function WhatsApp() {
   const [status, setStatus] = useState({ status: 'checking' });
   const [busy, setBusy] = useState(false);

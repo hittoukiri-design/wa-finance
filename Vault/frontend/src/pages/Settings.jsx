@@ -190,7 +190,7 @@ export default function Settings() {
               Didukung AI • WhatsApp Sync • Firebase® Security
             </div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-              Dikembangkan oleh i729 Tambayong
+              WA Finance Gateway
             </p>
           </div>
         </div>
