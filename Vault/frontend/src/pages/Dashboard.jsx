@@ -912,8 +912,36 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ════ 1. HERO BANNER CAPSULE ════ */}
+      {/* ════ 1. HERO BANNER CAPSULE — EXTENDED CREATIVE VERSION ════ */}
       <div className="hero-banner-exact">
+        {/* Extended Creative Atmospheric Background Elements */}
+        <div className="hero-ext-hill" />
+        <div className="hero-ext-coin c1" />
+        <div className="hero-ext-coin c2" />
+        <div className="hero-ext-coin c3" />
+        <div className="hero-ext-outline-pill" />
+        <div className="hero-ext-ring" />
+        <div className="hero-ext-dots" />
+        <div className="hero-ext-arc" />
+
+        <svg className="hero-ext-wave" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true">
+          <path className="w1" d="M0 74 C160 22 280 104 432 72 C620 32 740 102 905 67 C1030 41 1110 49 1200 76" />
+          <path className="w2" d="M0 92 C160 50 300 116 458 87 C640 55 790 109 950 80 C1060 60 1130 61 1200 83" />
+        </svg>
+
+        {/* Right-Aligned Organic Breeze Artwork */}
+        <div className="hero-banner-art-wrap">
+          <img
+            src="/hero-banner-bg.png"
+            alt="Hero Artwork"
+            className="hero-banner-art-img"
+          />
+        </div>
+
+        {/* Living Ambient Light Shimmer */}
+        <div className="hero-ext-light" />
+
+        {/* Content Left */}
         <div className="hero-content-exact-left">
           <h1 className="hero-title-exact">{getGreeting()}, {firstName(user)}</h1>
           <p className="hero-desc-exact">
@@ -946,22 +974,6 @@ export default function Dashboard() {
               Tutup Buku & Backup
             </button>
           </div>
-        </div>
-
-        {/* Living Animated Atmosphere Elements */}
-        <span className="hero-light-sweep" />
-        <span className="hero-float-orb orb1" />
-        <span className="hero-float-orb orb2" />
-        <span className="hero-float-orb orb3" />
-        <span className="hero-wave-glow" />
-
-        {/* Precise Full-Height Uncropped Artwork Illustration */}
-        <div className="hero-banner-art-wrap">
-          <img
-            src="/hero-banner-bg.png"
-            alt="Hero Artwork"
-            className="hero-banner-art-img"
-          />
         </div>
       </div>
 
