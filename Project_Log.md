@@ -139,6 +139,10 @@ Dua gambar asli telah disalin ke dalam proyek frontend (`Vault/frontend`) dan si
   - **Git Tag `v.1.0`**: Berhasil dibuat dan dipush ke GitHub (`https://github.com/hittoukiri-design/wa-finance/releases/tag/v.1.0`) sebagai cadangan aman dari versi legacy awal.
   - **Pembersihan Menu Pengaturan (`/settings`)**: Menghapus kartu Google Apps Script (Web App Endpoint URL & Spreadsheet ID) yang sudah tidak terpakai, sehingga halaman fokus pada **Konfigurasi AI (Groq)** dan Profil Akun.
   - **Pembersihan Menu Sidebar**: Menghapus menu usang `Setup Guide` dari navigasi Sidebar, menghasilkan menu yang ringkas, bersih, dan 100% fungsional.
+- ✅ **Official Release V.2.0 & V.1.0 di GitHub**:
+  - **Release V.2.0**: [https://github.com/hittoukiri-design/wa-finance/releases/tag/v.2.0](https://github.com/hittoukiri-design/wa-finance/releases/tag/v.2.0) (Botanical Theme, Otonom Firestore & SQLite, Master Excel On-The-Fly Template, Multi-Color Analytics, Pembersihan Google Apps Script).
+  - **Release V.1.0**: [https://github.com/hittoukiri-design/wa-finance/releases/tag/v.1.0](https://github.com/hittoukiri-design/wa-finance/releases/tag/v.1.0) (Baseline Legacy Google Apps Script).
+  - **Audit Keamanan & Privasi**: Dipastikan 100% bersih tanpa ada data sensitif, API key, kredensial Firebase, sesi WhatsApp, database SQLite lokal, atau laporan harian pribadi yang terunggah ke repositori.
 - ✅ **Build production terbaru** (`index-BieLRqFi.js` & `index-BOTHkDZy.css`) telah aktif dan live di container Mac mini.
 
 ## Next Steps untuk Codex
