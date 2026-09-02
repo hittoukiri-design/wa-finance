@@ -65,6 +65,20 @@ function getCategoryIcon(name) {
   return CATEGORY_EMOJIS[name] || '🏷️';
 }
 
+function getExpenseDate(item) {
+  const value = item.createdAt || item.timestamp || item.date;
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function dateFromInput(value) {
+  if (!value) return null;
+  const [year, month, day] = String(value).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
 export default function Dompet() {
   const { user } = useAuth();
   const [expenses, setExpenses] = useState([]);
@@ -116,8 +130,19 @@ export default function Dompet() {
     const displayNameMap = {};
     const uniqueKeys = new Set();
     const deletedWallets = new Set((savedSettings.deleted_wallets || []).map((w) => String(w).toLowerCase()));
+    const activeRecapStart = dateFromInput(savedSettings.active_recap_start_date);
 
-    expenses.forEach((e) => {
+    const activeExpenses = expenses.filter((e) => {
+      const status = String(e.recap_status || 'active').toLowerCase();
+      if (status === 'archived') return false;
+      if (activeRecapStart) {
+        const d = getExpenseDate(e);
+        if (d && d < activeRecapStart) return false;
+      }
+      return true;
+    });
+
+    activeExpenses.forEach((e) => {
       const raw = String(e.payment_channel || e.rekening || '').trim();
       if (!raw) return;
       const key = raw.toLowerCase();

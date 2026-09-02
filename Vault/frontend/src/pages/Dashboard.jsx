@@ -743,7 +743,7 @@ export default function Dashboard() {
     const displayNameMap = {};
     const uniqueKeys = new Set();
 
-    expenses.forEach((e) => {
+    activePeriodExpenses.forEach((e) => {
       const raw = String(e.payment_channel || e.rekening || 'Cash').trim();
       if (!raw) return;
       const key = raw.toLowerCase();
@@ -753,7 +753,7 @@ export default function Dashboard() {
       walletExpenseMap[key] = (walletExpenseMap[key] || 0) + amt;
     });
 
-    incomes.forEach((item) => {
+    activePeriodIncomes.forEach((item) => {
       const raw = String(item.payment_channel || item.rekening || 'Cash').trim();
       if (!raw) return;
       const key = raw.toLowerCase();
