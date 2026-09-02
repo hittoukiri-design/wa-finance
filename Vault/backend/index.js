@@ -1,3 +1,7 @@
+/**
+ * WA Finance Gateway Platform
+ * @copyright 2026 WA Finance App created by Chris Tambayong
+ */
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');

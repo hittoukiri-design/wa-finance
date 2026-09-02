@@ -65,3 +65,6 @@ This project is open-source and intended as a flexible "Blank Slate" template. F
 
 ## 📄 License
 MIT License
+
+---
+© 2026 WA Finance App created by Chris Tambayong
