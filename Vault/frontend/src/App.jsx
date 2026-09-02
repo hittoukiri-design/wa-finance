@@ -69,17 +69,54 @@ function ProtectedApp() {
   );
 }
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("WebApp ErrorBoundary caught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-[#071019] p-6 text-center text-slate-200">
+          <div className="max-w-md rounded-2xl border border-emerald-500/30 bg-[#0d1821] p-8 shadow-2xl">
+            <h2 className="text-xl font-bold text-emerald-400">Aplikasi Perlu Diperbarui</h2>
+            <p className="mt-3 text-sm text-slate-400">Sistem baru saja melakukan pembaruan versi. Silakan klik tombol di bawah untuk memuat ulang aplikasi.</p>
+            <button
+              onClick={() => { window.location.reload(); }}
+              className="mt-6 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-[#052216] transition hover:bg-emerald-400"
+            >
+              Muat Ulang Halaman (Reload)
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <SidebarProvider>
-          <FilterProvider>
-            <ProtectedApp />
-          </FilterProvider>
-        </SidebarProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <SidebarProvider>
+            <FilterProvider>
+              <ProtectedApp />
+            </FilterProvider>
+          </SidebarProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
