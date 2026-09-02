@@ -560,94 +560,101 @@ export default function Analytics() {
           )}
         </div>
 
-        {/* Spend by Category Progress Breakdown */}
-        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
-              Spend by Category <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
-            </h2>
-            <SelectPill value={categoryRange} onChange={setCategoryRange} options={CATEGORY_OPTIONS} />
+        {/* Right Column: Spend by Category + Riwayat Pengeluaran stacked */}
+        <div className="flex flex-col gap-5">
+
+          {/* Spend by Category Progress Breakdown */}
+          <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
+                Spend by Category <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
+              </h2>
+              <SelectPill value={categoryRange} onChange={setCategoryRange} options={CATEGORY_OPTIONS} />
+            </div>
+
+            {analytics.categories.length ? (
+              <div className="space-y-3.5">
+                {analytics.categories.slice(0, 6).map((item) => (
+                  <div key={item.name} className="grid grid-cols-[105px_1fr_95px_45px] items-center gap-3 text-xs font-bold">
+                    <span className="truncate text-[#0e2a07] dark:text-[#f3ffe9]">{item.name}</span>
+                    <span className="h-2.5 overflow-hidden rounded-full bg-[#c3ef92]/60 dark:bg-[#1c3818]">
+                      <span className="block h-full rounded-full" style={{ width: `${Math.max(4, item.percent)}%`, backgroundColor: item.color }} />
+                    </span>
+                    <span className="text-right text-[#1a5611] dark:text-[#76d446]">{currency(item.value)}</span>
+                    <span className="text-right text-slate-500 dark:text-slate-400">{item.percent.toFixed(1)}%</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between border-t border-[#d6e4be] pt-3 text-xs font-black dark:border-[#243e1c]">
+                  <span className="text-[#0e2a07] dark:text-[#f3ffe9]">Total Kategori</span>
+                  <strong className="text-[#1a5611] dark:text-[#76d446]">{currency(analytics.categoryTotal)}</strong>
+                </div>
+              </div>
+            ) : (
+              <EmptyAnalytics text="Kategori akan muncul setelah transaksi pada periode terpilih tersedia." />
+            )}
           </div>
 
-          {analytics.categories.length ? (
-            <div className="space-y-3.5">
-              {analytics.categories.slice(0, 6).map((item) => (
-                <div key={item.name} className="grid grid-cols-[105px_1fr_95px_45px] items-center gap-3 text-xs font-bold">
-                  <span className="truncate text-[#0e2a07] dark:text-[#f3ffe9]">{item.name}</span>
-                  <span className="h-2.5 overflow-hidden rounded-full bg-[#c3ef92]/60 dark:bg-[#1c3818]">
-                    <span className="block h-full rounded-full" style={{ width: `${Math.max(4, item.percent)}%`, backgroundColor: item.color }} />
-                  </span>
-                  <span className="text-right text-[#1a5611] dark:text-[#76d446]">{currency(item.value)}</span>
-                  <span className="text-right text-slate-500 dark:text-slate-400">{item.percent.toFixed(1)}%</span>
-                </div>
-              ))}
-              <div className="flex items-center justify-between border-t border-[#d6e4be] pt-3 text-xs font-black dark:border-[#243e1c]">
-                <span className="text-[#0e2a07] dark:text-[#f3ffe9]">Total Kategori</span>
-                <strong className="text-[#1a5611] dark:text-[#76d446]">{currency(analytics.categoryTotal)}</strong>
-              </div>
+          {/* Riwayat Pengeluaran Per Periode (Tutup Buku) */}
+          <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
+                <History className="h-4 w-4 text-[#358219] dark:text-[#76d446]" /> Riwayat Pengeluaran Per Periode
+              </h2>
+              <span className="rounded-full bg-[#c3ef92] px-2.5 py-0.5 text-[10px] font-black uppercase text-[#1a5611] dark:bg-[#1a3816] dark:text-[#76d446]">
+                {periodHistory.length} Periode
+              </span>
             </div>
-          ) : (
-            <EmptyAnalytics text="Kategori akan muncul setelah transaksi pada periode terpilih tersedia." />
-          )}
-        </div>
+
+            <div className="divide-y divide-[#d6e4be] dark:divide-[#1e3319]">
+              {periodHistory.map((period) => (
+                <button
+                  key={period.id}
+                  type="button"
+                  onClick={() => setSelectedPeriodModal(period)}
+                  className="group w-full flex items-center justify-between gap-4 py-3 text-left transition first:pt-0 last:pb-0 hover:opacity-80"
+                >
+                  {/* Left */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                        period.isActive
+                          ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                          : 'bg-[#d6e4be]/80 text-[#436d32] dark:bg-[#1e3319] dark:text-[#8bb37a]'
+                      }`}>
+                        {period.isActive ? 'Periode Aktif' : 'Tutup Buku'}
+                      </span>
+                      {period.isSpike && (
+                        <span className="flex items-center gap-0.5 text-[9px] font-extrabold text-amber-600 dark:text-amber-400">
+                          <Flame className="h-2.5 w-2.5" /> +{period.spikePct}%
+                        </span>
+                      )}
+                    </div>
+                    <p className="truncate text-sm font-bold text-[#0e2a07] dark:text-[#f3ffe9]">
+                      {period.isActive ? 'Periode Aktif (Sedang Berjalan)' : period.name}
+                    </p>
+                    <p className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                      <Calendar className="h-2.5 w-2.5" /> {period.dateRangeStr} · {period.txCount} transaksi
+                    </p>
+                  </div>
+
+                  {/* Right */}
+                  <div className="shrink-0 text-right">
+                    <p className="font-black text-red-600 dark:text-red-400">{currency(period.totalExpense)}</p>
+                    <p className={`flex items-center justify-end gap-0.5 text-[11px] font-semibold ${period.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                      {period.net >= 0 ? `+${shortCurrency(period.net)}` : shortCurrency(period.net)}
+                      <ChevronRight className="h-3.5 w-3.5 opacity-50 transition group-hover:translate-x-0.5 group-hover:opacity-90" />
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+        </div>{/* end right column */}
 
       </section>
 
-      {/* ── Riwayat Pengeluaran Per Periode (Tutup Buku) ── */}
-      <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
-            <History className="h-4 w-4 text-[#358219] dark:text-[#76d446]" /> Riwayat Pengeluaran Per Periode
-          </h2>
-          <span className="rounded-full bg-[#c3ef92] px-2.5 py-0.5 text-[10px] font-black uppercase text-[#1a5611] dark:bg-[#1a3816] dark:text-[#76d446]">
-            {periodHistory.length} Periode
-          </span>
-        </div>
 
-        <div className="divide-y divide-[#d6e4be] dark:divide-[#1e3319]">
-          {periodHistory.map((period) => (
-            <button
-              key={period.id}
-              type="button"
-              onClick={() => setSelectedPeriodModal(period)}
-              className="group w-full flex items-center justify-between gap-4 py-3 text-left transition first:pt-0 last:pb-0 hover:opacity-80"
-            >
-              {/* Left */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
-                    period.isActive
-                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                      : 'bg-[#d6e4be]/80 text-[#436d32] dark:bg-[#1e3319] dark:text-[#8bb37a]'
-                  }`}>
-                    {period.isActive ? 'Periode Aktif' : 'Tutup Buku'}
-                  </span>
-                  {period.isSpike && (
-                    <span className="flex items-center gap-0.5 text-[9px] font-extrabold text-amber-600 dark:text-amber-400">
-                      <Flame className="h-2.5 w-2.5" /> +{period.spikePct}%
-                    </span>
-                  )}
-                </div>
-                <p className="truncate text-sm font-bold text-[#0e2a07] dark:text-[#f3ffe9]">
-                  {period.isActive ? 'Periode Aktif (Sedang Berjalan)' : period.name}
-                </p>
-                <p className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                  <Calendar className="h-2.5 w-2.5" /> {period.dateRangeStr} · {period.txCount} transaksi
-                </p>
-              </div>
-
-              {/* Right */}
-              <div className="shrink-0 text-right">
-                <p className="font-black text-red-600 dark:text-red-400">{currency(period.totalExpense)}</p>
-                <p className={`flex items-center justify-end gap-0.5 text-[11px] font-semibold ${period.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-                  {period.net >= 0 ? `+${shortCurrency(period.net)}` : shortCurrency(period.net)}
-                  <ChevronRight className="h-3.5 w-3.5 opacity-50 transition group-hover:translate-x-0.5 group-hover:opacity-90" />
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
 
 
 
