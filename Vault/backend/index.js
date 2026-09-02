@@ -625,7 +625,6 @@ app.post('/api/recaps/new', authenticate, async (req, res) => {
                     recap_status = 'archived',
                     archived_at = datetime('now', 'localtime')
                 WHERE user_id = ?
-                  AND ${activeWhere}
                   AND LOWER(COALESCE(type, '')) != 'savings'
                   AND LOWER(COALESCE(category, '')) NOT LIKE '%tabung%'
                   AND LOWER(COALESCE(category, '')) NOT LIKE '%invest%'

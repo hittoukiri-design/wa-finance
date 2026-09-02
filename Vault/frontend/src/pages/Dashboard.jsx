@@ -151,6 +151,18 @@ function isSalaryIncome(item) {
   return /\b(gaji|salary|upah|payroll)\b/.test(text);
 }
 
+function isTransferTransaction(item) {
+  if (!item) return false;
+  const cat = String(item.category || '').toLowerCase();
+  const merch = String(item.merchant || '').toLowerCase();
+  return cat === 'transfer' ||
+    merch.includes('pindah saldo') ||
+    merch.includes('transfer ke') ||
+    merch.includes('terima transfer') ||
+    merch.includes('tarik / transfer') ||
+    merch.includes('terima tarik tunai');
+}
+
 function isInRange(item, range, activeStart = null) {
   const date = getExpenseDate(item);
   if (!date) return range === 'month';
@@ -586,11 +598,19 @@ export default function Dashboard() {
     return expenses.filter((item) => isInRange(item, categoryRange, activePeriodStart));
   }, [isFiltered, isFilteringIncome, activePeriodIncomes, activePeriodExpenses, expenses, categoryRange, activePeriodStart]);
 
-  const totalMonth = activePeriodExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const salaryIncomePeriod = activePeriodIncomes
+  const nonTransferExpenses = useMemo(() => {
+    return activePeriodExpenses.filter((item) => !isTransferTransaction(item));
+  }, [activePeriodExpenses]);
+
+  const nonTransferIncomes = useMemo(() => {
+    return activePeriodIncomes.filter((item) => !isTransferTransaction(item));
+  }, [activePeriodIncomes]);
+
+  const totalMonth = nonTransferExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const salaryIncomePeriod = nonTransferIncomes
     .filter((item) => isSalaryIncome(item))
     .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const extraIncomePeriod = activePeriodIncomes
+  const extraIncomePeriod = nonTransferIncomes
     .filter((item) => !isSalaryIncome(item))
     .reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const totalIncome = salaryIncomePeriod + extraIncomePeriod;
