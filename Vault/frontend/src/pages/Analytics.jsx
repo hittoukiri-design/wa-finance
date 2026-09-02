@@ -595,78 +595,58 @@ export default function Analytics() {
 
       {/* ── Riwayat Pengeluaran Per Periode (Tutup Buku) ── */}
       <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
-        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
-              <History className="h-4 w-4 text-[#358219] dark:text-[#76d446]" /> Riwayat Pengeluaran Per Periode (Tutup Buku)
-            </h2>
-            <p className="text-xs text-[#436d32] dark:text-[#8bb37a]">
-              Klik pada kartu periode di bawah untuk membuka popup rincian seluruh transaksi pengeluaran bulan tersebut.
-            </p>
-          </div>
-          <span className="self-start rounded-full bg-[#c3ef92] px-3 py-1 text-[10px] font-black uppercase text-[#1a5611] dark:bg-[#1a3816] dark:text-[#76d446] sm:self-auto">
-            {periodHistory.length} Periode Recorded
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
+            <History className="h-4 w-4 text-[#358219] dark:text-[#76d446]" /> Riwayat Pengeluaran Per Periode
+          </h2>
+          <span className="rounded-full bg-[#c3ef92] px-2.5 py-0.5 text-[10px] font-black uppercase text-[#1a5611] dark:bg-[#1a3816] dark:text-[#76d446]">
+            {periodHistory.length} Periode
           </span>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-1.5">
           {periodHistory.map((period) => (
             <button
               key={period.id}
               type="button"
               onClick={() => setSelectedPeriodModal(period)}
-              className={`group relative flex flex-col justify-between rounded-2xl border p-4 text-left shadow-sm transition hover:scale-[1.01] hover:shadow-md ${
-                period.isActive
-                  ? 'border-emerald-500/50 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent dark:border-emerald-500/40 dark:bg-[#152a17]'
-                  : 'border-[#d6e4be] bg-white hover:border-[#b8dc9f] dark:border-[#263e1d] dark:bg-[#152417] dark:hover:border-[#38642a]'
+              className={`group w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-left text-xs transition hover:bg-[#d8edbf]/60 dark:hover:bg-[#1c3318]/60 ${
+                period.isActive ? 'bg-emerald-500/8 dark:bg-emerald-900/20' : ''
               }`}
             >
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase ${
-                    period.isActive
-                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                      : 'bg-slate-500/15 text-slate-600 dark:text-slate-400'
-                  }`}>
-                    {period.isActive ? 'Periode Aktif' : 'Tutup Buku'}
-                  </span>
-
-                  {period.isSpike && (
-                    <span className="flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[9px] font-extrabold text-amber-600 dark:text-amber-400">
-                      <Flame className="h-3 w-3" /> Lonjakan +{period.spikePct}%
+              {/* Left: badge + name + date */}
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${period.isActive ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'}`} />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="truncate font-bold text-[#0e2a07] dark:text-[#f3ffe9]">
+                      {period.isActive ? 'Periode Aktif' : period.name}
                     </span>
-                  )}
+                    {period.isSpike && (
+                      <span className="flex shrink-0 items-center gap-0.5 text-[9px] font-extrabold text-amber-600 dark:text-amber-400">
+                        <Flame className="h-2.5 w-2.5" /> +{period.spikePct}%
+                      </span>
+                    )}
+                  </div>
+                  <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                    <Calendar className="h-2.5 w-2.5" /> {period.dateRangeStr} · {period.txCount} transaksi
+                  </span>
                 </div>
-
-                <h3 className="mt-2.5 truncate font-extrabold text-[#0e2a07] dark:text-[#f3ffe9]">
-                  {period.name}
-                </h3>
-                <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  <Calendar className="h-3 w-3 text-[#358219] dark:text-[#76d446]" />
-                  {period.dateRangeStr}
-                </p>
               </div>
 
-              <div className="mt-4 border-t border-[#d6e4be]/70 pt-3 dark:border-[#243e1c]">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400">Total Pengeluaran</span>
-                  <span className="text-base font-black text-red-600 dark:text-red-400">
-                    {currency(period.totalExpense)}
-                  </span>
-                </div>
-
-                <div className="mt-1 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-500 dark:text-slate-400">{period.txCount} Transaksi</span>
-                  <span className={`font-extrabold flex items-center gap-0.5 ${period.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-                    {period.net >= 0 ? `+${shortCurrency(period.net)}` : shortCurrency(period.net)}
-                    <ChevronRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
-                  </span>
-                </div>
+              {/* Right: total expense + net cashflow */}
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="font-black text-red-600 dark:text-red-400">{currency(period.totalExpense)}</span>
+                <span className={`flex items-center gap-0.5 font-semibold ${period.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                  {period.net >= 0 ? `+${shortCurrency(period.net)}` : shortCurrency(period.net)}
+                  <ChevronRight className="h-3.5 w-3.5 opacity-40 transition group-hover:translate-x-0.5 group-hover:opacity-80" />
+                </span>
               </div>
             </button>
           ))}
         </div>
       </section>
+
 
       {/* ── Lower Section: AI Insights & Sources Breakdown ── */}
       <section className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
