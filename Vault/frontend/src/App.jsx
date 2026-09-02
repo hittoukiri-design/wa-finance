@@ -91,7 +91,7 @@ class ErrorBoundary extends React.Component {
             <h2 className="text-xl font-bold text-emerald-400">Aplikasi Perlu Diperbarui</h2>
             <p className="mt-3 text-sm text-slate-400">Sistem baru saja melakukan pembaruan versi. Silakan klik tombol di bawah untuk memuat ulang aplikasi.</p>
             <button
-              onClick={() => { window.location.reload(); }}
+              onClick={() => { window.location.href = window.location.origin + window.location.pathname + '?t=' + Date.now(); }}
               className="mt-6 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-[#052216] transition hover:bg-emerald-400"
             >
               Muat Ulang Halaman (Reload)

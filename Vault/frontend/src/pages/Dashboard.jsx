@@ -728,20 +728,6 @@ export default function Dashboard() {
     return `${s.getDate()} ${new Intl.DateTimeFormat('id-ID', { month: 'short' }).format(s)} - ${e.getDate()} ${new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(e)}`;
   }, [weekOffset, weekDays]);
 
-  // Saldo per Dompet (Murni Saldo Fisik Dompet Aktif)
-  const saldoPerDompet = useMemo(() => {
-    const maxVal = Math.max(...walletList.map((w) => w.balance), 1);
-    const COLORS = ['#1b5e20', '#f5962a', '#2563eb', '#6952ec'];
-    return walletList
-      .slice(0, 4)
-      .map((w, i) => ({
-        name: w.name,
-        amount: w.balance,
-        percent: Math.max(0, Math.round((w.balance / maxVal) * 100)),
-        color: COLORS[i % COLORS.length],
-      }));
-  }, [walletList]);
-
   // ── ATM Card Carousel Slides & Seamless Infinite Loop ──
   const [currentCardSlide, setCurrentCardSlide] = useState(1);
   const [isTransitioning, setIsTransitioning] = useState(true);
@@ -861,6 +847,20 @@ export default function Dashboard() {
 
     return slides;
   }, [expenses, incomes, activePeriodExpenses, monthlyBudget, budgetRemaining, budgetUsed, savedWallets]);
+
+  // Saldo per Dompet (Murni Saldo Fisik Dompet Aktif)
+  const saldoPerDompet = useMemo(() => {
+    const actualWallets = walletSlides.filter((s) => s.type === 'wallet');
+    const maxVal = Math.max(...actualWallets.map((w) => w.amount), 1);
+    return actualWallets
+      .slice(0, 4)
+      .map((w) => ({
+        name: w.title,
+        amount: w.amount,
+        percent: Math.max(0, Math.round((w.amount / maxVal) * 100)),
+        color: w.badgeColor || '#76d446',
+      }));
+  }, [walletSlides]);
 
   // Extended slides with clones for seamless infinite loop
   const displaySlides = useMemo(() => {
