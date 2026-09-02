@@ -604,48 +604,51 @@ export default function Analytics() {
           </span>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="divide-y divide-[#d6e4be] dark:divide-[#1e3319]">
           {periodHistory.map((period) => (
             <button
               key={period.id}
               type="button"
               onClick={() => setSelectedPeriodModal(period)}
-              className={`group w-full flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-left text-xs transition hover:bg-[#d8edbf]/60 dark:hover:bg-[#1c3318]/60 ${
-                period.isActive ? 'bg-emerald-500/8 dark:bg-emerald-900/20' : ''
-              }`}
+              className="group w-full flex items-center justify-between gap-4 py-3 text-left transition first:pt-0 last:pb-0 hover:opacity-80"
             >
-              {/* Left: badge + name + date */}
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${period.isActive ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'}`} />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span className="truncate font-bold text-[#0e2a07] dark:text-[#f3ffe9]">
-                      {period.isActive ? 'Periode Aktif' : period.name}
-                    </span>
-                    {period.isSpike && (
-                      <span className="flex shrink-0 items-center gap-0.5 text-[9px] font-extrabold text-amber-600 dark:text-amber-400">
-                        <Flame className="h-2.5 w-2.5" /> +{period.spikePct}%
-                      </span>
-                    )}
-                  </div>
-                  <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
-                    <Calendar className="h-2.5 w-2.5" /> {period.dateRangeStr} · {period.txCount} transaksi
+              {/* Left */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                    period.isActive
+                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-[#d6e4be]/80 text-[#436d32] dark:bg-[#1e3319] dark:text-[#8bb37a]'
+                  }`}>
+                    {period.isActive ? 'Periode Aktif' : 'Tutup Buku'}
                   </span>
+                  {period.isSpike && (
+                    <span className="flex items-center gap-0.5 text-[9px] font-extrabold text-amber-600 dark:text-amber-400">
+                      <Flame className="h-2.5 w-2.5" /> +{period.spikePct}%
+                    </span>
+                  )}
                 </div>
+                <p className="truncate text-sm font-bold text-[#0e2a07] dark:text-[#f3ffe9]">
+                  {period.isActive ? 'Periode Aktif (Sedang Berjalan)' : period.name}
+                </p>
+                <p className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  <Calendar className="h-2.5 w-2.5" /> {period.dateRangeStr} · {period.txCount} transaksi
+                </p>
               </div>
 
-              {/* Right: total expense + net cashflow */}
-              <div className="flex shrink-0 items-center gap-3">
-                <span className="font-black text-red-600 dark:text-red-400">{currency(period.totalExpense)}</span>
-                <span className={`flex items-center gap-0.5 font-semibold ${period.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+              {/* Right */}
+              <div className="shrink-0 text-right">
+                <p className="font-black text-red-600 dark:text-red-400">{currency(period.totalExpense)}</p>
+                <p className={`flex items-center justify-end gap-0.5 text-[11px] font-semibold ${period.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
                   {period.net >= 0 ? `+${shortCurrency(period.net)}` : shortCurrency(period.net)}
-                  <ChevronRight className="h-3.5 w-3.5 opacity-40 transition group-hover:translate-x-0.5 group-hover:opacity-80" />
-                </span>
+                  <ChevronRight className="h-3.5 w-3.5 opacity-50 transition group-hover:translate-x-0.5 group-hover:opacity-90" />
+                </p>
               </div>
             </button>
           ))}
         </div>
       </section>
+
 
 
       {/* ── Lower Section: AI Insights & Sources Breakdown ── */}
