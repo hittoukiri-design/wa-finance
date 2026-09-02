@@ -417,17 +417,26 @@ export default function Analytics() {
 
     // 2. Periode Tutup Buku yang Sudah Lewat -> diurutkan dari terbaru hingga paling lama di PALING BAWAH!
     recapsList.forEach((r) => {
-      const rStart = dateFromInput(r.start_date) || (r.created_at ? new Date(r.created_at) : null);
       const rClosed = r.closed_at ? new Date(r.closed_at) : null;
-      
+      const baseStart = dateFromInput(r.start_date);
+
       const rTxs = allTransactions.filter((item) => {
         if (item.recap_id && item.recap_id === r.id) return true;
-        if (item.recap_status === 'archived' && rStart && rClosed) {
+        if (item.recap_status === 'archived' && baseStart && rClosed) {
           const d = getDate(item);
-          return d && d >= rStart && d <= rClosed;
+          return d && d >= baseStart && d <= rClosed;
         }
         return false;
       });
+
+      const txDates = rTxs.map(getDate).filter(Boolean).sort((a, b) => a - b);
+      const minTxDate = txDates.length ? txDates[0] : null;
+      let rStart = baseStart || minTxDate || (r.created_at ? new Date(r.created_at) : null);
+
+      // If rStart and rClosed fall on the exact same date, try using minTxDate if it differs
+      if (rStart && rClosed && formatDay(rStart) === formatDay(rClosed) && minTxDate && formatDay(minTxDate) !== formatDay(rClosed)) {
+        rStart = minTxDate;
+      }
 
       const rNonTransferExpenses = rTxs.filter((e) => e.type !== 'income' && !isTransferTransaction(e));
       const rNonTransferIncomes = rTxs.filter((e) => e.type === 'income' && !isTransferTransaction(e));
@@ -435,12 +444,18 @@ export default function Analytics() {
       const rTotalExpense = rNonTransferExpenses.reduce((s, e) => s + Number(e.amount || 0), Number(r.total_expense || 0));
       const rTotalIncome = rNonTransferIncomes.reduce((s, e) => s + Number(e.amount || 0), Number(r.total_income || 0));
 
+      const rangeStr = rStart && rClosed
+        ? `${formatDay(rStart)} - ${formatDay(rClosed)}`
+        : rStart
+        ? formatDay(rStart)
+        : (r.name || 'Periode Lalu');
+
       list.push({
         id: r.id,
         name: r.name || `Arsip ${rStart ? formatDay(rStart) : 'Tutup Buku'}`,
         startDateLabel: rStart ? formatDay(rStart) : '-',
         endDateLabel: rClosed ? formatDay(rClosed) : '-',
-        dateRangeStr: rStart && rClosed ? `${formatDay(rStart)} - ${formatDay(rClosed)}` : (r.name || 'Periode Lalu'),
+        dateRangeStr: rangeStr,
         totalExpense: rTotalExpense,
         totalIncome: rTotalIncome,
         net: rTotalIncome - rTotalExpense,

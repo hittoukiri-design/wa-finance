@@ -576,7 +576,7 @@ app.post('/api/recaps/new', authenticate, async (req, res) => {
     const recapId = makeRecapId();
     const activeName = safeRecapName(req.body?.name || 'Periode Baru');
     const recapName = safeRecapName(req.body?.archive_name || `Arsip sebelum ${activeName}`);
-    const startDate = dateInputValue(req.body?.start_date || new Date());
+    const startDate = dateInputValue(req.body?.archive_start_date || settings.active_recap_start_date || req.body?.start_date || new Date());
     const closedAt = new Date().toISOString();
     const recap = { id: recapId, name: recapName, start_date: startDate };
 
