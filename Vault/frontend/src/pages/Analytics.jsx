@@ -525,11 +525,11 @@ export default function Analytics() {
         />
       </section>
 
-      {/* ── Main Charts Row ── */}
-      <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        
+      {/* ── Main Charts Row: 3 kolom sejajar ── */}
+      <section className="grid items-start gap-5 xl:grid-cols-3">
+
         {/* Spending Trend Area Chart */}
-        <div className="self-start rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
               Spending Trend <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
@@ -538,7 +538,7 @@ export default function Analytics() {
           </div>
 
           {analytics.trend.some((item) => item.amount > 0) ? (
-            <div className="h-[260px]">
+            <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={analytics.trend} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                   <defs>
@@ -560,89 +560,82 @@ export default function Analytics() {
           )}
         </div>
 
-        {/* Right Column: Spend by Category + Riwayat Pengeluaran stacked */}
-        <div className="flex flex-col gap-5">
-
-          {/* Spend by Category Progress Breakdown */}
-          <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
-                Spend by Category <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
-              </h2>
-              <SelectPill value={categoryRange} onChange={setCategoryRange} options={CATEGORY_OPTIONS} />
-            </div>
-
-            {analytics.categories.length ? (
-              <div className="space-y-3.5">
-                {analytics.categories.slice(0, 6).map((item) => (
-                  <div key={item.name} className="grid grid-cols-[105px_1fr_95px_45px] items-center gap-3 text-xs font-bold">
-                    <span className="truncate text-[#0e2a07] dark:text-[#f3ffe9]">{item.name}</span>
-                    <span className="h-2.5 overflow-hidden rounded-full bg-[#c3ef92]/60 dark:bg-[#1c3818]">
-                      <span className="block h-full rounded-full" style={{ width: `${Math.max(4, item.percent)}%`, backgroundColor: item.color }} />
-                    </span>
-                    <span className="text-right text-[#1a5611] dark:text-[#76d446]">{currency(item.value)}</span>
-                    <span className="text-right text-slate-500 dark:text-slate-400">{item.percent.toFixed(1)}%</span>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between border-t border-[#d6e4be] pt-3 text-xs font-black dark:border-[#243e1c]">
-                  <span className="text-[#0e2a07] dark:text-[#f3ffe9]">Total Kategori</span>
-                  <strong className="text-[#1a5611] dark:text-[#76d446]">{currency(analytics.categoryTotal)}</strong>
-                </div>
-              </div>
-            ) : (
-              <EmptyAnalytics text="Kategori akan muncul setelah transaksi pada periode terpilih tersedia." />
-            )}
+        {/* Spend by Category Progress Breakdown */}
+        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
+              Spend by Category <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
+            </h2>
+            <SelectPill value={categoryRange} onChange={setCategoryRange} options={CATEGORY_OPTIONS} />
           </div>
 
-          {/* Riwayat Pengeluaran Per Periode (Tutup Buku) */}
-          <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
-                <History className="h-4 w-4 text-[#358219] dark:text-[#76d446]" /> Riwayat Pengeluaran Per Periode
-              </h2>
-              <span className="rounded-full bg-[#c3ef92] px-2.5 py-0.5 text-[10px] font-black uppercase text-[#1a5611] dark:bg-[#1a3816] dark:text-[#76d446]">
-                {periodHistory.length} Periode
-              </span>
+          {analytics.categories.length ? (
+            <div className="space-y-3.5">
+              {analytics.categories.slice(0, 6).map((item) => (
+                <div key={item.name} className="grid grid-cols-[90px_1fr_80px_40px] items-center gap-2 text-xs font-bold">
+                  <span className="truncate text-[#0e2a07] dark:text-[#f3ffe9]">{item.name}</span>
+                  <span className="h-2.5 overflow-hidden rounded-full bg-[#c3ef92]/60 dark:bg-[#1c3818]">
+                    <span className="block h-full rounded-full" style={{ width: `${Math.max(4, item.percent)}%`, backgroundColor: item.color }} />
+                  </span>
+                  <span className="text-right text-[#1a5611] dark:text-[#76d446]">{currency(item.value)}</span>
+                  <span className="text-right text-slate-500 dark:text-slate-400">{item.percent.toFixed(1)}%</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between border-t border-[#d6e4be] pt-3 text-xs font-black dark:border-[#243e1c]">
+                <span className="text-[#0e2a07] dark:text-[#f3ffe9]">Total Kategori</span>
+                <strong className="text-[#1a5611] dark:text-[#76d446]">{currency(analytics.categoryTotal)}</strong>
+              </div>
             </div>
+          ) : (
+            <EmptyAnalytics text="Kategori akan muncul setelah transaksi pada periode terpilih tersedia." />
+          )}
+        </div>
 
-            <div className="divide-y divide-[#d6e4be] dark:divide-[#1e3319]">
-              {periodHistory.map((period) => (
-                <button
-                  key={period.id}
-                  type="button"
-                  onClick={() => setSelectedPeriodModal(period)}
-                  className="group w-full flex items-center justify-between gap-3 py-2.5 text-left transition first:pt-0 last:pb-0 hover:opacity-75"
-                >
-                  {/* Left: dot + name + date */}
-                  <div className="flex min-w-0 items-start gap-2">
-                    <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${period.isActive ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'}`} />
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-bold leading-snug text-[#0e2a07] dark:text-[#f3ffe9]">
-                        {period.isActive ? 'Periode Aktif' : period.name}
-                        {period.isSpike && <span className="ml-1.5 text-[9px] font-extrabold text-amber-500">🔥+{period.spikePct}%</span>}
-                      </p>
-                      <p className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
-                        <Calendar className="h-2.5 w-2.5" /> {period.dateRangeStr} · {period.txCount} transaksi
-                      </p>
-                    </div>
-                  </div>
+        {/* Riwayat Pengeluaran Per Periode */}
+        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
+              <History className="h-4 w-4 text-[#358219] dark:text-[#76d446]" /> Riwayat Pengeluaran
+            </h2>
+            <span className="rounded-full bg-[#c3ef92] px-2.5 py-0.5 text-[10px] font-black uppercase text-[#1a5611] dark:bg-[#1a3816] dark:text-[#76d446]">
+              {periodHistory.length} Periode
+            </span>
+          </div>
 
-                  {/* Right: amount + net */}
-                  <div className="shrink-0 text-right">
-                    <p className="text-[13px] font-black text-red-600 dark:text-red-400">{currency(period.totalExpense)}</p>
-                    <p className={`flex items-center justify-end gap-0.5 text-[10px] font-semibold ${period.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-                      {period.net >= 0 ? `+${shortCurrency(period.net)}` : shortCurrency(period.net)}
-                      <ChevronRight className="h-3 w-3 opacity-40 transition group-hover:translate-x-0.5 group-hover:opacity-80" />
+          <div className="divide-y divide-[#d6e4be] dark:divide-[#1e3319]">
+            {periodHistory.map((period) => (
+              <button
+                key={period.id}
+                type="button"
+                onClick={() => setSelectedPeriodModal(period)}
+                className="group w-full flex items-center justify-between gap-3 py-2.5 text-left transition first:pt-0 last:pb-0 hover:opacity-75"
+              >
+                <div className="flex min-w-0 items-start gap-2">
+                  <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${period.isActive ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'}`} />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-bold leading-snug text-[#0e2a07] dark:text-[#f3ffe9]">
+                      {period.isActive ? 'Periode Aktif' : period.name}
+                      {period.isSpike && <span className="ml-1.5 text-[9px] font-extrabold text-amber-500">🔥+{period.spikePct}%</span>}
+                    </p>
+                    <p className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                      <Calendar className="h-2.5 w-2.5" /> {period.dateRangeStr} · {period.txCount} transaksi
                     </p>
                   </div>
-                </button>
-              ))}
-            </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-[13px] font-black text-red-600 dark:text-red-400">{currency(period.totalExpense)}</p>
+                  <p className={`flex items-center justify-end gap-0.5 text-[10px] font-semibold ${period.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                    {period.net >= 0 ? `+${shortCurrency(period.net)}` : shortCurrency(period.net)}
+                    <ChevronRight className="h-3 w-3 opacity-40 transition group-hover:translate-x-0.5 group-hover:opacity-80" />
+                  </p>
+                </div>
+              </button>
+            ))}
           </div>
-
-        </div>{/* end right column */}
+        </div>
 
       </section>
+
 
 
 
