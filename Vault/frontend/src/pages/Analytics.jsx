@@ -267,31 +267,38 @@ export default function Analytics() {
     const categoryTotal = categoryExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
     const categoryMap = {};
+    const catDisplayName = {};
     categoryExpenses.forEach((item) => {
-      const key = getCategory(item);
-      categoryMap[key] = (categoryMap[key] || 0) + Number(item.amount || 0);
+      const raw = getCategory(item);
+      const k = raw.toLowerCase();
+      if (!catDisplayName[k]) catDisplayName[k] = raw;
+      categoryMap[k] = (categoryMap[k] || 0) + Number(item.amount || 0);
     });
     const categories = Object.entries(categoryMap)
       .sort((a, b) => b[1] - a[1])
-      .map(([name, value], index) => ({
-        name,
+      .map(([k, value], index) => ({
+        name: catDisplayName[k] || k,
         value,
         color: VIBRANT_CHART_COLORS[index % VIBRANT_CHART_COLORS.length],
         percent: categoryTotal ? (value / categoryTotal) * 100 : 0,
       }));
 
     const sourceMap = {};
+    const srcDisplayName = {};
     currentMonthExpenses.forEach((item) => {
-      const key = getAccount(item);
-      sourceMap[key] = (sourceMap[key] || 0) + Number(item.amount || 0);
+      const raw = getAccount(item);
+      const k = raw.toLowerCase();
+      if (!srcDisplayName[k]) srcDisplayName[k] = raw;
+      sourceMap[k] = (sourceMap[k] || 0) + Number(item.amount || 0);
     });
     const sources = Object.entries(sourceMap)
       .sort((a, b) => b[1] - a[1])
-      .map(([name, value], index) => {
-        const normalized = String(name || '').trim().toUpperCase();
+      .map(([k, value], index) => {
+        const displayName = srcDisplayName[k] || k;
+        const normalized = displayName.toUpperCase();
         const color = ACCOUNT_COLORS[normalized] || VIBRANT_CHART_COLORS[index % VIBRANT_CHART_COLORS.length];
         return {
-          name,
+          name: displayName,
           value,
           color,
           percent: currentTotal ? (value / currentTotal) * 100 : 0,

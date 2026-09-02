@@ -29,6 +29,7 @@ function initDB() {
             active_recap_id TEXT,
             active_recap_name TEXT,
             active_recap_start_date TEXT,
+            settings_json TEXT,
             settings_updated_at DATETIME,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
@@ -133,6 +134,7 @@ function initDB() {
     ensureColumn('users', 'active_recap_id', 'TEXT');
     ensureColumn('users', 'active_recap_name', 'TEXT');
     ensureColumn('users', 'active_recap_start_date', 'TEXT');
+    ensureColumn('users', 'settings_json', 'TEXT');
     ensureColumn('users', 'settings_updated_at', 'DATETIME');
     ensureColumn('conversations', 'message_id', 'TEXT');
     ensureColumn('expenses', 'payment_channel', "TEXT DEFAULT 'Cash'");
@@ -169,11 +171,14 @@ function getUserSettings(userId) {
         SELECT id, apps_script_url, groq_key, spreadsheet_id, ai_model, system_prompt,
                monthly_budget, budget_alert_thresholds, budget_alert_month, budget_alert_levels,
                active_recap_id, active_recap_name, active_recap_start_date,
-               settings_updated_at
+               settings_json, settings_updated_at
         FROM users WHERE id = ?
     `).get(userId);
+    const extraSettings = parseJsonObject(row?.settings_json, {});
     return {
+        ...extraSettings,
         ...row,
+        settings_json: undefined,
         budget_alert_thresholds: parseJsonArray(row?.budget_alert_thresholds, [80, 90, 95, 100]),
         budget_alert_levels: parseJsonArray(row?.budget_alert_levels, []),
     };
@@ -182,15 +187,34 @@ function getUserSettings(userId) {
 function saveUserSettings(userId, settings) {
     ensureUser(userId);
     const current = getUserSettings(userId);
+    const columnKeys = new Set([
+        'id',
+        'apps_script_url',
+        'groq_key',
+        'spreadsheet_id',
+        'ai_model',
+        'system_prompt',
+        'monthly_budget',
+        'budget_alert_thresholds',
+        'budget_alert_month',
+        'budget_alert_levels',
+        'active_recap_id',
+        'active_recap_name',
+        'active_recap_start_date',
+        'settings_updated_at',
+    ]);
     const next = {
         ...current,
         ...Object.fromEntries(Object.entries(settings || {}).filter(([, value]) => value !== undefined)),
     };
+    const extraSettings = Object.fromEntries(
+        Object.entries(next).filter(([key, value]) => !columnKeys.has(key) && value !== undefined)
+    );
     db.prepare(`
         UPDATE users
         SET apps_script_url = ?, groq_key = ?, spreadsheet_id = ?, ai_model = ?, system_prompt = ?,
             monthly_budget = ?, budget_alert_thresholds = ?, budget_alert_month = ?, budget_alert_levels = ?,
-            active_recap_id = ?, active_recap_name = ?, active_recap_start_date = ?,
+            active_recap_id = ?, active_recap_name = ?, active_recap_start_date = ?, settings_json = ?,
             settings_updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     `).run(
@@ -206,6 +230,7 @@ function saveUserSettings(userId, settings) {
         next.active_recap_id || null,
         next.active_recap_name || null,
         next.active_recap_start_date || null,
+        JSON.stringify(extraSettings),
         userId
     );
     return getUserSettings(userId);
@@ -215,6 +240,15 @@ function parseJsonArray(value, fallback) {
     try {
         const parsed = JSON.parse(value || 'null');
         return Array.isArray(parsed) ? parsed : fallback;
+    } catch (_) {
+        return fallback;
+    }
+}
+
+function parseJsonObject(value, fallback) {
+    try {
+        const parsed = JSON.parse(value || 'null');
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
     } catch (_) {
         return fallback;
     }

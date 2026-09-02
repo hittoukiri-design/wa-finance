@@ -92,6 +92,11 @@ function publicSettings(settings) {
         active_recap_id: settings.active_recap_id || '',
         active_recap_name: settings.active_recap_name || 'Periode Aktif',
         active_recap_start_date: settings.active_recap_start_date || '',
+        wallets: Array.isArray(settings.wallets) ? settings.wallets : [],
+        deleted_wallets: Array.isArray(settings.deleted_wallets) ? settings.deleted_wallets : [],
+        primary_wallet: settings.primary_wallet || '',
+        category_budgets: Array.isArray(settings.category_budgets) ? settings.category_budgets : [],
+        deleted_categories: Array.isArray(settings.deleted_categories) ? settings.deleted_categories : [],
         settings_updated_at: settings.settings_updated_at || null,
         jid_display_mappings: jidDisplayMappings,
     };
@@ -177,6 +182,9 @@ function makeRecapId() {
 }
 
 async function archiveFirestoreCollection(userId, collectionName, recap) {
+    if (String(process.env.FIRESTORE_SYNC_ENABLED || '').toLowerCase() !== 'true') {
+        return 0;
+    }
     const collectionRef = getAdminFirestore().collection('users').doc(userId).collection(collectionName);
     const snapshot = await collectionRef.get();
     let batch = getAdminFirestore().batch();
@@ -223,6 +231,24 @@ function activeStatusWhere() {
     return `LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')`;
 }
 
+function normalizeExpenseRow(row) {
+    if (!row) return row;
+    const created = row.created_at || row.date || new Date().toISOString();
+    return {
+        ...row,
+        id: String(row.id),
+        amount: Number(row.amount || 0),
+        createdAt: created,
+        timestamp: created,
+    };
+}
+
+function recapWhereClause(recapId = 'active') {
+    if (recapId === 'all') return { sql: '', params: [] };
+    if (recapId && recapId !== 'active') return { sql: 'AND recap_id = ?', params: [recapId] };
+    return { sql: "AND COALESCE(recap_status, 'active') != 'archived'", params: [] };
+}
+
 app.get('/api/health', (req, res) => {
     const publicDir = path.join(__dirname, 'public');
     const staticAssets = fs.existsSync(publicDir)
@@ -264,7 +290,12 @@ app.put('/api/settings', authenticate, async (req, res) => {
             : Math.max(0, Math.round(Number(body.monthly_budget || 0)));
         const budgetChanged = monthlyBudget !== undefined && Number(current.monthly_budget || 0) !== monthlyBudget;
         const connectionChanged = current.apps_script_url !== appsScriptUrl || current.spreadsheet_id !== nextSpreadsheetId;
+        const passthroughSettings = {};
+        ['wallets', 'deleted_wallets', 'primary_wallet', 'category_budgets', 'deleted_categories'].forEach((key) => {
+            if (body[key] !== undefined) passthroughSettings[key] = body[key];
+        });
         const saved = await saveUserSettings(req.userId, {
+            ...passthroughSettings,
             apps_script_url: appsScriptUrl,
             groq_key: incomingGroqKey && !incomingGroqKey.includes('••••') ? incomingGroqKey : undefined,
             spreadsheet_id: nextSpreadsheetId,
@@ -279,6 +310,20 @@ app.put('/api/settings', authenticate, async (req, res) => {
             apps_script_last_status: connectionChanged ? null : current.apps_script_last_status,
             apps_script_last_preview: connectionChanged ? '' : current.apps_script_last_preview,
         });
+
+        // Sinkronisasi saldo dompet ke tabel balances untuk bot WhatsApp
+        if (body.wallets && Array.isArray(body.wallets)) {
+            for (const w of body.wallets) {
+                if (w.name && w.initial_balance !== undefined) {
+                    const amt = Math.max(0, Math.round(Number(w.initial_balance || 0)));
+                    db.prepare(`
+                        INSERT INTO balances (user_id, payment_channel, manual_balance, last_updated)
+                        VALUES (?, ?, ?, datetime('now', 'localtime'))
+                    `).run(req.userId, w.name.toUpperCase(), amt);
+                }
+            }
+        }
+
         res.json({ message: 'Settings saved.', settings: publicSettings(saved) });
     } catch (error) {
         console.error('Settings save error:', error.message);
@@ -615,12 +660,37 @@ app.post('/api/recaps/new', authenticate, async (req, res) => {
         });
         tx();
 
+        // 1. Ambil list wallets dan input initial_balances dari client (jika ada)
+        const incomingBalances = req.body?.initial_balances || {};
+        const currentWallets = Array.isArray(settings.wallets) ? settings.wallets : [];
+        const resetWallets = currentWallets.map((w) => {
+            const rawVal = incomingBalances[w.name] ?? incomingBalances[w.id];
+            const customBal = rawVal !== undefined && rawVal !== '' ? Math.max(0, Math.round(Number(rawVal) || 0)) : 0;
+            return {
+                ...w,
+                initial_balance: customBal,
+            };
+        });
+
+        // 2. Kosongkan saldo lama di tabel balances WhatsApp, dan isi saldo baru (jika ada input manual > 0)
+        db.prepare('DELETE FROM balances WHERE user_id = ?').run(req.userId);
+        for (const w of resetWallets) {
+            if (w.name && w.initial_balance > 0) {
+                db.prepare(`
+                    INSERT INTO balances (user_id, payment_channel, manual_balance, last_updated)
+                    VALUES (?, ?, ?, datetime('now', 'localtime'))
+                `).run(req.userId, w.name.toUpperCase(), w.initial_balance);
+            }
+        }
+
         const savedSettings = await saveUserSettings(req.userId, {
             active_recap_id: '',
             active_recap_name: activeName,
             active_recap_start_date: startDate,
+            monthly_budget: 0,
             budget_alert_month: '',
             budget_alert_levels: [],
+            wallets: resetWallets,
         });
 
         res.json({
@@ -647,23 +717,106 @@ app.post('/api/recaps/new', authenticate, async (req, res) => {
 // REST ENDPOINTS
 
 app.get('/api/expenses', authenticate, (req, res) => {
+    const recap = recapWhereClause(String(req.query?.recapId || 'active'));
     const expenses = db.prepare(`
         SELECT * FROM expenses
         WHERE user_id = ? AND ${activeStatusWhere()}
-          AND COALESCE(recap_status, 'active') != 'archived'
+          ${recap.sql}
         ORDER BY created_at DESC
-    `).all(req.userId);
-    res.json(expenses);
+    `).all(req.userId, ...recap.params);
+    res.json(expenses.map(normalizeExpenseRow));
+});
+
+app.post('/api/expenses', authenticate, async (req, res) => {
+    const body = req.body || {};
+    const settings = await getUserSettings(req.userId).catch(() => ({}));
+    const merchant = String(body.merchant || body.description || '').trim();
+    const amount = Math.round(Number(body.amount || 0));
+    if (!merchant) return res.status(400).json({ error: 'Deskripsi transaksi wajib diisi.' });
+    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Nominal transaksi tidak valid.' });
+
+    const result = db.prepare(`
+        INSERT INTO expenses (
+            user_id, phone_number, merchant, category, amount, date, confidence,
+            payment_channel, type, status, source, source_message_id,
+            recap_id, recap_name, recap_status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+    `).run(
+        req.userId,
+        String(body.phone_number || 'manual').trim(),
+        merchant,
+        String(body.category || 'Lainnya').trim() || 'Lainnya',
+        amount,
+        String(body.date || dateInputValue(new Date())).trim(),
+        String(body.confidence || 'Manual').trim(),
+        String(body.payment_channel || 'Cash').trim() || 'Cash',
+        String(body.type || 'expense').toLowerCase() === 'income' ? 'income' : 'expense',
+        String(body.status || 'Saved').trim() || 'Saved',
+        String(body.source || 'Manual').trim() || 'Manual',
+        body.source_message_id ? String(body.source_message_id).trim() : null,
+        settings.active_recap_id || null,
+        settings.active_recap_name || null,
+        'active'
+    );
+
+    const row = db.prepare('SELECT * FROM expenses WHERE id = ? AND user_id = ?').get(result.lastInsertRowid, req.userId);
+    res.status(201).json(normalizeExpenseRow(row));
+});
+
+app.put('/api/expenses/:id', authenticate, (req, res) => {
+    const current = db.prepare('SELECT * FROM expenses WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
+    if (!current) return res.status(404).json({ error: 'Transaksi tidak ditemukan.' });
+    const body = req.body || {};
+    const next = {
+        merchant: body.merchant !== undefined ? String(body.merchant || '').trim() : current.merchant,
+        category: body.category !== undefined ? String(body.category || 'Lainnya').trim() : current.category,
+        amount: body.amount !== undefined ? Math.round(Number(body.amount || 0)) : Number(current.amount || 0),
+        date: body.date !== undefined ? String(body.date || '').trim() : current.date,
+        payment_channel: body.payment_channel !== undefined ? String(body.payment_channel || 'Cash').trim() : current.payment_channel,
+        type: body.type !== undefined ? (String(body.type).toLowerCase() === 'income' ? 'income' : 'expense') : current.type,
+        status: body.status !== undefined ? String(body.status || 'Saved').trim() : current.status,
+    };
+    if (!next.merchant) return res.status(400).json({ error: 'Deskripsi transaksi wajib diisi.' });
+    if (!Number.isFinite(next.amount) || next.amount <= 0) return res.status(400).json({ error: 'Nominal transaksi tidak valid.' });
+    db.prepare(`
+        UPDATE expenses
+        SET merchant = ?, category = ?, amount = ?, date = ?, payment_channel = ?, type = ?, status = ?
+        WHERE id = ? AND user_id = ?
+    `).run(
+        next.merchant,
+        next.category || 'Lainnya',
+        next.amount,
+        next.date || dateInputValue(new Date()),
+        next.payment_channel || 'Cash',
+        next.type,
+        next.status || 'Saved',
+        req.params.id,
+        req.userId
+    );
+    const row = db.prepare('SELECT * FROM expenses WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
+    res.json(normalizeExpenseRow(row));
+});
+
+app.delete('/api/expenses/:id', authenticate, (req, res) => {
+    const result = db.prepare('DELETE FROM expenses WHERE id = ? AND user_id = ?').run(req.params.id, req.userId);
+    if (!result.changes) return res.status(404).json({ error: 'Transaksi tidak ditemukan.' });
+    res.json({ success: true, id: String(req.params.id) });
 });
 
 app.get('/api/conversations', authenticate, (req, res) => {
+    const recap = recapWhereClause(String(req.query?.recapId || 'active'));
     const conversations = db.prepare(`
         SELECT * FROM conversations
         WHERE user_id = ?
-          AND COALESCE(recap_status, 'active') != 'archived'
+          ${recap.sql}
         ORDER BY timestamp DESC
-    `).all(req.userId);
-    res.json(conversations);
+    `).all(req.userId, ...recap.params);
+    res.json(conversations.map((row) => ({
+        ...row,
+        id: String(row.id),
+        timestamp: row.timestamp || row.created_at || new Date().toISOString(),
+        createdAt: row.created_at || row.timestamp || new Date().toISOString(),
+    })));
 });
 
 app.get('/api/analytics', authenticate, (req, res) => {
@@ -676,21 +829,30 @@ app.get('/api/analytics', authenticate, (req, res) => {
     let totalSpend = 0;
     let totalIncome = 0;
     const categoryTotals = {};
+    const catDisplayName = {};
 
     expenses.forEach(exp => {
         if (exp.type === 'income') {
             totalIncome += exp.amount;
         } else {
             totalSpend += exp.amount;
-            categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+            const rawCat = String(exp.category || 'Lainnya').trim();
+            const k = rawCat.toLowerCase();
+            if (!catDisplayName[k]) catDisplayName[k] = rawCat;
+            categoryTotals[k] = (categoryTotals[k] || 0) + exp.amount;
         }
+    });
+
+    const cleanCategories = {};
+    Object.entries(categoryTotals).forEach(([k, amt]) => {
+        cleanCategories[catDisplayName[k] || k] = amt;
     });
 
     res.json({
         totalSpend,
         totalIncome,
         netCashflow: totalIncome - totalSpend,
-        categories: categoryTotals,
+        categories: cleanCategories,
         transactionCount: expenses.length
     });
 });
@@ -733,70 +895,44 @@ app.get('/api/backup/export', authenticate, async (req, res) => {
 app.get('/api/backup/status', authenticate, async (req, res) => {
     try {
         const backupRoot = process.env.BACKUPS_DIR || '/app/backups';
-        const dailyDir = path.join(backupRoot, 'daily');
+        const backupSources = [
+            { directory: 'daily', type: 'Harian Otomatis (Encrypted AES-256)', storage: 'Server Mac mini lokal' },
+            { directory: 'weekly', type: 'Mingguan Otomatis (Encrypted AES-256)', storage: 'Server Mac mini lokal' },
+            { directory: 'monthly', type: 'Bulanan Otomatis (Encrypted AES-256)', storage: 'Server Mac mini lokal + Firestore terenkripsi' },
+        ];
         let history = [];
         let lastBackup = null;
 
-        if (fs.existsSync(dailyDir)) {
-            const files = fs.readdirSync(dailyDir)
-                .filter((f) => f.endsWith('.tar.gz.enc'))
-                .map((f) => {
-                    const fullPath = path.join(dailyDir, f);
+        for (const source of backupSources) {
+            const backupDir = path.join(backupRoot, source.directory);
+            if (!fs.existsSync(backupDir)) continue;
+            const files = fs.readdirSync(backupDir)
+                .filter((filename) => filename.endsWith('.tar.gz.enc'))
+                .map((filename) => {
+                    const fullPath = path.join(backupDir, filename);
                     const stats = fs.statSync(fullPath);
                     const sizeKB = (stats.size / 1024).toFixed(1);
                     return {
-                        filename: f,
+                        filename,
                         size: `${sizeKB} KB`,
                         size_bytes: stats.size,
                         timestamp: stats.mtime.toISOString(),
-                        type: 'Harian Otomatis (Encrypted AES-256)',
+                        type: source.type,
+                        storage: source.storage,
                         status: 'Berhasil 🟢',
                     };
                 })
-                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-            history = files.slice(0, 5);
-            if (files.length > 0) {
-                lastBackup = files[0];
-            }
+            history.push(...files);
         }
-
-        if (!lastBackup) {
-            // Default reference to recent server backup if directory unmounted
-            lastBackup = {
-                timestamp: '2026-08-19T03:15:05+08:00',
-                filename: 'wa-finance-daily-20260818T191501Z.tar.gz.enc',
-                size: '237.9 KB',
-                type: 'Harian Otomatis (Encrypted AES-256)',
-                storage: 'Server Mac mini & Google Cloud Storage',
-                status: 'Berhasil 🟢',
-            };
-            history = [
-                lastBackup,
-                {
-                    timestamp: '2026-08-18T03:15:05+08:00',
-                    filename: 'wa-finance-daily-20260817T191501Z.tar.gz.enc',
-                    size: '216.1 KB',
-                    type: 'Harian Otomatis (Encrypted AES-256)',
-                    storage: 'Server Mac mini & Google Cloud Storage',
-                    status: 'Berhasil 🟢',
-                },
-                {
-                    timestamp: '2026-08-17T03:15:05+08:00',
-                    filename: 'wa-finance-daily-20260816T191501Z.tar.gz.enc',
-                    size: '214.4 KB',
-                    type: 'Harian Otomatis (Encrypted AES-256)',
-                    storage: 'Server Mac mini & Google Cloud Storage',
-                    status: 'Berhasil 🟢',
-                },
-            ];
-        }
+        history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        history = history.slice(0, 5);
+        lastBackup = history[0] || null;
 
         res.json({
-            status: 'active',
+            status: lastBackup ? 'active' : 'waiting',
             auto_backup_enabled: true,
-            schedule: 'Setiap hari pukul 03:15 WIB',
-            storage_destination: 'Server Mac mini & Google Cloud Storage',
+            schedule: 'Harian 03:15 WITA di Mac mini; bulanan 04:30 WITA ke Firestore terenkripsi',
+            storage_destination: 'Mac mini lokal (harian/mingguan) + Firestore (bulanan)',
             last_backup: lastBackup,
             history,
         });

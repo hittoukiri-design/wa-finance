@@ -27,7 +27,7 @@ const DEFAULT_SETTINGS = {
 let client;
 
 function useSecretManager() {
-    return process.env.NODE_ENV === 'production';
+    return String(process.env.SETTINGS_STORE || '').toLowerCase() === 'secret-manager';
 }
 
 function getClient() {

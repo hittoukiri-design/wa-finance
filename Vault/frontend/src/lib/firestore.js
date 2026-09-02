@@ -1,100 +1,75 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-} from 'firebase/firestore';
-import { firestore } from './firebase';
+import { getBackendSettings, whatsappApi } from './whatsapp-api';
 
-const userCollection = (uid, name) => collection(firestore, 'users', uid, name);
-
-function normalizeTimestamp(value) {
+function normalizeDate(value) {
   if (!value) return null;
-  if (typeof value.toDate === 'function') return value.toDate();
-  return new Date(value);
+  if (value instanceof Date) return value;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function normalizeDoc(item) {
-  const data = item.data();
+function normalizeExpense(item) {
   return {
-    id: item.id,
-    ...data,
-    createdAt: normalizeTimestamp(data.createdAt),
-    timestamp: normalizeTimestamp(data.timestamp),
+    ...item,
+    id: String(item.id),
+    amount: Number(item.amount || 0),
+    createdAt: normalizeDate(item.createdAt || item.created_at || item.timestamp || item.date),
+    timestamp: normalizeDate(item.timestamp || item.createdAt || item.created_at || item.date),
   };
 }
 
-function matchesRecapFilter(item, recapId = 'active') {
-  const status = String(item.recap_status || 'active').toLowerCase();
-  if (recapId === 'all') return true;
-  if (recapId && recapId !== 'active') return String(item.recap_id || '') === recapId;
-  return status !== 'archived';
+function normalizeConversation(item) {
+  return {
+    ...item,
+    id: String(item.id),
+    timestamp: normalizeDate(item.timestamp || item.createdAt || item.created_at),
+    createdAt: normalizeDate(item.createdAt || item.created_at || item.timestamp),
+  };
 }
 
-export async function listExpenses(uid, options = {}) {
-  const recapId = options.recapId || 'active';
-  const snapshot = await getDocs(query(userCollection(uid, 'expenses'), orderBy('createdAt', 'desc')));
-  return snapshot.docs
-    .map(normalizeDoc)
-    .filter((item) => !['cancelled', 'canceled', 'dibatalkan'].includes(String(item.status || '').toLowerCase()))
-    .filter((item) => matchesRecapFilter(item, recapId));
+export async function listExpenses(_uid, options = {}) {
+  const search = new URLSearchParams();
+  if (options.recapId) search.set('recapId', options.recapId);
+  const suffix = search.toString() ? `?${search.toString()}` : '';
+  const data = await whatsappApi(`/api/expenses${suffix}`);
+  return (Array.isArray(data) ? data : []).map(normalizeExpense);
 }
 
-export async function addExpense(uid, values) {
-  return addDoc(userCollection(uid, 'expenses'), {
-    merchant: values.merchant.trim(),
-    category: values.category.trim() || 'Lainnya',
-    amount: Number(values.amount),
-    date: values.date,
-    source: values.source || 'Manual',
-    status: values.status || 'New',
-    type: values.type || 'expense',
-    payment_channel: values.payment_channel || 'Cash',
-    recap_status: 'active',
-    createdAt: serverTimestamp(),
+export async function addExpense(_uid, values) {
+  const data = await whatsappApi('/api/expenses', {
+    method: 'POST',
+    body: JSON.stringify(values),
   });
+  return normalizeExpense(data);
 }
 
-export async function updateExpense(uid, expenseId, values) {
-  const payload = {
-    updatedAt: serverTimestamp(),
-  };
-  if (values.merchant !== undefined) payload.merchant = String(values.merchant).trim();
-  if (values.category !== undefined) payload.category = String(values.category).trim() || 'Lainnya';
-  if (values.amount !== undefined) payload.amount = Number(values.amount);
-  if (values.date !== undefined) payload.date = values.date;
-  if (values.payment_channel !== undefined) payload.payment_channel = String(values.payment_channel).trim() || 'Cash';
-  if (values.type !== undefined) payload.type = values.type;
-  if (values.status !== undefined) payload.status = values.status;
-
-  await setDoc(doc(firestore, 'users', uid, 'expenses', expenseId), payload, { merge: true });
+export async function updateExpense(_uid, expenseId, values) {
+  const data = await whatsappApi(`/api/expenses/${encodeURIComponent(expenseId)}`, {
+    method: 'PUT',
+    body: JSON.stringify(values),
+  });
+  return normalizeExpense(data);
 }
 
-export async function deleteExpense(uid, expenseId) {
-  await deleteDoc(doc(firestore, 'users', uid, 'expenses', expenseId));
+export async function deleteExpense(_uid, expenseId) {
+  return whatsappApi(`/api/expenses/${encodeURIComponent(expenseId)}`, { method: 'DELETE' });
 }
 
-export async function listConversations(uid, options = {}) {
-  const recapId = options.recapId || 'active';
-  const snapshot = await getDocs(query(userCollection(uid, 'conversations'), orderBy('timestamp', 'desc')));
-  return snapshot.docs.map(normalizeDoc).filter((item) => matchesRecapFilter(item, recapId));
+export async function listConversations(_uid, options = {}) {
+  const search = new URLSearchParams();
+  if (options.recapId) search.set('recapId', options.recapId);
+  const suffix = search.toString() ? `?${search.toString()}` : '';
+  const data = await whatsappApi(`/api/conversations${suffix}`);
+  return (Array.isArray(data) ? data : []).map(normalizeConversation);
 }
 
-export async function getSettings(uid) {
-  const snapshot = await getDoc(doc(firestore, 'users', uid, 'settings', 'config'));
-  return snapshot.exists() ? snapshot.data() : {};
+export async function getSettings() {
+  return getBackendSettings();
 }
 
-export async function saveSettings(uid, values) {
-  await setDoc(doc(firestore, 'users', uid, 'settings', 'config'), {
-    ...values,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+export async function saveSettings(_uid, values) {
+  const data = await whatsappApi('/api/settings', {
+    method: 'PUT',
+    body: JSON.stringify(values),
+  });
+  return data.settings || data;
 }

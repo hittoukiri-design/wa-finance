@@ -6,7 +6,7 @@ const bucketName = process.env.WHATSAPP_SESSION_BUCKET || 'wa-finance-bot-i729-w
 let storage;
 
 function enabled() {
-    return process.env.NODE_ENV === 'production';
+    return String(process.env.SESSION_CLOUD_SYNC_ENABLED || '').toLowerCase() === 'true';
 }
 
 function bucket() {

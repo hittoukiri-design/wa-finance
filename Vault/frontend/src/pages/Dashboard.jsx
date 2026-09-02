@@ -290,6 +290,9 @@ export default function Dashboard() {
   }, [isFiltered, filterEndDate, activePeriodStart]);
 
   const matchesFilter = useCallback((item) => {
+    const recapStatus = String(item.recap_status || 'active').toLowerCase();
+    if (recapStatus === 'archived') return false;
+
     const d = getExpenseDate(item);
     if (!d) return false;
     if (d < activePeriodStart || d > activePeriodEnd) return false;
@@ -709,7 +712,9 @@ export default function Dashboard() {
   const saldoPerDompet = useMemo(() => {
     const grouped = {};
     activePeriodExpenses.forEach((e) => {
-      const ch = String(e.payment_channel || e.rekening || 'Cash').trim();
+      const raw = String(e.payment_channel || e.rekening || 'Cash').trim();
+      const sw = savedWallets.find((w) => w.name && w.name.toLowerCase() === raw.toLowerCase());
+      const ch = sw?.name || raw;
       grouped[ch] = (grouped[ch] || 0) + Number(e.amount || 0);
     });
     const maxVal = Math.max(...Object.values(grouped), 1);
@@ -723,7 +728,7 @@ export default function Dashboard() {
         percent: Math.round((amount / maxVal) * 100),
         color: COLORS[i % COLORS.length],
       }));
-  }, [activePeriodExpenses]);
+  }, [activePeriodExpenses, savedWallets]);
 
   // ── ATM Card Carousel Slides & Seamless Infinite Loop ──
   const [currentCardSlide, setCurrentCardSlide] = useState(1);
@@ -735,53 +740,69 @@ export default function Dashboard() {
   const walletSlides = useMemo(() => {
     const walletExpenseMap = {};
     const walletIncomeMap = {};
+    const displayNameMap = {};
+    const uniqueKeys = new Set();
 
     expenses.forEach((e) => {
-      const wName = String(e.payment_channel || e.rekening || 'Cash').trim();
+      const raw = String(e.payment_channel || e.rekening || 'Cash').trim();
+      if (!raw) return;
+      const key = raw.toLowerCase();
+      uniqueKeys.add(key);
+      if (!displayNameMap[key]) displayNameMap[key] = raw;
       const amt = Number(e.amount || 0);
-      walletExpenseMap[wName] = (walletExpenseMap[wName] || 0) + amt;
+      walletExpenseMap[key] = (walletExpenseMap[key] || 0) + amt;
     });
 
     incomes.forEach((item) => {
-      const wName = String(item.payment_channel || item.rekening || 'Cash').trim();
+      const raw = String(item.payment_channel || item.rekening || 'Cash').trim();
+      if (!raw) return;
+      const key = raw.toLowerCase();
+      uniqueKeys.add(key);
+      if (!displayNameMap[key]) displayNameMap[key] = raw;
       const amt = Number(item.amount || 0);
-      walletIncomeMap[wName] = (walletIncomeMap[wName] || 0) + amt;
+      walletIncomeMap[key] = (walletIncomeMap[key] || 0) + amt;
     });
 
-    const discovered = new Set();
-    Object.keys(walletExpenseMap).forEach((w) => w && discovered.add(w));
-    Object.keys(walletIncomeMap).forEach((w) => w && discovered.add(w));
     savedWallets.forEach((sw) => {
-      if (sw.name) discovered.add(sw.name);
+      if (sw.name) {
+        const key = sw.name.toLowerCase();
+        uniqueKeys.add(key);
+        displayNameMap[key] = sw.name; // Display name dari savedWallets
+      }
     });
 
-    if (discovered.size === 0) {
-      discovered.add('Cash');
+    if (uniqueKeys.size === 0) {
+      uniqueKeys.add('cash');
+      displayNameMap['cash'] = 'Cash';
     }
 
     const WALLET_CONFIG = {
-      BCA: { digits: '8821', badgeColor: '#2f781c' },
-      Cash: { digits: 'CASH', badgeColor: '#f77132' },
-      SUPERBANK: { digits: '5920', badgeColor: '#6952ec' },
-      GOPAY: { digits: '0812', badgeColor: '#00aed6' },
-      QRIS: { digits: '9901', badgeColor: '#ea1d2c' },
-      DANA: { digits: '4410', badgeColor: '#118eea' },
+      bca: { digits: '8821', badgeColor: '#2f781c' },
+      cash: { digits: 'CASH', badgeColor: '#f77132' },
+      superbank: { digits: '5920', badgeColor: '#6952ec' },
+      gopay: { digits: '0812', badgeColor: '#00aed6' },
+      qris: { digits: '9901', badgeColor: '#ea1d2c' },
+      dana: { digits: '4410', badgeColor: '#118eea' },
+      jago: { digits: '5421', badgeColor: '#f5962a' },
+      'bank jago': { digits: '5421', badgeColor: '#f5962a' },
     };
 
-    const walletList = Array.from(discovered).map((wName) => {
-      const sw = savedWallets.find((w) => w.name && w.name.toLowerCase() === wName.toLowerCase());
+    const walletList = Array.from(uniqueKeys).map((key) => {
+      const sw = savedWallets.find((w) => w.name && w.name.toLowerCase() === key);
+      const displayName = sw?.name || displayNameMap[key] || key.toUpperCase();
       const initialBal = sw && sw.initial_balance !== undefined ? Number(sw.initial_balance) : 0;
-      const inc = walletIncomeMap[wName] || 0;
-      const exp = walletExpenseMap[wName] || 0;
+      const inc = walletIncomeMap[key] || 0;
+      const exp = walletExpenseMap[key] || 0;
       const liveBalance = initialBal + inc - exp;
-      const txCount = activePeriodExpenses.filter((e) => String(e.payment_channel || e.rekening || 'Cash').trim() === wName).length;
-      const cfg = WALLET_CONFIG[wName] || { digits: '7721', badgeColor: '#76d446' };
+      const txCount = activePeriodExpenses.filter((e) => String(e.payment_channel || e.rekening || 'Cash').trim().toLowerCase() === key).length;
+      const cfg = WALLET_CONFIG[key] || { digits: '7721', badgeColor: '#76d446' };
       const last4 = sw?.account_number && sw.account_number.trim()
         ? sw.account_number.trim().slice(-4)
         : cfg.digits;
 
       return {
-        name: wName,
+        key,
+        name: displayName,
         balance: liveBalance,
         txCount,
         last4,
@@ -796,16 +817,16 @@ export default function Dashboard() {
     const primaryWithNorek = savedWallets.find((w) => w.account_number && w.account_number.trim());
     const primaryLast4 = primaryWithNorek ? primaryWithNorek.account_number.trim().slice(-4) : (walletList[0]?.last4 || '0080');
 
-    // Slide 0: TOTAL SALDO GABUNGAN
+    // Slide 0: TOTAL SALDO GABUNGAN (Murni Saldo Fisik Dompet)
     const slides = [
       {
         id: 'total',
         type: 'total',
-        title: 'TOTAL SALDO',
-        amount: monthlyBudget ? budgetRemaining : totalAccumulatedBalance,
-        isBudget: Boolean(monthlyBudget),
+        title: 'TOTAL SALDO GABUNGAN',
+        amount: totalAccumulatedBalance,
+        isBudget: false,
         cardNumber: `•••• •••• •••• ${primaryLast4}`,
-        bottomLeft: monthlyBudget ? `${budgetUsed.toFixed(1)}% budget terpakai` : `Gabungan ${walletList.length} dompet`,
+        bottomLeft: `Gabungan ${walletList.length} dompet`,
         bottomRight: `${walletList.length} dompet aktif`,
         badgeColor: '#76d446',
       }
@@ -1089,10 +1110,17 @@ export default function Dashboard() {
       setExpenses([]);
       setIncomes([]);
       setConversations([]);
+      setMonthlyBudget(0);
+      setBudgetInput('');
+      if (result.settings?.wallets && Array.isArray(result.settings.wallets)) {
+        setSavedWallets(result.settings.wallets);
+      } else {
+        setSavedWallets((prev) => prev.map((w) => ({ ...w, initial_balance: 0, balance: 0 })));
+      }
       setActiveRecapStartDate(result.settings?.active_recap_start_date || recapForm.start_date);
-      setBudgetNotice(`New Recap berhasil. Arsip: ${result.recap?.name || 'periode lama'}.`);
+      setBudgetNotice(`Tutup buku & backup berhasil. Semua saldo dompet telah di-reset. Arsip: ${result.recap?.name || 'periode lama'}.`);
     } catch (reason) {
-      setBudgetNotice(reason.message || 'New Recap gagal.');
+      setBudgetNotice(reason.message || 'Tutup buku & backup gagal.');
     } finally {
       setRecapBusy(false);
     }
@@ -1767,8 +1795,46 @@ export default function Dashboard() {
                   className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
                 />
               </div>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-bold text-slate-300">
+                    Saldo Awal Dompet (Default Rp 0 / Kosong)
+                  </label>
+                  <span className="text-[10px] text-[#76d446] font-semibold">Bisa diisi sekarang atau via WA/Dompet</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+                  {(savedWallets && savedWallets.length > 0 ? savedWallets : [{ name: 'BCA' }, { name: 'SUPERBANK' }, { name: 'Cash' }]).map((w) => {
+                    const wName = w.name || 'Dompet';
+                    return (
+                      <div key={w.id || wName} className="flex items-center justify-between gap-2 rounded-xl border border-[#2b4421] bg-[#162519] px-3 py-2">
+                        <span className="text-xs font-bold text-slate-200 truncate">{wName}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-slate-400">Rp</span>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={recapForm.initial_balances?.[wName] ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setRecapForm((c) => ({
+                                ...c,
+                                initial_balances: {
+                                  ...(c.initial_balances || {}),
+                                  [wName]: val,
+                                },
+                              }));
+                            }}
+                            className="w-24 bg-transparent text-right text-xs font-semibold text-white outline-none placeholder:text-slate-600 focus:text-[#76d446]"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs leading-5 text-emerald-200">
-                🛡️ <strong>Recall Data Lama:</strong> Data transaksi lama tetap tersimpan aman di database dan dapat dilihat kembali kapan saja lewat tombol <strong>Lihat satu bulan</strong>.
+                🛡️ <strong>Otomatis Kosong & Bersih:</strong> Semua saldo periode lama akan diarsipkan & di-reset ke 0 agar perhitungan periode baru tidak bertumpuk atau salah kalkulasi.
               </div>
             </div>
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

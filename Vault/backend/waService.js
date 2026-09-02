@@ -13,6 +13,10 @@ require('dotenv').config();
 
 const fallbackGroqKey = process.env.GROQ_API_KEY || '';
 
+function firestoreSyncEnabled() {
+    return String(process.env.FIRESTORE_SYNC_ENABLED || '').toLowerCase() === 'true';
+}
+
 const sessionsDir = path.join(__dirname, 'sessions');
 if (!fs.existsSync(sessionsDir)) {
     fs.mkdirSync(sessionsDir, { recursive: true });
@@ -102,7 +106,9 @@ function jidToPhoneNumber(jid = '') {
 }
 
 function normalizePhoneNumber(value = '') {
-    return String(value || '').replace(/\D/g, '');
+    // Strip WA JID suffixes (@lid, @s.whatsapp.net, etc.) before extracting digits.
+    // This ensures "198127311163470@lid" normalizes to "198127311163470" correctly.
+    return String(value || '').replace(/@[\w.]+$/, '').replace(/\D/g, '');
 }
 
 function phoneNumberFromJidForAccess(jid = '') {
@@ -316,6 +322,7 @@ async function markIncomingMessage(userId, messageId) {
         INSERT OR IGNORE INTO processed_messages (user_id, message_id)
         VALUES (?, ?)
     `).run(userId, messageId);
+    if (!firestoreSyncEnabled()) return result.changes > 0;
     try {
         await getAdminFirestore()
             .collection('users').doc(userId).collection('processed_messages').doc(messageId)
@@ -336,6 +343,8 @@ function saveConversation(userId, phoneNumber, message, isFromMe, messageId = nu
         INSERT INTO conversations (user_id, message_id, phone_number, message, is_from_me)
         VALUES (?, ?, ?, ?, ?)
     `).run(userId, messageId, phoneNumber, message, isFromMe ? 1 : 0);
+
+    if (!firestoreSyncEnabled()) return;
 
     getAdminFirestore()
         .collection('users').doc(userId).collection('conversations')
@@ -382,7 +391,7 @@ async function saveExpenseRecord(userId, phoneNumber, extracted, source = 'Whats
     const category = extracted.category || 'Lainnya';
     const confidence = extracted.confidence || 'High';
 
-    db.prepare(`
+    const insertResult = db.prepare(`
         INSERT INTO expenses (user_id, phone_number, merchant, category, amount, date, confidence, payment_channel, type, status, source, source_message_id, recap_id, recap_name, recap_status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(userId, phoneNumber, merchant, category, extracted.amount, dateStr, confidence, paymentChannel, transactionType, 'Saved', source, messageId, activeRecapId, activeRecapName, 'active');
@@ -406,6 +415,14 @@ async function saveExpenseRecord(userId, phoneNumber, extracted, source = 'Whats
         createdAt: FieldValue.serverTimestamp(),
     };
 
+    if (!firestoreSyncEnabled()) {
+        return {
+            ...firestorePayload,
+            id: String(insertResult.lastInsertRowid),
+            createdAt: new Date(),
+        };
+    }
+
     const firestoreRef = await getAdminFirestore()
         .collection('users').doc(userId).collection('expenses')
         .add(firestorePayload)
@@ -421,94 +438,101 @@ async function saveExpenseRecord(userId, phoneNumber, extracted, source = 'Whats
     };
 }
 
-function findLatestActiveExpenseRecord(userId, phoneNumber) {
-    const activeStatusWhere = `LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')`;
-    const normalizedPhone = normalizePhoneNumber(phoneNumber);
-    let row = null;
+// Helper: SQLite expression that normalizes phone_number stored in DB
+// so "@lid" and "@s.whatsapp.net" suffixes don't break matching.
+const PHONE_NORM_SQL = `REPLACE(REPLACE(COALESCE(phone_number, ''), '@s.whatsapp.net', ''), '@lid', '')`;
 
-    if (normalizedPhone) {
-        row = db.prepare(`
-            SELECT * FROM expenses
-            WHERE user_id = ? AND phone_number = ? AND ${activeStatusWhere}
-            ORDER BY id DESC
-            LIMIT 1
-        `).get(userId, normalizedPhone);
+function getSenderPhoneCandidates(phoneNumber, remoteJid = '') {
+    const set = new Set();
+    const add = (v) => {
+        if (!v) return;
+        const str = String(v).trim();
+        if (str) set.add(str);
+        const norm = normalizePhoneNumber(str);
+        if (norm) set.add(norm);
+        const bare = str.replace(/@[\w.]+$/, '');
+        if (bare) set.add(bare);
+    };
+    if (Array.isArray(phoneNumber)) {
+        phoneNumber.forEach(add);
+    } else {
+        add(phoneNumber);
     }
-
-    if (!row) {
-        row = db.prepare(`
-            SELECT * FROM expenses
-            WHERE user_id = ? AND ${activeStatusWhere}
-            ORDER BY id DESC
-            LIMIT 1
-        `).get(userId);
-    }
-
-    return row || null;
+    if (remoteJid) add(remoteJid);
+    return [...set].filter(Boolean);
 }
 
-async function cancelLastExpenseRecord(userId, phoneNumber, cancelMessageId = null) {
-    const activeStatusWhere = `LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')`;
-    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+function findLatestActiveExpenseRecord(userId, phoneNumber, remoteJid = '') {
+    const activeWhere = `LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')`;
+    const candidates = getSenderPhoneCandidates(phoneNumber, remoteJid);
+
+    if (candidates.length) {
+        const placeholders = candidates.map(() => '?').join(', ');
+        const row = db.prepare(`
+            SELECT * FROM expenses
+            WHERE user_id = ?
+              AND (
+                phone_number IN (${placeholders})
+                OR ${PHONE_NORM_SQL} IN (${placeholders})
+              )
+              AND source = 'WhatsApp'
+              AND ${activeWhere}
+            ORDER BY id DESC
+            LIMIT 1
+        `).get(userId, ...candidates, ...candidates);
+        if (row) return row;
+    }
+
+    return null;
+}
+
+async function cancelLastExpenseRecord(userId, phoneNumber, cancelMessageId = null, remoteJid = '') {
+    const activeWhere = `LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')`;
+    const candidates = getSenderPhoneCandidates(phoneNumber, remoteJid);
     let row = null;
     let firestoreCancelled = null;
 
-    if (normalizedPhone) {
+    if (candidates.length) {
+        const placeholders = candidates.map(() => '?').join(', ');
         row = db.prepare(`
             SELECT * FROM expenses
-            WHERE user_id = ? AND phone_number = ? AND ${activeStatusWhere}
+            WHERE user_id = ?
+              AND (
+                phone_number IN (${placeholders})
+                OR ${PHONE_NORM_SQL} IN (${placeholders})
+              )
+              AND source = 'WhatsApp'
+              AND ${activeWhere}
             ORDER BY id DESC
             LIMIT 1
-        `).get(userId, normalizedPhone);
+        `).get(userId, ...candidates, ...candidates);
     }
 
-    if (!row) {
-        row = db.prepare(`
-            SELECT * FROM expenses
-            WHERE user_id = ? AND ${activeStatusWhere}
-            ORDER BY id DESC
-            LIMIT 1
-        `).get(userId);
+    if (!row) return null;
+
+    // Check if this was a transfer (has _in and _out legs)
+    const baseMsgId = row.source_message_id ? String(row.source_message_id).replace(/_(in|out)$/, '') : null;
+    const isTransferRecord = row.category === 'Transfer' || (row.source_message_id && /_(in|out)$/.test(row.source_message_id));
+
+    if (isTransferRecord && baseMsgId) {
+        db.prepare(`
+            UPDATE expenses
+            SET status = 'Cancelled',
+                cancelled_at = datetime('now', 'localtime'),
+                cancelled_by_message_id = ?
+            WHERE user_id = ? AND (source_message_id = ? OR source_message_id LIKE ?)
+        `).run(cancelMessageId, userId, baseMsgId, `${baseMsgId}_%`);
+    } else {
+        db.prepare(`
+            UPDATE expenses
+            SET status = 'Cancelled',
+                cancelled_at = datetime('now', 'localtime'),
+                cancelled_by_message_id = ?
+            WHERE id = ?
+        `).run(cancelMessageId, row.id);
     }
 
-    try {
-        const collectionRef = getAdminFirestore()
-            .collection('users').doc(userId).collection('expenses');
-        const recent = await collectionRef
-            .orderBy('createdAt', 'desc')
-            .limit(30)
-            .get();
-        const match = recent.docs.find((docItem) => {
-            const data = docItem.data();
-            const status = String(data.status || 'Saved').toLowerCase();
-            return (
-                !['cancelled', 'canceled', 'dibatalkan'].includes(status) &&
-                (!normalizedPhone || String(data.phone_number || '') === normalizedPhone)
-            );
-        });
-        if (match) {
-            await match.ref.update({
-                status: 'Cancelled',
-                cancelledAt: FieldValue.serverTimestamp(),
-                cancelled_by_message_id: cancelMessageId || null,
-            });
-            firestoreCancelled = { id: match.id, ...match.data() };
-        }
-    } catch (error) {
-        console.error(`[${userId}] Firestore latest cancel lookup failed: ${error.message}`);
-    }
-
-    if (!row) return firestoreCancelled;
-
-    db.prepare(`
-        UPDATE expenses
-        SET status = 'Cancelled',
-            cancelled_at = datetime('now', 'localtime'),
-            cancelled_by_message_id = ?
-        WHERE id = ?
-    `).run(cancelMessageId, row.id);
-
-    try {
+    if (firestoreSyncEnabled()) try {
         const snapshot = row.source_message_id
             ? await getAdminFirestore()
                 .collection('users').doc(userId).collection('expenses')
@@ -523,28 +547,6 @@ async function cancelLastExpenseRecord(userId, phoneNumber, cancelMessageId = nu
                 cancelledAt: FieldValue.serverTimestamp(),
                 cancelled_by_message_id: cancelMessageId || null,
             });
-        } else if (!firestoreCancelled) {
-            const recent = await getAdminFirestore()
-                .collection('users').doc(userId).collection('expenses')
-                .orderBy('createdAt', 'desc')
-                .limit(20)
-                .get();
-            const match = recent.docs.find((docItem) => {
-                const data = docItem.data();
-                return (
-                    data.status !== 'Cancelled' &&
-                    (!normalizedPhone || String(data.phone_number || '') === normalizedPhone) &&
-                    Number(data.amount || 0) === Number(row.amount || 0) &&
-                    String(data.payment_channel || '').toLowerCase() === String(row.payment_channel || '').toLowerCase()
-                );
-            });
-            if (match) {
-                await match.ref.update({
-                    status: 'Cancelled',
-                    cancelledAt: FieldValue.serverTimestamp(),
-                    cancelled_by_message_id: cancelMessageId || null,
-                });
-            }
         }
     } catch (error) {
         console.error(`[${userId}] Firestore cancel failed: ${error.message}`);
@@ -552,6 +554,8 @@ async function cancelLastExpenseRecord(userId, phoneNumber, cancelMessageId = nu
 
     return row;
 }
+
+
 
 function extractCancelMessageIds(text) {
     const normalized = String(text || '').trim();
@@ -571,12 +575,13 @@ async function cancelExpenseRecordsByMessageIds(userId, messageIds = [], cancelM
 
     const result = { cancelled: [], missing: [] };
     const placeholders = ids.map(() => '?').join(', ');
-    const rows = db.prepare(`
+    const rows = ids.flatMap((id) => db.prepare(`
         SELECT * FROM expenses
-        WHERE user_id = ? AND source_message_id IN (${placeholders})
+        WHERE user_id = ? AND (source_message_id = ? OR source_message_id LIKE ?)
           AND LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')
-    `).all(userId, ...ids);
+    `).all(userId, id, `${id}_%`));
     const foundLocal = new Set(rows.map((row) => row.source_message_id));
+    const matchedInputIds = new Set(rows.map((row) => String(row.source_message_id || '').replace(/_(out|in)$/, '')));
 
     for (const row of rows) {
         db.prepare(`
@@ -586,6 +591,14 @@ async function cancelExpenseRecordsByMessageIds(userId, messageIds = [], cancelM
                 cancelled_by_message_id = ?
             WHERE id = ?
         `).run(cancelMessageId, row.id);
+    }
+
+    if (!firestoreSyncEnabled()) {
+        ids.forEach((id) => {
+            if (matchedInputIds.has(id)) result.cancelled.push(id);
+            else result.missing.push(id);
+        });
+        return result;
     }
 
     try {
@@ -717,7 +730,7 @@ function parseLocalTransaction(text, userId = '') {
     const lowerText = trimmed.toLowerCase();
     if (!trimmed || ['help', 'bantuan'].includes(lowerText) || lowerText.startsWith('saldo') || lowerText.startsWith('laporan')) return null;
 
-    const amountMatch = lowerText.match(/(?:rp\s*)?(\d+(?:[.,]\d+)?)(?:\s*(rb|ribu|k|jt|juta))?\b/i);
+    const amountMatch = lowerText.match(/(?:rp\s*)?(\d+(?:[.,]\d+)*)(?:\s*(rb|ribu|k|jt|juta))?\b/i);
     if (!amountMatch) return null;
     const amount = parseAmountValue(amountMatch[1], amountMatch[2]);
     if (!amount) return null;
@@ -790,8 +803,13 @@ function parseTransferTransaction(text) {
         (/\bdari\b/i.test(lower) && /\bke\b/i.test(lower));
     if (!isTransfer) return null;
 
+    // Strip filler words right after transfer verbs (e.g. "pindah saldo bca" -> "pindah bca")
+    const cleanLower = lower
+        .replace(/(?:transfer|tf|pindah|pindahkan|kirim)\s+(?:saldo|uang|dana|rekening|rek)\b/gi, (m) => m.split(/\s+/)[0])
+        .replace(/\s+/g, ' ');
+
     // Extract amount
-    const amtMatch = lower.match(/(?:rp\s*)?(\d+(?:[.,]\d+)?)(?:\s*(rb|ribu|k|jt|juta))?\b/i);
+    const amtMatch = cleanLower.match(/(?:rp\s*)?(\d+(?:[.,]\d+)*)(?:\s*(rb|ribu|k|jt|juta))?\b/i);
     if (!amtMatch) return null;
     const amount = parseAmountValue(amtMatch[1], amtMatch[2]);
     if (!amount || amount <= 0) return null;
@@ -799,24 +817,64 @@ function parseTransferTransaction(text) {
     let fromWallet = '';
     let toWallet = '';
 
-    // P1: top up [to] ... dari/via [from]
-    const topupMatch = lower.match(/\btop\s*up\s+([a-z0-9_\s]+?)(?:\s+(?:sebesar|sejumlah|rp|\d[a-z0-9,.]*))?\s+(?:dari|via|pake|pakai)\s+([a-z0-9_\s]+)/i);
+    // 1. Topup: top up [to] ... dari/via [from]
+    const topupMatch = cleanLower.match(/\btop\s*up\s+([a-z0-9_\s]+?)(?:\s+(?:sebesar|sejumlah|rp|\d[a-z0-9,.]*))?\s+(?:dari|via|pake|pakai)\s+([a-z0-9_\s]+)/i);
     if (topupMatch) {
         toWallet = normalizeWalletName(topupMatch[1]);
         fromWallet = normalizeWalletName(topupMatch[2]);
-    } else {
-        // P2: dari [from] ke [to]
-        const dariKeMatch = lower.match(/\bdari\s+([a-z0-9_\s]+?)\s+ke\s+([a-z0-9_\s]+?)(?:\s+(?:sebesar|sejumlah|rp|\d)|$)/i);
+    }
+
+    // 2. Transfer [from] [amount] ke [to]   e.g. "Transfer Superbank 69000 ke BCA", "tf bca 50rb ke superbank"
+    if (!fromWallet || !toWallet) {
+        const fromAmtKeTo = cleanLower.match(/(?:transfer|tf|pindah|kirim)\s+([a-z0-9_]+)\s+[\d.,]+\s*(?:rb|ribu|k|jt|juta)?\s+ke\s+([a-z0-9_]+)/i);
+        if (fromAmtKeTo) {
+            fromWallet = normalizeWalletName(fromAmtKeTo[1]);
+            toWallet = normalizeWalletName(fromAmtKeTo[2]);
+        }
+    }
+
+    // 3. Transfer ke [to] dari [from] [amount?]   e.g. "Transfer ke BCA dari Superbank 69000"
+    if (!fromWallet || !toWallet) {
+        const keToDariFrom = cleanLower.match(/(?:transfer|tf|pindah|kirim)\s+ke\s+([a-z0-9_]+)\s+(?:dari|via|pake|pakai)\s+([a-z0-9_]+)/i);
+        if (keToDariFrom) {
+            toWallet = normalizeWalletName(keToDariFrom[1]);
+            fromWallet = normalizeWalletName(keToDariFrom[2]);
+        }
+    }
+
+    // 4. Transfer [amount] dari [from] ke [to]   e.g. "pindah 100000 dari superbank ke bca"
+    if (!fromWallet || !toWallet) {
+        const amtDariKe = cleanLower.match(/(?:transfer|tf|pindah|kirim)?\s*[\d.,]+\s*(?:rb|ribu|k|jt|juta)?\s+dari\s+([a-z0-9_]+)\s+ke\s+([a-z0-9_]+)/i);
+        if (amtDariKe) {
+            fromWallet = normalizeWalletName(amtDariKe[1]);
+            toWallet = normalizeWalletName(amtDariKe[2]);
+        }
+    }
+
+    // 5. Transfer dari [from] ke [to]   e.g. "Transfer dari Superbank ke BCA 69000"
+    if (!fromWallet || !toWallet) {
+        const dariKeMatch = cleanLower.match(/\bdari\s+([a-z0-9_\s]+?)\s+ke\s+([a-z0-9_\s]+?)(?:\s+(?:sebesar|sejumlah|rp|\d)|$)/i);
         if (dariKeMatch) {
             fromWallet = normalizeWalletName(dariKeMatch[1]);
             toWallet = normalizeWalletName(dariKeMatch[2]);
-        } else {
-            // P3: transfer [from] ke [to]
-            const keMatch = lower.match(/(?:transfer|tf|pindah|kirim)\s+([a-z0-9_]+)\s+ke\s+([a-z0-9_]+)/i);
-            if (keMatch) {
-                fromWallet = normalizeWalletName(keMatch[1]);
-                toWallet = normalizeWalletName(keMatch[2]);
-            }
+        }
+    }
+
+    // 6. Transfer ke [to] [amount] [from]   e.g. "Transfer ke BCA 69000 Superbank", "tf ke bca 1jt superbank"
+    if (!fromWallet || !toWallet) {
+        const keToAmtFrom = cleanLower.match(/(?:transfer|tf|pindah|kirim)\s+ke\s+([a-z0-9_]+)\s+[\d.,]+\s*(?:rb|ribu|k|jt|juta)?\s+([a-z0-9_]+)/i);
+        if (keToAmtFrom) {
+            toWallet = normalizeWalletName(keToAmtFrom[1]);
+            fromWallet = normalizeWalletName(keToAmtFrom[2]);
+        }
+    }
+
+    // 7. Transfer [from] ke [to]   e.g. "transfer superbank ke bca 50rb", "pindah bca ke superbank 1.865.000"
+    if (!fromWallet || !toWallet) {
+        const keMatch = cleanLower.match(/(?:transfer|tf|pindah|kirim)\s+([a-z0-9_]+)\s+ke\s+([a-z0-9_]+)/i);
+        if (keMatch) {
+            fromWallet = normalizeWalletName(keMatch[1]);
+            toWallet = normalizeWalletName(keMatch[2]);
         }
     }
 
@@ -860,7 +918,7 @@ async function saveTransferRecord(userId, phoneNumber, transferData, source = 'W
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(userId, phoneNumber, inMerchant, 'Pemasukan', amount, dateStr, 'High', toWallet, 'income', 'Saved', source, inMessageId || messageId, activeRecapId, activeRecapName, 'active');
 
-    try {
+    if (firestoreSyncEnabled()) try {
         const batch = getAdminFirestore().batch();
         const col = getAdminFirestore().collection('users').doc(userId).collection('expenses');
 
@@ -1084,15 +1142,17 @@ function buildTransactionReplyFromExtracted(extracted, messageId) {
     const type = String(extracted.type || '').toLowerCase() === 'income' ? 'Masuk' : 'Keluar';
     const category = extracted.category || (type === 'Masuk' ? 'Pemasukan' : 'Lainnya');
     const rekening = extracted.payment_channel || 'Cash';
+    const merchant = extracted.merchant || '';
     return [
         '📝 *Transaksi Tercatat*',
         '━━━━━━━━━━━━━━━━━━',
+        merchant ? `🧾 Deskripsi : ${merchant}` : '',
         `📂 Kategori  : ${category}`,
         `💰 Jumlah    : ${formatCurrencyId(extracted.amount)}`,
         `💳 Rekening  : ${rekening}`,
         `↔️ Tipe      : ${type}`,
         '━━━━━━━━━━━━━━━━━━',
-        messageId ? `🆔 Message ID : ${messageId}` : '',
+        messageId ? `🆔 Message ID : ${messageId}` : '⚠️ ID tidak tersedia (tidak bisa dibatalkan by ID)',
         '✅ Berhasil disimpan',
     ].filter(Boolean).join('\n');
 }
@@ -1156,20 +1216,21 @@ function isSalaryIncomeItem(item = {}) {
     return /\b(gaji|salary|upah|payroll)\b/.test(text);
 }
 
-async function getMonthlyTotalsFromFirestore(userId, now = new Date(), settings = {}) {
+async function getMonthlyTotalsFromStorage(userId, now = new Date(), settings = {}) {
     const periodStart = startOfActiveBudgetPeriod(settings, now);
-    const snapshot = await getAdminFirestore()
-        .collection('users').doc(userId).collection('expenses')
-        .get();
+    const rows = db.prepare(`
+        SELECT *
+        FROM expenses
+        WHERE user_id = ?
+          AND COALESCE(recap_status, 'active') != 'archived'
+          AND LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal')
+    `).all(userId);
 
     let expense = 0;
     let salaryIncome = 0;
     let extraIncome = 0;
-    snapshot.forEach((doc) => {
-        const item = doc.data() || {};
-        if (!isActiveExpenseStatus(item.status)) return;
-        if (String(item.recap_status || 'active').toLowerCase() === 'archived') return;
-        const date = firestoreDateValue(item.createdAt || item.timestamp || item.date);
+    rows.forEach((item) => {
+        const date = firestoreDateValue(item.created_at || item.date);
         if (date && date < periodStart) return;
         if (String(item.type || 'expense').toLowerCase() === 'income') {
             if (isSalaryIncomeItem(item)) salaryIncome += Number(item.amount || 0);
@@ -1197,7 +1258,7 @@ async function buildMonthlyBudgetAlertIfNeeded(userId, settings = {}, latestTran
         ? settings.budget_alert_levels.map(Number)
         : [];
 
-    const monthlyTotals = await getMonthlyTotalsFromFirestore(userId, now, settings);
+    const monthlyTotals = await getMonthlyTotalsFromStorage(userId, now, settings);
     const monthlySpend = monthlyTotals.expense;
     const monthlyExtraIncome = monthlyTotals.extraIncome;
     const usedPercent = budget ? (monthlySpend / budget) * 100 : 0;
@@ -1391,234 +1452,89 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
         return;
     }
 
-    if (appsScriptEndpoint) {
-        let extracted = null;
-        let aiResult = null;
-        try {
-            if (cancelMessageIds.length) {
-                const scriptStartedAt = Date.now();
-                const sheetFrom = getSheetSenderIdentity(userId, remoteJid, senderPhoneJid, userSettings);
-                const reply = await forwardMessageToAppsScriptWithRecovery(appsScriptEndpoint, {
-                    session: userId,
-                    from: sheetFrom,
-                    from_jid: remoteJid,
-                    body: text,
-                    command: 'cancel_by_message_id',
-                    cancel_message_ids: cancelMessageIds,
-                    message_id: messageId || undefined,
-                    spreadsheet_id: userSettings.spreadsheet_id || undefined,
-                }, { timeoutMs: 45000, recoveryDelayMs: 6000, recoveryTimeoutMs: 70000, label: `cancel-by-id:${messageId || cancelMessageIds.join(',')}` });
-                const scriptSupportsCancelById = /Pembatalan by Message ID|Dibatalkan|Sudah dibatalkan|Tidak ditemukan/i.test(String(reply || ''));
-                if (!scriptSupportsCancelById) {
-                    await sendReply(
-                        '⚠️ Apps Script belum mendukung pembatalan berdasarkan Message ID.\n\n' +
-                        'Update Apps Script production dengan template terbaru dulu, lalu kirim ulang command ini.'
-                    );
-                    return;
-                }
-                const localResult = await cancelExpenseRecordsByMessageIds(userId, cancelMessageIds, messageId);
-                console.log(`[${userId}] Cancel by message ID completed for ${messageId || 'no-id'} in ${Date.now() - scriptStartedAt}ms (ids=${cancelMessageIds.join(',')}, firestore=${localResult.cancelled.length}, missing=${localResult.missing.length})`);
-                await sendReply(reply);
-                return;
-            }
-
-            if (isCancelCommand) {
-                const scriptStartedAt = Date.now();
-                const sheetFrom = getSheetSenderIdentity(userId, remoteJid, senderPhoneJid, userSettings);
-                const target = findLatestActiveExpenseRecord(userId, conversationPhone);
-                if (!target) {
-                    await sendReply('ℹ️ Tidak ada transaksi terakhir yang bisa dibatalkan untuk nomor Anda.');
-                    return;
-                }
-                if (!target.source_message_id) {
-                    await sendReply(
-                        '⚠️ Transaksi terakhir belum punya Message ID, jadi tidak aman dibatalkan otomatis.\n\n' +
-                        'Gunakan format aman: *batal id MESSAGE_ID*'
-                    );
-                    return;
-                }
-                const reply = await forwardMessageToAppsScriptWithRecovery(appsScriptEndpoint, {
-                    session: userId,
-                    from: sheetFrom,
-                    from_jid: remoteJid,
-                    body: `batal id ${target.source_message_id}`,
-                    command: 'cancel_by_message_id',
-                    cancel_message_ids: [target.source_message_id],
-                    message_id: messageId || undefined,
-                    spreadsheet_id: userSettings.spreadsheet_id || undefined,
-                }, { timeoutMs: 45000, recoveryDelayMs: 6000, recoveryTimeoutMs: 70000, label: `cancel-last:${messageId || target.source_message_id}` });
-                const scriptSupportsCancelById = /Pembatalan by Message ID|Dibatalkan|Sudah dibatalkan|Tidak ditemukan/i.test(String(reply || ''));
-                if (!scriptSupportsCancelById) {
-                    await sendReply(
-                        '⚠️ Apps Script belum membatalkan transaksi berdasarkan Message ID.\n\n' +
-                        'Webapp tidak diubah agar data tidak pecah. Coba ulangi dengan format aman:\n' +
-                        `*batal id ${target.source_message_id}*`
-                    );
-                    return;
-                }
-                const localResult = await cancelExpenseRecordsByMessageIds(userId, [target.source_message_id], messageId);
-                console.log(`[${userId}] Cancel command resolved to message ID ${target.source_message_id} for ${messageId || 'no-id'} in ${Date.now() - scriptStartedAt}ms (firestore=${localResult.cancelled.length}, missing=${localResult.missing.length})`);
-                await sendReply(reply);
-                return;
-            }
-
-            const command = cmd;
-        if (!command.startsWith('saldo') && !command.startsWith('laporan') && !isCancelCommand) {
-                const extractStartedAt = Date.now();
-
-                // 1. Cek apakah ini transaksi Transfer / Pindah Saldo antar dompet
-                const localTransfer = parseTransferTransaction(text);
-                if (localTransfer) {
-                    console.log(`[${userId}] Transfer parser matched for ${messageId || 'no-id'} in ${Date.now() - extractStartedAt}ms: ${localTransfer.fromWallet} -> ${localTransfer.toWallet} (${localTransfer.amount})`);
-                    await saveTransferRecord(userId, conversationPhone, localTransfer, 'WhatsApp', messageId);
-                    const transferReply = buildTransferReply(localTransfer, messageId);
-                    await sendReply(transferReply);
-                    console.log(`[${userId}] WhatsApp transfer flow completed for ${messageId || 'no-id'} in ${Date.now() - startedAt}ms`);
-                    return;
-                }
-
-                extracted = parseLocalTransaction(text, userId);
-                if (extracted) {
-                    console.log(`[${userId}] Local transaction parser completed for ${messageId || 'no-id'} in ${Date.now() - extractStartedAt}ms`);
-                } else {
-                    extracted = await extractExpenseWithAI(text, userSettings, userId);
-                    console.log(`[${userId}] AI extraction completed for ${messageId || 'no-id'} in ${Date.now() - extractStartedAt}ms`);
-                }
-
-                // Jika AI mendeteksi transfer
-                if (extracted && (extracted.type === 'transfer' || (extracted.from_wallet && extracted.to_wallet))) {
-                    const aiTransferData = {
-                        isTransfer: true,
-                        type: 'transfer',
-                        amount: Number(extracted.amount || 0),
-                        fromWallet: normalizeWalletName(extracted.from_wallet || extracted.payment_channel || 'Cash'),
-                        toWallet: normalizeWalletName(extracted.to_wallet || 'BCA'),
-                        date: extracted.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                    };
-                    if (aiTransferData.amount > 0 && aiTransferData.fromWallet !== aiTransferData.toWallet) {
-                        await saveTransferRecord(userId, conversationPhone, aiTransferData, 'WhatsApp', messageId);
-                        const transferReply = buildTransferReply(aiTransferData, messageId);
-                        await sendReply(transferReply);
-                        console.log(`[${userId}] WhatsApp AI transfer flow completed for ${messageId || 'no-id'} in ${Date.now() - startedAt}ms`);
-                        return;
-                    }
-                }
-
-                if (extracted?.amount && extracted?.type) {
-                    aiResult = {
-                        cat: extracted.category || 'Lainnya',
-                        amt: extracted.amount,
-                        type: extracted.type.toLowerCase() === 'income' ? 'Masuk' : 'Keluar',
-                        rek: extracted.payment_channel || 'Cash',
-                    };
-                }
-            }
-            let reply = '';
-            if (appsScriptEndpoint) {
-                const scriptStartedAt = Date.now();
-                const sheetFrom = getSheetSenderIdentity(userId, remoteJid, senderPhoneJid, userSettings);
-                reply = await forwardMessageToAppsScriptWithRecovery(appsScriptEndpoint, {
-                    session: userId,
-                    from: sheetFrom,
-                    from_jid: remoteJid,
-                    body: text,
-                    message_id: messageId || undefined,
-                    ai_result: aiResult,
-                    spreadsheet_id: userSettings.spreadsheet_id || undefined,
-                }, { timeoutMs: 45000, recoveryDelayMs: 6000, recoveryTimeoutMs: 70000, label: `transaction:${messageId || 'no-id'}` });
-                console.log(`[${userId}] Apps Script completed for ${messageId || 'no-id'} in ${Date.now() - scriptStartedAt}ms (from ${maskJid(remoteJid)} → sheet ${sheetFrom})`);
-            }
-
-            const savedTransaction = extracted?.amount
-                ? await saveExpenseRecord(userId, conversationPhone, extracted, 'WhatsApp', messageId)
-                : null;
-            const budgetAlert = await buildMonthlyBudgetAlertIfNeeded(userId, userSettings, savedTransaction);
-            const safeReply = reply ? getSafeTransactionReply(reply, extracted, messageId) : buildTransactionReplyFromExtracted(extracted, messageId);
-            await sendReply(`${safeReply || '✅ Transaksi berhasil diproses.'}${budgetAlert}`);
-            console.log(`[${userId}] WhatsApp flow completed for ${messageId || 'no-id'} in ${Date.now() - startedAt}ms`);
-        } catch (error) {
-            console.error(`[${userId}] Apps Script forwarding error:`, error.message);
-            if (!error.message.includes('reply target unresolved')) {
-                if (cancelMessageIds.length && /GROQ_API_KEY|panggilGroq|Groq/i.test(error.message)) {
-                    await sendReply(
-                        '⚠️ Command *batal id* sudah dikenali backend, tapi Apps Script endpoint yang aktif masih menjalankan script lama.\n\n' +
-                        'Pastikan deploy Web App Apps Script memakai versi terbaru, lalu update URL Web App di menu Settings jika URL deploy berubah.'
-                    );
-                    return;
-                }
-                if ((isCancelCommand || cancelMessageIds.length) && /timeout/i.test(error.message)) {
-                    await sendReply(
-                        '⚠️ Command pembatalan sedang lambat di Google Apps Script.\n\n' +
-                        'Tunggu sebentar lalu cek Sheet/Webapp. Kalau belum batal, ulangi dengan format aman:\n' +
-                        '*batal id MESSAGE_ID*'
-                    );
-                    return;
-                }
-                if (extracted?.amount && !isCancelCommand && !cancelMessageIds.length) {
-                    console.warn(`[${userId}] Transaction NOT saved locally after Apps Script error for ${messageId || 'no-id'} to prevent Sheet/Webapp mismatch.`);
-                    await sendReply(
-                        '❌ Koneksi ke Google Apps Script gagal. Transaksi belum dicatat ke webapp agar saldo tidak selisih.\n\n' +
-                        'Cek Google Sheet sebentar. Jika belum ada, kirim ulang pesan transaksi yang sama.'
-                    );
-                    return;
-                }
-                await sendReply('❌ Koneksi ke Google Apps Script gagal. Periksa endpoint dan akses Web App Anda.');
-            }
-        }
-        return;
-    }
-
-    if (cmd === 'help' || cmd === 'bantuan') {
-        const reply = `🤖 *Panduan Bot Keuangan*\n\n---\n💬 *Catat Transaksi:*\nKetik transaksi bebas, contoh:\n• Beli makan siang 25000\n• Terima gaji 5000000 BCA\n• Bayar bensin 80rb gopay\n\n↩️ *Pembatalan:*\n• batal -> batalkan transaksi terakhir\n• batal id 3AA..., 3AB... -> batalkan transaksi sesuai Message ID\n\n📊 *Cek Saldo:*\n• saldo -> semua rekening\n• saldo BCA -> saldo spesifik\n• set saldo BCA 10000 -> set manual\n\n📋 *Laporan:*\n• laporan hari ini\n• laporan minggu ini\n• laporan bulan ini`;
-        await sendReply(reply);
-        return;
-    }
-
     if (cancelMessageIds.length) {
         const localResult = await cancelExpenseRecordsByMessageIds(userId, cancelMessageIds, messageId);
         const lines = [
             '↩️ *Pembatalan berdasarkan Message ID*',
             '',
             localResult.cancelled.length ? `✅ Dibatalkan: ${localResult.cancelled.join(', ')}` : '✅ Dibatalkan: -',
-            localResult.missing.length ? `⚠️ Tidak ditemukan di webapp: ${localResult.missing.join(', ')}` : '',
-            '',
-            'Catatan: mode tanpa Apps Script hanya merapihkan data webapp.',
+            localResult.missing.length ? `⚠️ Tidak ditemukan: ${localResult.missing.join(', ')}` : '',
         ].filter(Boolean);
         await sendReply(lines.join('\n'));
         return;
     }
 
     if (isCancelCommand) {
-        const cancelled = await cancelLastExpenseRecord(userId, conversationPhone, messageId);
+        const cancelled = await cancelLastExpenseRecord(userId, conversationPhone, messageId, remoteJid);
         if (!cancelled) {
-            await sendReply('ℹ️ Tidak ada transaksi terakhir yang bisa dibatalkan.');
+            await sendReply('ℹ️ Tidak ada transaksi terakhir yang bisa dibatalkan untuk nomor Anda.');
             return;
         }
-        const typeLabel = cancelled.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
-        await sendReply(
-            `↩️ *Transaksi Dibatalkan*\n\n` +
-            `🧾 ${cancelled.merchant || 'Transaksi WhatsApp'}\n` +
-            `📁 ${cancelled.category || 'Lainnya'}\n` +
-            `💰 Rp${Number(cancelled.amount || 0).toLocaleString('id-ID')}\n` +
-            `💳 ${cancelled.payment_channel || 'Cash'}\n` +
-            `↔️ ${typeLabel}\n\n` +
-            `✅ Data aplikasi sudah dikoreksi.`
-        );
+        const isTransfer = cancelled.category === 'Transfer' || (cancelled.source_message_id && /_(in|out)$/.test(cancelled.source_message_id));
+        if (isTransfer) {
+            await sendReply(
+                `↩️ *Transfer Dibatalkan*\n\n` +
+                `🔄 ${cancelled.merchant}\n` +
+                `💰 Rp${Number(cancelled.amount || 0).toLocaleString('id-ID')}\n` +
+                `💳 Rekening: ${cancelled.payment_channel || 'Cash'}\n\n` +
+                `✅ Saldo kedua dompet sudah dikoreksi.`
+            );
+        } else {
+            const typeLabel = cancelled.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
+            await sendReply(
+                `↩️ *Transaksi Dibatalkan*\n\n` +
+                `🧾 ${cancelled.merchant || 'Transaksi WhatsApp'}\n` +
+                `📁 ${cancelled.category || 'Lainnya'}\n` +
+                `💰 Rp${Number(cancelled.amount || 0).toLocaleString('id-ID')}\n` +
+                `💳 ${cancelled.payment_channel || 'Cash'}\n` +
+                `↔️ ${typeLabel}\n\n` +
+                `✅ Data aplikasi sudah dikoreksi.`
+            );
+        }
         return;
     }
 
     if (cmd.startsWith('set saldo ')) {
-        const parts = text.trim().split(' ');
+        const parts = text.trim().split(/\s+/);
         if (parts.length >= 4) {
-            const bank = parts[2].toUpperCase();
-            const amount = parseInt(parts[3].replace(/[^0-9]/g, ''));
-            if (!isNaN(amount)) {
+            const bank = normalizeWalletName(parts[2]);
+            const rawAmt = parts.slice(3).join(' ').toLowerCase();
+            const amtMatch = rawAmt.match(/(?:rp\s*)?(\d+(?:[.,]\d+)?)(?:\s*(rb|ribu|k|jt|juta))?\b/i);
+            const amount = amtMatch ? parseAmountValue(amtMatch[1], amtMatch[2]) : parseInt(rawAmt.replace(/[^0-9]/g, ''));
+            if (Number.isFinite(amount) && amount >= 0) {
                 db.prepare(`
                     INSERT INTO balances (user_id, payment_channel, manual_balance, last_updated)
                     VALUES (?, ?, ?, datetime('now', 'localtime'))
                 `).run(userId, bank, amount);
-                await sendReply(`✅ Saldo awal *${bank}* berhasil diatur ke *Rp${amount.toLocaleString('id-ID')}*.`);
+
+                // Sinkronkan ke settings.wallets agar webapp otomatis terupdate
+                const settings = await getUserSettings(userId).catch(() => ({}));
+                const currentWallets = Array.isArray(settings.wallets) ? settings.wallets : [];
+                let found = false;
+                const updatedWallets = currentWallets.map((w) => {
+                    if (w.name && w.name.toUpperCase() === bank.toUpperCase()) {
+                        found = true;
+                        return { ...w, initial_balance: amount };
+                    }
+                    return w;
+                });
+                if (!found) {
+                    updatedWallets.push({
+                        id: `w-${Date.now()}`,
+                        name: bank,
+                        initial_balance: amount,
+                        account_number: '',
+                        threshold: '20%',
+                        is_active: true,
+                    });
+                }
+                await saveUserSettings(userId, { wallets: updatedWallets }).catch(() => {});
+                await sendReply(`✅ Saldo awal *${bank}* berhasil diatur ke *Rp${amount.toLocaleString('id-ID')}*.\nWebapp & Bot otomatis sinkron.`);
+            } else {
+                await sendReply(`⚠️ Format nominal tidak valid. Contoh: *set saldo BCA 500000* atau *set saldo BCA 500rb*.`);
             }
+        } else {
+            await sendReply(`ℹ️ Format: *set saldo <DOMPET> <JUMLAH>*\nContoh: *set saldo BCA 500000*`);
         }
         return;
     }
@@ -1690,18 +1606,60 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
         return;
     }
 
-    console.log(`[${userId}] Extracting fallback AI for ${messageId || 'no-id'}`);
-    const extracted = parseLocalTransaction(text, userId) || await extractExpenseWithAI(text, userSettings, userId);
-    if (extracted && extracted.amount && extracted.merchant && extracted.type) {
-        const dateStr = extracted.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        const paymentChannel = extracted.payment_channel || 'Cash';
-        const transactionType = extracted.type.toLowerCase() === 'income' ? 'income' : 'expense';
-        const savedTransaction = await saveExpenseRecord(userId, remoteJid, { ...extracted, date: dateStr, payment_channel: paymentChannel, type: transactionType }, 'WhatsApp', messageId);
-        const icon = transactionType === 'income' ? '🟢' : '🔴';
-        const typeLabel = transactionType === 'income' ? 'Pemasukan' : 'Pengeluaran';
-        const budgetAlert = await buildMonthlyBudgetAlertIfNeeded(userId, userSettings, savedTransaction);
-        await sendReply(`✅ *${typeLabel} Dicatat!*\n\n${icon} *${extracted.merchant}*\n💰 Rp${extracted.amount.toLocaleString('id-ID')}\n📁 ${extracted.category || 'Other'}\n💳 ${paymentChannel}${budgetAlert}`);
+    // --- TRANSACTION PROCESSING ---
+    const extractStartedAt = Date.now();
+
+    // 1. Cek apakah ini transaksi Transfer / Pindah Saldo antar dompet
+    const localTransfer = parseTransferTransaction(text);
+    if (localTransfer) {
+        console.log(`[${userId}] Transfer parser matched for ${messageId || 'no-id'} in ${Date.now() - extractStartedAt}ms: ${localTransfer.fromWallet} -> ${localTransfer.toWallet} (${localTransfer.amount})`);
+        await saveTransferRecord(userId, conversationPhone, localTransfer, 'WhatsApp', messageId);
+        const transferReply = buildTransferReply(localTransfer, messageId);
+        await sendReply(transferReply);
+        console.log(`[${userId}] WhatsApp transfer flow completed for ${messageId || 'no-id'} in ${Date.now() - startedAt}ms`);
+        return;
     }
+
+    // 2. Parse Pengeluaran / Pemasukan biasa (Local fast-path lalu AI)
+    let extracted = parseLocalTransaction(text, userId);
+    if (extracted) {
+        console.log(`[${userId}] Local transaction parser completed for ${messageId || 'no-id'} in ${Date.now() - extractStartedAt}ms`);
+    } else {
+        extracted = await extractExpenseWithAI(text, userSettings, userId);
+        console.log(`[${userId}] AI extraction completed for ${messageId || 'no-id'} in ${Date.now() - extractStartedAt}ms`);
+    }
+
+    // 3. Jika AI mendeteksi transfer
+    if (extracted && (extracted.type === 'transfer' || (extracted.from_wallet && extracted.to_wallet))) {
+        const aiTransferData = {
+            isTransfer: true,
+            type: 'transfer',
+            amount: Number(extracted.amount || 0),
+            fromWallet: normalizeWalletName(extracted.from_wallet || extracted.payment_channel || 'Cash'),
+            toWallet: normalizeWalletName(extracted.to_wallet || 'BCA'),
+            date: extracted.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        };
+        if (aiTransferData.amount > 0 && aiTransferData.fromWallet !== aiTransferData.toWallet) {
+            await saveTransferRecord(userId, conversationPhone, aiTransferData, 'WhatsApp', messageId);
+            const transferReply = buildTransferReply(aiTransferData, messageId);
+            await sendReply(transferReply);
+            console.log(`[${userId}] WhatsApp AI transfer flow completed for ${messageId || 'no-id'} in ${Date.now() - startedAt}ms`);
+            return;
+        }
+    }
+
+    // 4. Simpan transaksi pengeluaran/pemasukan biasa
+    if (extracted && extracted.amount && extracted.type) {
+        const savedTransaction = await saveExpenseRecord(userId, conversationPhone, extracted, 'WhatsApp', messageId);
+        const replyMessageId = savedTransaction?.source_message_id || messageId;
+        const budgetAlert = await buildMonthlyBudgetAlertIfNeeded(userId, userSettings, savedTransaction);
+        const safeReply = buildTransactionReplyFromExtracted(extracted, replyMessageId);
+        await sendReply(`${safeReply || '✅ Transaksi berhasil diproses.'}${budgetAlert}`);
+        console.log(`[${userId}] WhatsApp flow completed for ${messageId || 'no-id'} in ${Date.now() - startedAt}ms`);
+        return;
+    }
+
+    console.log(`[${userId}] Message ${messageId || 'no-id'} did not match any command or transaction pattern.`);
 }
 
 async function initSession(userId) {

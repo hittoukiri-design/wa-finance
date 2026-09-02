@@ -19,7 +19,7 @@ import { useAuth } from '../context/useAuth';
 import { auth } from '../lib/firebase';
 
 const API_BASE = import.meta.env.VITE_API_URL
-  || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'https://wa-finance-bot-i729.web.app' : '');
+  || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000' : '');
 
 const DEFAULT_SETTINGS = {
   groq_api_key: '',
@@ -310,7 +310,7 @@ export default function Settings() {
             <SectionTitle
               icon={Database}
               title="Keamanan Data & Server Auto-Backup"
-              description="Penyimpanan database berjalan 24/7 di server Mac mini dan otomatis terenkripsi ke Cloud Storage."
+              description="Penyimpanan database berjalan 24/7 di server Mac mini dan backup terenkripsi tersimpan lokal."
             >
               <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300">
                 AUTO-BACKUP ON 🟢

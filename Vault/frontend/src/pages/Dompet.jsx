@@ -113,43 +113,53 @@ export default function Dompet() {
   const computedWallets = useMemo(() => {
     const walletExpenseMap = {};
     const walletIncomeMap = {};
-    const discoveredWallets = new Set();
+    const displayNameMap = {};
+    const uniqueKeys = new Set();
     const deletedWallets = new Set((savedSettings.deleted_wallets || []).map((w) => String(w).toLowerCase()));
 
     expenses.forEach((e) => {
-      const wName = String(e.payment_channel || e.rekening || '').trim();
-      if (wName) discoveredWallets.add(wName);
+      const raw = String(e.payment_channel || e.rekening || '').trim();
+      if (!raw) return;
+      const key = raw.toLowerCase();
+      uniqueKeys.add(key);
+      if (!displayNameMap[key]) displayNameMap[key] = raw;
       const amt = Number(e.amount || 0);
       if (String(e.type || '').toLowerCase() === 'income') {
-        walletIncomeMap[wName] = (walletIncomeMap[wName] || 0) + amt;
+        walletIncomeMap[key] = (walletIncomeMap[key] || 0) + amt;
       } else {
-        walletExpenseMap[wName] = (walletExpenseMap[wName] || 0) + amt;
+        walletExpenseMap[key] = (walletExpenseMap[key] || 0) + amt;
       }
     });
 
     const savedWalletsList = savedSettings.wallets && Array.isArray(savedSettings.wallets) ? savedSettings.wallets : [];
     const savedMap = {};
     savedWalletsList.forEach((sw) => {
-      savedMap[sw.name.toLowerCase()] = sw;
-      if (sw.name) discoveredWallets.add(sw.name);
+      if (sw.name) {
+        const key = sw.name.toLowerCase();
+        savedMap[key] = sw;
+        uniqueKeys.add(key);
+        displayNameMap[key] = sw.name; // Display name dari savedSettings
+      }
     });
 
-    if (discoveredWallets.size === 0) {
-      discoveredWallets.add('Cash');
+    if (uniqueKeys.size === 0) {
+      uniqueKeys.add('cash');
+      displayNameMap['cash'] = 'Cash';
     }
 
-    return Array.from(discoveredWallets)
-      .filter((wName) => !deletedWallets.has(wName.toLowerCase()))
-      .map((wName) => {
-        const sw = savedMap[wName.toLowerCase()];
-        const totalIncome = walletIncomeMap[wName] || 0;
-        const totalExpense = walletExpenseMap[wName] || 0;
+    return Array.from(uniqueKeys)
+      .filter((key) => !deletedWallets.has(key))
+      .map((key) => {
+        const sw = savedMap[key];
+        const displayName = sw?.name || displayNameMap[key] || key;
+        const totalIncome = walletIncomeMap[key] || 0;
+        const totalExpense = walletExpenseMap[key] || 0;
         const initialBal = sw && sw.initial_balance !== undefined ? Number(sw.initial_balance) : (sw?.balance || 0);
         const liveBal = initialBal + totalIncome - totalExpense;
 
         return {
-          id: sw?.id || `w-${wName.toLowerCase().replace(/\s+/g, '-')}`,
-          name: sw?.name || wName,
+          id: sw?.id || `w-${key.replace(/\s+/g, '-')}`,
+          name: displayName,
           threshold: sw?.threshold || '20%',
           balance: liveBal,
           initial_balance: initialBal,
@@ -162,14 +172,22 @@ export default function Dompet() {
   // ── Calculate Real Category Spending vs Budget Limits ──
   const computedCategories = useMemo(() => {
     const catSpentMap = {};
-    const discoveredCategories = new Set(BASE_CATEGORIES.map((b) => b.name));
+    const displayNameMap = {};
+    const uniqueKeys = new Set();
+    BASE_CATEGORIES.forEach((b) => {
+      const key = b.name.toLowerCase();
+      uniqueKeys.add(key);
+      displayNameMap[key] = b.name;
+    });
     const deletedCategories = new Set((savedSettings.deleted_categories || []).map((c) => String(c).toLowerCase()));
 
     expenses.forEach((e) => {
       if (String(e.type || '').toLowerCase() !== 'income') {
-        const cat = e.category || 'Lainnya';
-        discoveredCategories.add(cat);
-        catSpentMap[cat] = (catSpentMap[cat] || 0) + Number(e.amount || 0);
+        const raw = String(e.category || 'Lainnya').trim();
+        const key = raw.toLowerCase();
+        uniqueKeys.add(key);
+        if (!displayNameMap[key]) displayNameMap[key] = raw;
+        catSpentMap[key] = (catSpentMap[key] || 0) + Number(e.amount || 0);
       }
     });
 
@@ -178,24 +196,29 @@ export default function Dompet() {
       : [];
     const savedCatMap = {};
     savedCategoryBudgets.forEach((sc) => {
-      savedCatMap[sc.name.toLowerCase()] = sc;
-      if (sc.name) discoveredCategories.add(sc.name);
+      if (sc.name) {
+        const key = sc.name.toLowerCase();
+        savedCatMap[key] = sc;
+        uniqueKeys.add(key);
+        displayNameMap[key] = sc.name;
+      }
     });
 
-    return Array.from(discoveredCategories)
-      .filter((cName) => !deletedCategories.has(cName.toLowerCase()))
-      .map((cName) => {
-        const sc = savedCatMap[cName.toLowerCase()];
-        const base = BASE_CATEGORIES.find((b) => b.name.toLowerCase() === cName.toLowerCase());
-        const spent = catSpentMap[cName] || 0;
+    return Array.from(uniqueKeys)
+      .filter((key) => !deletedCategories.has(key))
+      .map((key) => {
+        const sc = savedCatMap[key];
+        const base = BASE_CATEGORIES.find((b) => b.name.toLowerCase() === key);
+        const displayName = sc?.name || displayNameMap[key] || key;
+        const spent = catSpentMap[key] || 0;
         const budget = sc?.budget !== undefined ? Number(sc.budget) : (base?.defaultBudget || 0);
         const threshold = sc?.threshold || base?.threshold || '80%';
-        const emoji = sc?.emoji || base?.emoji || getCategoryIcon(cName);
+        const emoji = sc?.emoji || base?.emoji || getCategoryIcon(displayName);
         const is_active = sc ? sc.is_active !== false : true;
 
         return {
-          id: sc?.id || base?.id || `cat-${cName.toLowerCase().replace(/\s+/g, '-')}`,
-          name: sc?.name || cName,
+          id: sc?.id || base?.id || `cat-${key.replace(/\s+/g, '-')}`,
+          name: displayName,
           emoji,
           budget,
           spent,
@@ -259,18 +282,40 @@ export default function Dompet() {
         setNotice(err.message || 'Gagal menyimpan dompet.');
       }
     } else {
-      updated = computedWallets.map((w) => {
-        if (w.id === walletForm.id || w.name.toLowerCase() === walletForm.name.trim().toLowerCase()) {
+      const baseList = savedSettings.wallets && Array.isArray(savedSettings.wallets) ? savedSettings.wallets : [];
+      let found = false;
+      const targetNameLower = walletForm.name.trim().toLowerCase();
+      updated = baseList.map((w) => {
+        if (w.id === walletForm.id || (w.name && w.name.toLowerCase() === targetNameLower)) {
+          found = true;
           return {
-            ...w,
+            id: w.id || walletForm.id || `w-${Date.now()}`,
             name: walletForm.name.trim(),
             initial_balance: Number(walletForm.initial_balance || 0),
             account_number: (walletForm.account_number || '').trim(),
             threshold: walletForm.threshold.trim() || '20%',
+            is_active: w.is_active !== false,
           };
         }
-        return w;
+        return {
+          id: w.id,
+          name: w.name,
+          initial_balance: Number(w.initial_balance || 0),
+          account_number: (w.account_number || '').trim(),
+          threshold: w.threshold || '20%',
+          is_active: w.is_active !== false,
+        };
       });
+      if (!found) {
+        updated.push({
+          id: walletForm.id || `w-${Date.now()}`,
+          name: walletForm.name.trim(),
+          initial_balance: Number(walletForm.initial_balance || 0),
+          account_number: (walletForm.account_number || '').trim(),
+          threshold: walletForm.threshold.trim() || '20%',
+          is_active: true,
+        });
+      }
       setSavedSettings((prev) => ({ ...prev, wallets: updated }));
       try {
         await saveSettings(user.uid, { wallets: updated });

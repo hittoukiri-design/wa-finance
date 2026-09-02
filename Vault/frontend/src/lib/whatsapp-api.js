@@ -1,7 +1,7 @@
 import { auth } from './firebase';
 
 const API_BASE = import.meta.env.VITE_API_URL
-  || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'https://wa-finance-bot-i729.web.app' : '');
+  || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000' : '');
 
 export async function whatsappApi(path, options = {}) {
   const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';

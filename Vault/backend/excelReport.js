@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const unzipper = require('unzipper');
 const archiver = require('archiver');
-const { getAdminFirestore } = require('./firebaseAdmin');
+const db = require('./db');
+const { getUserSettings } = require('./settingsStore');
 
 const DEFAULT_TEMPLATE_PATH = path.join(__dirname, 'templates', 'wa-finance-main-template.xlsx');
 const EXCEL_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -36,7 +37,7 @@ function matchesRecapFilter(item, recapId = 'active') {
 
 function dateInRange(item, startDate, endDate) {
     if (!startDate && !endDate) return true;
-    const itemDate = toDate(item.createdAt || item.timestamp || item.date);
+    const itemDate = toDate(item.timestamp || item.createdAt || item.created_at || item.date);
     if (!itemDate) return true;
     if (startDate && itemDate < startDate) return false;
     if (endDate && itemDate > endDate) return false;
@@ -50,14 +51,14 @@ function parseDateParam(value, endOfDay = false) {
     return new Date(year, month - 1, day, endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
 }
 
-function normalizeTransaction(doc) {
-    const data = doc.data();
+function normalizeTransaction(row) {
+    const data = row || {};
     const type = String(data.type || 'expense').toLowerCase() === 'income' ? 'Masuk' : 'Keluar';
     const statusText = isCancelled(data) ? 'Dibatalkan' : 'Tersimpan';
-    const timestamp = toDate(data.createdAt || data.timestamp || data.date) || new Date();
+    const timestamp = toDate(data.createdAt || data.created_at || data.timestamp || data.date) || new Date();
 
     return {
-        id: doc.id,
+        id: String(data.id || ''),
         ...data,
         timestamp,
         tipe: type,
@@ -66,13 +67,15 @@ function normalizeTransaction(doc) {
 }
 
 async function loadExpenses(userId, filters = {}) {
-    const snapshot = await getAdminFirestore()
-        .collection('users').doc(userId).collection('expenses')
-        .orderBy('createdAt', 'asc')
-        .get();
+    const rows = db.prepare(`
+        SELECT *
+        FROM expenses
+        WHERE user_id = ?
+        ORDER BY datetime(created_at) ASC, id ASC
+    `).all(userId);
     const startDate = parseDateParam(filters.startDate);
     const endDate = parseDateParam(filters.endDate, true);
-    return snapshot.docs
+    return rows
         .map(normalizeTransaction)
         .filter((item) => !isCancelled(item))
         .filter((item) => matchesRecapFilter(item, filters.recapId || 'active'))
@@ -101,10 +104,8 @@ async function loadExpenses(userId, filters = {}) {
 }
 
 async function loadWallets(userId) {
-    const snapshot = await getAdminFirestore()
-        .collection('users').doc(userId).collection('settings').doc('config')
-        .get();
-    const wallets = snapshot.exists && Array.isArray(snapshot.data()?.wallets) ? snapshot.data().wallets : [];
+    const settings = await getUserSettings(userId);
+    const wallets = Array.isArray(settings.wallets) ? settings.wallets : [];
     return wallets.filter((wallet) => wallet && wallet.is_active !== false);
 }
 

@@ -66,16 +66,27 @@ export function FilterProvider({ children }) {
         if (!active) return;
         const customWallets = (settings?.wallets || []).map((w) => w.name);
         const txWallets = (expenses || []).map((e) => e.payment_channel || e.rekening).filter(Boolean);
-        const allWallets = Array.from(new Set([...customWallets, ...txWallets, 'Cash', 'BCA', 'SUPERBANK', 'GoPay', 'DANA']));
-        setWalletsList(allWallets);
+        const baseWallets = ['Cash', 'BCA', 'SUPERBANK', 'GoPay', 'DANA'];
+        const walletMap = new Map();
+        [...baseWallets, ...customWallets, ...txWallets].forEach((w) => {
+          if (!w) return;
+          const k = String(w).trim().toLowerCase();
+          if (!walletMap.has(k)) walletMap.set(k, String(w).trim());
+        });
+        setWalletsList(Array.from(walletMap.values()));
 
         const customCategories = (settings?.category_budgets || []).map((c) => c.name);
         const txCategories = (expenses || []).map((e) => e.category).filter(Boolean);
         const defaultCats = [
           'Makan', 'Belanja', 'Transportasi', 'Tagihan', 'Rumah', 'Kesehatan', 'Pendidikan', 'Hiburan', 'Perawatan', 'Sosial', 'Keluarga', 'Tabungan', 'Investasi', 'Gaji', 'Lainnya'
         ];
-        const allCats = Array.from(new Set([...customCategories, ...txCategories, ...defaultCats]));
-        setCategoriesList(allCats);
+        const catMap = new Map();
+        [...defaultCats, ...customCategories, ...txCategories].forEach((c) => {
+          if (!c) return;
+          const k = String(c).trim().toLowerCase();
+          if (!catMap.has(k)) catMap.set(k, String(c).trim());
+        });
+        setCategoriesList(Array.from(catMap.values()));
       })
       .catch(() => {});
     return () => { active = false; };
