@@ -529,7 +529,7 @@ export default function Analytics() {
       <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
         
         {/* Spending Trend Area Chart */}
-        <div className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+        <div className="self-start rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
               Spending Trend <Info className="h-3.5 w-3.5 text-[#358219] dark:text-[#76d446]" />
