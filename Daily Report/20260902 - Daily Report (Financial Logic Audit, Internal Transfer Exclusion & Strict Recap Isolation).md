@@ -52,6 +52,9 @@ Pada audit sistem keuangan WebApp & Bot WhatsApp ditemukan beberapa masalah utam
 5. **Pembersihan Database Production Server**:
    - Menghapus 2 transaksi sampah (ID 157 & 158) dari SQLite server.
    - Memperbarui status 4 transaksi lama (ID 139, 140, 141, 142) menjadi `'archived'`.
+6. **Pengecualian Pindah Saldo dari Donut Chart & Trend Graph + Perbaikan Widget Saldo per Dompet (`Vault/frontend/src/pages/Dashboard.jsx`)**:
+   - Pindah saldo di-exclude dari `categories` (Donut Chart *Top Expense Categories*) dan `trendData` (*Expense Trend Graph*).
+   - Widget **Saldo per Dompet** diperbarui untuk menampilkan **Murni Saldo Fisik Aktif per Dompet (`walletList`)**, bukan penjumlahan pengeluaran.
 
 ---
 

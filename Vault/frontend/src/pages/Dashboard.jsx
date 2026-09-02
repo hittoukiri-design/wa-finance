@@ -728,27 +728,19 @@ export default function Dashboard() {
     return `${s.getDate()} ${new Intl.DateTimeFormat('id-ID', { month: 'short' }).format(s)} - ${e.getDate()} ${new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(e)}`;
   }, [weekOffset, weekDays]);
 
-  // Saldo per Dompet
+  // Saldo per Dompet (Murni Saldo Fisik Dompet Aktif)
   const saldoPerDompet = useMemo(() => {
-    const grouped = {};
-    activePeriodExpenses.forEach((e) => {
-      const raw = String(e.payment_channel || e.rekening || 'Cash').trim();
-      const sw = savedWallets.find((w) => w.name && w.name.toLowerCase() === raw.toLowerCase());
-      const ch = sw?.name || raw;
-      grouped[ch] = (grouped[ch] || 0) + Number(e.amount || 0);
-    });
-    const maxVal = Math.max(...Object.values(grouped), 1);
+    const maxVal = Math.max(...walletList.map((w) => w.balance), 1);
     const COLORS = ['#1b5e20', '#f5962a', '#2563eb', '#6952ec'];
-    return Object.entries(grouped)
-      .sort((a, b) => b[1] - a[1])
+    return walletList
       .slice(0, 4)
-      .map(([name, amount], i) => ({
-        name,
-        amount,
-        percent: Math.round((amount / maxVal) * 100),
+      .map((w, i) => ({
+        name: w.name,
+        amount: w.balance,
+        percent: Math.max(0, Math.round((w.balance / maxVal) * 100)),
         color: COLORS[i % COLORS.length],
       }));
-  }, [activePeriodExpenses, savedWallets]);
+  }, [walletList]);
 
   // ── ATM Card Carousel Slides & Seamless Infinite Loop ──
   const [currentCardSlide, setCurrentCardSlide] = useState(1);
@@ -1053,6 +1045,7 @@ export default function Dashboard() {
     });
     const byKey = new Map(days.map((item) => [item.key, item]));
     activeDisplayTransactions.forEach((item) => {
+      if (isTransferTransaction(item)) return;
       const date = getExpenseDate(item);
       if (!date) return;
       const key = dateKey(startOfDay(date));
@@ -1065,6 +1058,7 @@ export default function Dashboard() {
   const categories = useMemo(() => {
     const grouped = {};
     filteredCategoryExpenses.forEach((item) => {
+      if (isTransferTransaction(item)) return;
       const name = item.category || (item.type === 'income' ? 'Pemasukan' : 'Lainnya');
       grouped[name] = (grouped[name] || 0) + Number(item.amount || 0);
     });
