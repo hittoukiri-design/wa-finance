@@ -4,8 +4,12 @@ import {
   ArrowUp,
   BarChart3,
   Brain,
+  Calendar,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
+  Flame,
+  History,
   Info,
   LockKeyhole,
   PieChart as PieIcon,
@@ -13,6 +17,7 @@ import {
   Sparkles,
   TrendingUp,
   Wallet,
+  X,
 } from 'lucide-react';
 import {
   Area,
@@ -30,7 +35,7 @@ import Header from '../components/Header';
 import { useAuth } from '../context/useAuth';
 import { useFilter } from '../context/FilterContext';
 import { listExpenses } from '../lib/firestore';
-import { getBackendSettings } from '../lib/whatsapp-api';
+import { getBackendSettings, listRecaps } from '../lib/whatsapp-api';
 
 const VIBRANT_CHART_COLORS = [
   '#2f781c', // Forest Green
@@ -227,9 +232,22 @@ function SelectPill({ value, onChange, options }) {
   );
 }
 
+function isTransferTransaction(item) {
+  if (!item) return false;
+  const cat = String(item.category || item.cat || '').toLowerCase();
+  const merch = String(item.merchant || item.description || '').toLowerCase();
+  return cat.includes('transfer') || 
+         merch.includes('pindah saldo') || 
+         merch.includes('transfer ke') || 
+         merch.includes('terima transfer') || 
+         merch.includes('tarik / transfer');
+}
+
 export default function Analytics() {
   const { user } = useAuth();
-  const [expenses, setExpenses] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [recapsList, setRecapsList] = useState([]);
+  const [selectedPeriodModal, setSelectedPeriodModal] = useState(null);
   const [trendRange, setTrendRange] = useState('last30');
   const [categoryRange, setCategoryRange] = useState('month');
   const [busy, setBusy] = useState(true);
@@ -238,19 +256,26 @@ export default function Analytics() {
 
   useEffect(() => {
     setBusy(true);
-    Promise.all([listExpenses(user.uid), getBackendSettings()])
-      .then(([items, settings]) => {
-        setExpenses(items.filter((item) => item.type !== 'income'));
-        setActiveRecapStartDate(settings.active_recap_start_date || '');
+    Promise.all([
+      listExpenses(user.uid, { recapId: 'all' }),
+      listRecaps().catch(() => ({ recaps: [] })),
+      getBackendSettings().catch(() => ({}))
+    ])
+      .then(([items, recapRes, settings]) => {
+        setAllTransactions(items || []);
+        setRecapsList(recapRes?.recaps || []);
+        setActiveRecapStartDate(settings?.active_recap_start_date || '');
       })
-      .catch((error) => setNotice(error.message || 'Analytics belum dapat membaca Firestore.'))
+      .catch((error) => setNotice(error.message || 'Analytics belum dapat membaca data.'))
       .finally(() => setBusy(false));
   }, [user.uid]);
 
   const analytics = useMemo(() => {
     const now = new Date();
     const activePeriodStart = dateFromInput(activeRecapStartDate) || startOfMonth(now);
-    const currentMonthExpenses = expenses.filter((item) => {
+    const currentMonthExpenses = allTransactions.filter((item) => {
+      if (item.type === 'income' || isTransferTransaction(item)) return false;
+      if (item.recap_status === 'archived') return false;
       const date = getDate(item);
       return date && date >= activePeriodStart && date <= now;
     });
@@ -269,6 +294,7 @@ export default function Analytics() {
     const categoryMap = {};
     const catDisplayName = {};
     categoryExpenses.forEach((item) => {
+      if (isTransferTransaction(item)) return;
       const raw = getCategory(item);
       const k = raw.toLowerCase();
       if (!catDisplayName[k]) catDisplayName[k] = raw;
@@ -286,6 +312,7 @@ export default function Analytics() {
     const sourceMap = {};
     const srcDisplayName = {};
     currentMonthExpenses.forEach((item) => {
+      if (isTransferTransaction(item)) return;
       const raw = getAccount(item);
       const k = raw.toLowerCase();
       if (!srcDisplayName[k]) srcDisplayName[k] = raw;
@@ -356,7 +383,87 @@ export default function Analytics() {
       topCategory,
       insights,
     };
-  }, [expenses, trendRange, categoryRange, activeRecapStartDate]);
+  }, [allTransactions, trendRange, categoryRange, activeRecapStartDate]);
+
+  const periodHistory = useMemo(() => {
+    const list = [];
+
+    // 1. Periode Aktif (Berjalan) -> SELALU DI PALING ATAS!
+    const activeStart = dateFromInput(activeRecapStartDate) || startOfMonth(new Date());
+    const activeTxs = allTransactions.filter((item) => {
+      const isArchived = item.recap_status === 'archived';
+      const d = getDate(item);
+      return !isArchived && d && d >= activeStart;
+    });
+
+    const activeNonTransferExpenses = activeTxs.filter((e) => e.type !== 'income' && !isTransferTransaction(e));
+    const activeNonTransferIncomes = activeTxs.filter((e) => e.type === 'income' && !isTransferTransaction(e));
+    const activeTotalExpense = activeNonTransferExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const activeTotalIncome = activeNonTransferIncomes.reduce((s, e) => s + Number(e.amount || 0), 0);
+
+    list.push({
+      id: 'active',
+      name: 'Periode Aktif (Sedang Berjalan)',
+      startDateLabel: formatDay(activeStart),
+      endDateLabel: 'Sekarang',
+      dateRangeStr: `${formatDay(activeStart)} - Sekarang`,
+      totalExpense: activeTotalExpense,
+      totalIncome: activeTotalIncome,
+      net: activeTotalIncome - activeTotalExpense,
+      txCount: activeTxs.length,
+      isActive: true,
+      transactions: activeTxs,
+    });
+
+    // 2. Periode Tutup Buku yang Sudah Lewat -> diurutkan dari terbaru hingga paling lama di PALING BAWAH!
+    recapsList.forEach((r) => {
+      const rStart = dateFromInput(r.start_date) || (r.created_at ? new Date(r.created_at) : null);
+      const rClosed = r.closed_at ? new Date(r.closed_at) : null;
+      
+      const rTxs = allTransactions.filter((item) => {
+        if (item.recap_id && item.recap_id === r.id) return true;
+        if (item.recap_status === 'archived' && rStart && rClosed) {
+          const d = getDate(item);
+          return d && d >= rStart && d <= rClosed;
+        }
+        return false;
+      });
+
+      const rNonTransferExpenses = rTxs.filter((e) => e.type !== 'income' && !isTransferTransaction(e));
+      const rNonTransferIncomes = rTxs.filter((e) => e.type === 'income' && !isTransferTransaction(e));
+      
+      const rTotalExpense = rNonTransferExpenses.reduce((s, e) => s + Number(e.amount || 0), Number(r.total_expense || 0));
+      const rTotalIncome = rNonTransferIncomes.reduce((s, e) => s + Number(e.amount || 0), Number(r.total_income || 0));
+
+      list.push({
+        id: r.id,
+        name: r.name || `Arsip ${rStart ? formatDay(rStart) : 'Tutup Buku'}`,
+        startDateLabel: rStart ? formatDay(rStart) : '-',
+        endDateLabel: rClosed ? formatDay(rClosed) : '-',
+        dateRangeStr: rStart && rClosed ? `${formatDay(rStart)} - ${formatDay(rClosed)}` : (r.name || 'Periode Lalu'),
+        totalExpense: rTotalExpense,
+        totalIncome: rTotalIncome,
+        net: rTotalIncome - rTotalExpense,
+        txCount: rTxs.length || Number(r.expense_count || 0),
+        isActive: false,
+        transactions: rTxs,
+      });
+    });
+
+    // Deteksi lonjakan dibanding rata-rata pengeluaran periode lalu
+    const pastExpenses = list.filter((p) => !p.isActive).map((p) => p.totalExpense);
+    const avgPast = pastExpenses.length ? pastExpenses.reduce((a, b) => a + b, 0) / pastExpenses.length : 0;
+
+    return list.map((item) => {
+      const isSpike = avgPast > 0 && item.totalExpense > avgPast * 1.15;
+      const spikePct = avgPast > 0 ? Math.round(((item.totalExpense - avgPast) / avgPast) * 100) : 0;
+      return {
+        ...item,
+        isSpike,
+        spikePct,
+      };
+    });
+  }, [allTransactions, recapsList, activeRecapStartDate]);
 
   return (
     <div className="mx-auto w-full max-w-[1450px] space-y-6">
@@ -471,6 +578,81 @@ export default function Analytics() {
 
       </section>
 
+      {/* ── Riwayat Pengeluaran Per Periode (Tutup Buku) ── */}
+      <section className="rounded-[22px] border border-[#d6e4be] bg-[#eaf2da] p-5 shadow-sm dark:border-[#243e1c] dark:bg-[#121e14]">
+        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 font-black text-[#0e2a07] dark:text-[#f3ffe9]">
+              <History className="h-4 w-4 text-[#358219] dark:text-[#76d446]" /> Riwayat Pengeluaran Per Periode (Tutup Buku)
+            </h2>
+            <p className="text-xs text-[#436d32] dark:text-[#8bb37a]">
+              Klik pada kartu periode di bawah untuk membuka popup rincian seluruh transaksi pengeluaran bulan tersebut.
+            </p>
+          </div>
+          <span className="self-start rounded-full bg-[#c3ef92] px-3 py-1 text-[10px] font-black uppercase text-[#1a5611] dark:bg-[#1a3816] dark:text-[#76d446] sm:self-auto">
+            {periodHistory.length} Periode Recorded
+          </span>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {periodHistory.map((period) => (
+            <button
+              key={period.id}
+              type="button"
+              onClick={() => setSelectedPeriodModal(period)}
+              className={`group relative flex flex-col justify-between rounded-2xl border p-4 text-left shadow-sm transition hover:scale-[1.01] hover:shadow-md ${
+                period.isActive
+                  ? 'border-emerald-500/50 bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent dark:border-emerald-500/40 dark:bg-[#152a17]'
+                  : 'border-[#d6e4be] bg-white hover:border-[#b8dc9f] dark:border-[#263e1d] dark:bg-[#152417] dark:hover:border-[#38642a]'
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase ${
+                    period.isActive
+                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-slate-500/15 text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {period.isActive ? 'Periode Aktif' : 'Tutup Buku'}
+                  </span>
+
+                  {period.isSpike && (
+                    <span className="flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[9px] font-extrabold text-amber-600 dark:text-amber-400">
+                      <Flame className="h-3 w-3" /> Lonjakan +{period.spikePct}%
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="mt-2.5 truncate font-extrabold text-[#0e2a07] dark:text-[#f3ffe9]">
+                  {period.name}
+                </h3>
+                <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  <Calendar className="h-3 w-3 text-[#358219] dark:text-[#76d446]" />
+                  {period.dateRangeStr}
+                </p>
+              </div>
+
+              <div className="mt-4 border-t border-[#d6e4be]/70 pt-3 dark:border-[#243e1c]">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400">Total Pengeluaran</span>
+                  <span className="text-base font-black text-red-600 dark:text-red-400">
+                    {currency(period.totalExpense)}
+                  </span>
+                </div>
+
+                <div className="mt-1 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500 dark:text-slate-400">{period.txCount} Transaksi</span>
+                  <span className={`font-extrabold flex items-center gap-0.5 ${period.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                    {period.net >= 0 ? `+${shortCurrency(period.net)}` : shortCurrency(period.net)}
+                    <ChevronRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+                  </span>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
       {/* ── Lower Section: AI Insights & Sources Breakdown ── */}
       <section className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
         
@@ -551,6 +733,127 @@ export default function Analytics() {
           <LockKeyhole className="h-3.5 w-3.5" /> Firebase Security
         </span>
       </section>
+
+      {/* ── Interactive Detail Popup Modal ── */}
+      {selectedPeriodModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl rounded-3xl border border-[#d6e4be] bg-[#eaf2da] p-6 shadow-2xl dark:border-[#263e1d] dark:bg-[#0f1a10] sm:p-7">
+            
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-[#d6e4be] pb-4 dark:border-[#243e1c]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-extrabold text-[#0e2a07] dark:text-[#f3ffe9]">
+                    {selectedPeriodModal.name}
+                  </h2>
+                  {selectedPeriodModal.isActive ? (
+                    <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">
+                      Periode Aktif
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-slate-500/20 px-2.5 py-0.5 text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">
+                      Tutup Buku
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-[#358219] dark:text-[#8bb37a]">
+                  Rentang Waktu: <strong>{selectedPeriodModal.dateRangeStr}</strong>
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedPeriodModal(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-400/30 bg-slate-500/10 text-slate-500 transition hover:bg-slate-500/20 hover:text-slate-900 dark:text-slate-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Metric Highlights */}
+            <div className="my-5 grid grid-cols-3 gap-3 text-center">
+              <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3">
+                <span className="block text-[10px] font-black uppercase tracking-wider text-red-600 dark:text-red-400">Pengeluaran Riil</span>
+                <p className="mt-1 text-sm font-black text-red-700 dark:text-red-300">{currency(selectedPeriodModal.totalExpense)}</p>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3">
+                <span className="block text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Pemasukan Riil</span>
+                <p className="mt-1 text-sm font-black text-emerald-700 dark:text-emerald-300">{currency(selectedPeriodModal.totalIncome)}</p>
+              </div>
+
+              <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-3">
+                <span className="block text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">Arus Kas (Sisa)</span>
+                <p className={`mt-1 text-sm font-black ${selectedPeriodModal.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {selectedPeriodModal.net >= 0 ? `+${currency(selectedPeriodModal.net)}` : currency(selectedPeriodModal.net)}
+                </p>
+              </div>
+            </div>
+
+            {/* Scrollable Transaction List */}
+            <div className="mb-2 flex items-center justify-between text-xs font-bold text-[#0e2a07] dark:text-[#f3ffe9]">
+              <span>Rincian Transaksi Periode ({selectedPeriodModal.transactions.length})</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">Scroll untuk melihat seluruhnya</span>
+            </div>
+
+            <div className="max-h-[320px] space-y-2.5 overflow-y-auto pr-1">
+              {selectedPeriodModal.transactions.length > 0 ? (
+                selectedPeriodModal.transactions.map((tx, idx) => {
+                  const isInc = tx.type === 'income';
+                  const isTransfer = isTransferTransaction(tx);
+                  const d = getDate(tx);
+                  return (
+                    <div
+                      key={tx.id || idx}
+                      className="flex items-center justify-between rounded-xl border border-[#d6e4be] bg-white p-3 text-xs shadow-sm transition dark:border-[#243e1c] dark:bg-[#152417]"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-bold text-[#0e2a07] dark:text-[#f3ffe9]">
+                            {tx.merchant || tx.description || 'Transaksi'}
+                          </span>
+                          <span className="rounded-md bg-[#c3ef92]/60 px-2 py-0.5 text-[9px] font-extrabold uppercase text-[#1a5611] dark:bg-[#1b3816] dark:text-[#76d446]">
+                            {tx.category || (isInc ? 'Pemasukan' : 'Lainnya')}
+                          </span>
+                          {isTransfer && (
+                            <span className="rounded-md bg-purple-500/20 px-1.5 py-0.5 text-[9px] font-bold text-purple-600 dark:text-purple-300">
+                              Transfer
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
+                          {d ? formatDay(d) : '-'} • {getAccount(tx)}
+                        </p>
+                      </div>
+
+                      <div className="text-right whitespace-nowrap">
+                        <span className={`font-black ${isInc ? 'text-emerald-600 dark:text-emerald-400' : isTransfer ? 'text-purple-600 dark:text-purple-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {isInc ? '+' : '-'}{currency(tx.amount)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="rounded-xl border border-dashed border-[#d6e4be] p-6 text-center text-xs text-slate-500 dark:border-[#243e1c] dark:text-slate-400">
+                  Tidak ada transaksi tersimpan untuk periode ini.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-5 border-t border-[#d6e4be] pt-3 text-right dark:border-[#243e1c]">
+              <button
+                type="button"
+                onClick={() => setSelectedPeriodModal(null)}
+                className="rounded-xl bg-[#c3ef92] px-5 py-2 text-xs font-bold text-[#1a5611] transition hover:brightness-105 dark:bg-[#1b3816] dark:text-[#76d446]"
+              >
+                Tutup
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
