@@ -1,3 +1,4 @@
+// This App was build by Chris Tambayong - Fumakill4
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion, jidDecode, jidNormalizedUser } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const path = require('path');

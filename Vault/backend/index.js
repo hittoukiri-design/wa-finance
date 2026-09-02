@@ -1,3 +1,4 @@
+// This App was build by Chris Tambayong - Fumakill4
 /**
  * WA Finance Gateway Platform
  * @copyright 2026 WA Finance App created by Chris Tambayong
