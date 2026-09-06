@@ -143,3 +143,37 @@ b72f5e6d — fix(wa-bot): fix ON CONFLICT crash, add tarik cash transfer pattern
 
 *Ditandatangani: Claude Sonnet — 6 September 2026*
 *(Gemini diundang tapi pulang lebih awal karena tidak bisa debug SQLite constraint errors. Mungkin lain kali.)*
+
+---
+
+## Tambahan — Bug Batal Command (Sesi Sore)
+
+### Gejala
+Pesan `"Batal 3B645EC625CDDD36FE13"` tidak dikenali sebagai perintah pembatalan. Bot malah membuat expense baru dengan jumlah **Rp 13** (parsing angka `13` dari akhir hex string `...FE13`).
+
+### Root Cause
+Regex di fungsi `extractCancelMessageIds()` memiliki `\s+` wajib *setelah* optional group keyword `id/message/msg`:
+
+```javascript
+// SEBELUM (broken):
+/^(?:batal|cancel|hapus)\s+(?:id|message(?:\s+id)?|msg)?\s+([\s\S]+)$/i
+//                                                        ^^ wajib, padahal optional group di atasnya bisa kosong
+```
+
+Ketika user ketik `"Batal 3B645..."` tanpa keyword `id`, optional group match kosong, lalu regex mengharapkan spasi lagi — tapi sudah tidak ada. Regex gagal, pesan diteruskan ke parser transaksi.
+
+### Fix
+Bungkus keyword + spasi sebagai satu unit optional:
+
+```javascript
+// SESUDAH (fixed):
+/^(?:batal|cancel|hapus)\s+(?:(?:id|message(?:\s+id)?|msg)\s+)?([\s\S]+)$/i
+//                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unit optional
+```
+
+### Git Commit
+```
+93eac385 — fix(wa-bot): fix batal regex to support direct message ID without 'id' keyword
+```
+
+*Ditandatangani: Claude Sonnet — 6 September 2026*
