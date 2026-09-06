@@ -587,7 +587,7 @@ async function cancelLastExpenseRecord(userId, phoneNumber, cancelMessageId = nu
 
 function extractCancelMessageIds(text) {
     const normalized = String(text || '').trim();
-    const match = normalized.match(/^(?:batal|cancel|hapus)\s+(?:id|message(?:\s+id)?|msg)?\s+([\s\S]+)$/i);
+    const match = normalized.match(/^(?:batal|cancel|hapus)\s+(?:(?:id|message(?:\s+id)?|msg)\s+)?([\s\S]+)$/i);
     if (!match) return [];
     return [...new Set(
         match[1]
