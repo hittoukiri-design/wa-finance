@@ -361,6 +361,26 @@ function saveConversation(userId, phoneNumber, message, isFromMe, messageId = nu
         .catch((error) => console.error(`[${userId}] Firestore conversation save failed: ${error.message}`));
 }
 
+function updateWalletBalance(userId, paymentChannel, delta) {
+    try {
+        const existing = db.prepare(
+            'SELECT id, manual_balance FROM balances WHERE user_id = ? AND payment_channel = ? ORDER BY id DESC LIMIT 1'
+        ).get(userId, paymentChannel);
+        if (existing) {
+            const newBalance = (existing.manual_balance || 0) + delta;
+            db.prepare(
+                'UPDATE balances SET manual_balance = ?, last_updated = datetime("now", "localtime") WHERE id = ?'
+            ).run(newBalance, existing.id);
+        } else {
+            db.prepare(
+                'INSERT INTO balances (user_id, payment_channel, manual_balance, last_updated) VALUES (?, ?, ?, datetime("now", "localtime"))'
+            ).run(userId, paymentChannel, delta);
+        }
+    } catch (err) {
+        console.error(`[updateWalletBalance] Failed for ${userId}/${paymentChannel}: ${err.message}`);
+    }
+}
+
 async function saveExpenseRecord(userId, phoneNumber, extracted, source = 'WhatsApp', messageId = null) {
     if (!extracted?.amount) return null;
 
@@ -386,7 +406,7 @@ async function saveExpenseRecord(userId, phoneNumber, extracted, source = 'Whats
     const activeRecapId = settings.active_recap_id || null;
     const activeRecapName = settings.active_recap_name || null;
     const dateStr = extracted.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const paymentChannel = extracted.payment_channel || 'Cash';
+    const paymentChannel = normalizeWalletName(extracted.payment_channel || 'Cash');
     const transactionType = String(extracted.type || '').toLowerCase() === 'income' ? 'income' : 'expense';
     const merchant = extracted.merchant || extracted.deskripsi || 'Transaksi WhatsApp';
     const category = extracted.category || 'Lainnya';
@@ -396,6 +416,13 @@ async function saveExpenseRecord(userId, phoneNumber, extracted, source = 'Whats
         INSERT INTO expenses (user_id, phone_number, merchant, category, amount, date, confidence, payment_channel, type, status, source, source_message_id, recap_id, recap_name, recap_status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(userId, phoneNumber, merchant, category, extracted.amount, dateStr, confidence, paymentChannel, transactionType, 'Saved', source, messageId, activeRecapId, activeRecapName, 'active');
+
+    // Auto-balance: update wallet balance in real-time
+    const amountVal = Number(extracted.amount) || 0;
+    if (amountVal > 0) {
+        const delta = (transactionType === 'income') ? amountVal : -amountVal;
+        updateWalletBalance(userId, paymentChannel, delta);
+    }
 
     const firestorePayload = {
         source_message_id: messageId,
@@ -787,7 +814,7 @@ function normalizeWalletName(rawName) {
     if (clean.includes('mandiri')) return 'MANDIRI';
     if (clean.includes('bri')) return 'BRI';
     if (clean.includes('bni')) return 'BNI';
-    if (clean.includes('jago')) return 'JAGO';
+    if (clean.includes('jago')) return 'Bank Jago';
     if (clean.includes('cimb')) return 'CIMB';
     if (clean.includes('cash') || clean.includes('tunai')) return 'Cash';
     if (clean.includes('tabung')) return 'Tabungan';
@@ -879,6 +906,24 @@ function parseTransferTransaction(text) {
         }
     }
 
+    // 8. Tarik cash/tunai dari [wallet]  e.g. "Tarik Cash 200rb dari Bank Jago", "Tarik tunai 500rb Superbank"
+    if (!fromWallet || !toWallet) {
+        const tarikCashMatch = cleanLower.match(/\btarik\s+(?:cash|tunai|uang|duit)\s+[\d.,]*\s*(?:rb|ribu|k|jt|juta)?\s*(?:dari|pake|pakai|via)\s+([a-z0-9\s]+)/i);
+        if (tarikCashMatch) {
+            fromWallet = normalizeWalletName(tarikCashMatch[1].trim());
+            toWallet = 'Cash';
+        }
+    }
+
+    // 9. Tarik [amount] dari [wallet] (tanpa kata cash) e.g. "Tarik 200rb dari Bank Jago"
+    if (!fromWallet || !toWallet) {
+        const tarikAmtMatch = cleanLower.match(/\btarik\s+[\d.,]+\s*(?:rb|ribu|k|jt|juta)?\s+(?:dari|pake|pakai)\s+([a-z0-9\s]+)/i);
+        if (tarikAmtMatch) {
+            fromWallet = normalizeWalletName(tarikAmtMatch[1].trim());
+            toWallet = 'Cash';
+        }
+    }
+
     if (!fromWallet || !toWallet || fromWallet.toLowerCase() === toWallet.toLowerCase()) {
         return null;
     }
@@ -918,6 +963,13 @@ async function saveTransferRecord(userId, phoneNumber, transferData, source = 'W
         INSERT INTO expenses (user_id, phone_number, merchant, category, amount, date, confidence, payment_channel, type, status, source, source_message_id, recap_id, recap_name, recap_status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(userId, phoneNumber, inMerchant, 'Pemasukan', amount, dateStr, 'High', toWallet, 'income', 'Saved', source, inMessageId || messageId, activeRecapId, activeRecapName, 'active');
+
+    // Auto-balance: update both wallets in real-time
+    const amt = Number(amount) || 0;
+    if (amt > 0) {
+        updateWalletBalance(userId, fromWallet, -amt);
+        updateWalletBalance(userId, toWallet, amt);
+    }
 
     if (firestoreSyncEnabled()) try {
         const batch = getAdminFirestore().batch();
