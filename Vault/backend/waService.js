@@ -363,18 +363,41 @@ function saveConversation(userId, phoneNumber, message, isFromMe, messageId = nu
 
 function updateWalletBalance(userId, paymentChannel, delta) {
     try {
+        // 1. Update tabel balances (untuk bot)
         const existing = db.prepare(
             'SELECT id, manual_balance FROM balances WHERE user_id = ? AND payment_channel = ? ORDER BY id DESC LIMIT 1'
         ).get(userId, paymentChannel);
+        let newBalance;
         if (existing) {
-            const newBalance = (existing.manual_balance || 0) + delta;
+            newBalance = (existing.manual_balance || 0) + delta;
             db.prepare(
                 "UPDATE balances SET manual_balance = ?, last_updated = datetime('now', 'localtime') WHERE id = ?"
             ).run(newBalance, existing.id);
         } else {
+            newBalance = delta;
             db.prepare(
                 "INSERT INTO balances (user_id, payment_channel, manual_balance, last_updated) VALUES (?, ?, ?, datetime('now', 'localtime'))"
             ).run(userId, paymentChannel, delta);
+        }
+
+        // 2. Update settings_json wallets (untuk UI frontend)
+        const userRow = db.prepare('SELECT settings_json FROM users WHERE id = ?').get(userId);
+        if (userRow?.settings_json) {
+            const settings = JSON.parse(userRow.settings_json);
+            if (Array.isArray(settings.wallets)) {
+                let matched = false;
+                settings.wallets = settings.wallets.map((w) => {
+                    if (w.name && w.name.toUpperCase() === paymentChannel.toUpperCase()) {
+                        const currentBal = w.balance ?? w.initial_balance ?? 0;
+                        w.balance = currentBal + delta;
+                        matched = true;
+                    }
+                    return w;
+                });
+                if (matched) {
+                    db.prepare('UPDATE users SET settings_json = ? WHERE id = ?').run(JSON.stringify(settings), userId);
+                }
+            }
         }
     } catch (err) {
         console.error(`[updateWalletBalance] Failed for ${userId}/${paymentChannel}: ${err.message}`);
