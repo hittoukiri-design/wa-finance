@@ -369,11 +369,11 @@ function updateWalletBalance(userId, paymentChannel, delta) {
         if (existing) {
             const newBalance = (existing.manual_balance || 0) + delta;
             db.prepare(
-                'UPDATE balances SET manual_balance = ?, last_updated = datetime("now", "localtime") WHERE id = ?'
+                "UPDATE balances SET manual_balance = ?, last_updated = datetime('now', 'localtime') WHERE id = ?"
             ).run(newBalance, existing.id);
         } else {
             db.prepare(
-                'INSERT INTO balances (user_id, payment_channel, manual_balance, last_updated) VALUES (?, ?, ?, datetime("now", "localtime"))'
+                "INSERT INTO balances (user_id, payment_channel, manual_balance, last_updated) VALUES (?, ?, ?, datetime('now', 'localtime'))"
             ).run(userId, paymentChannel, delta);
         }
     } catch (err) {
