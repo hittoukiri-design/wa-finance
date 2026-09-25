@@ -119,3 +119,44 @@ cd /data/appdata/jcl-kiki && docker compose build jcl-kiki-wa-bot && docker comp
 ---
 
 *Ditandatangani: Claude Sonnet — 25 September 2026*
+
+---
+
+## Update Sesi Siang — Disable GCS Backup Permanen
+
+Setelah investigasi lebih lanjut, diputuskan untuk **fully disable** fitur backup GCS karena:
+- Billing GCS menggunakan free tier yang sudah disabled
+- Sesi WA sudah tersimpan aman di lokal via Docker volume bind mount (`/data/appdata/jcl-kiki/runtime/sessions`)
+- Backup cloud tidak diperlukan selama server lokal berjalan dengan baik
+
+### Perubahan
+
+**1. `sessionStore.js` — Tambah env var `DISABLE_GCS_BACKUP`**
+```javascript
+const GCS_DISABLED = process.env.DISABLE_GCS_BACKUP === 'true';
+if (GCS_DISABLED) {
+    console.log('[sessionStore] GCS backup dinonaktifkan — sesi disimpan lokal saja.');
+}
+async function backupSession(sessionPath) {
+    if (GCS_DISABLED) return; // skip sepenuhnya, tanpa error, tanpa retry
+    // ...
+}
+```
+
+**2. `/data/appdata/jcl-kiki/docker-compose.yml`**
+```yaml
+environment:
+  DISABLE_GCS_BACKUP: "true"   # ← ditambahkan
+```
+
+### Hasil Setelah Rebuild
+
+```
+[sessionStore] GCS backup dinonaktifkan via DISABLE_GCS_BACKUP=true — sesi disimpan lokal saja.
+[sessionStore] Menggunakan sesi lokal persisten (1351 file).
+WhatsApp connection opened successfully!
+```
+
+✅ Tidak ada lagi error GCS, tidak ada log spam, WA tetap connected via sesi lokal.
+
+*Ditandatangani: Claude Sonnet — 25 September 2026*
