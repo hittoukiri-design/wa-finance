@@ -8,6 +8,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { initSession, getSessionStatus, deleteSession, resumeStoredSessions } = require('./waService');
 const db = require('./db');
 const { DEFAULT_AI_MODEL, normalizeAiModel } = require('./aiModels');
@@ -183,7 +184,8 @@ function makeRecapId() {
         String(now.getMinutes()).padStart(2, '0'),
         String(now.getSeconds()).padStart(2, '0'),
     ].join('');
-    return `recap_${stamp}`;
+    const randomSuffix = crypto.randomBytes(4).toString('hex');
+    return `recap_${stamp}_${randomSuffix}`;
 }
 
 async function archiveFirestoreCollection(userId, collectionName, recap) {
@@ -319,8 +321,8 @@ app.put('/api/settings', authenticate, async (req, res) => {
         // Sinkronisasi saldo dompet ke tabel balances untuk bot WhatsApp
         if (body.wallets && Array.isArray(body.wallets)) {
             for (const w of body.wallets) {
-                if (w.name && w.initial_balance !== undefined) {
-                    const amt = Math.max(0, Math.round(Number(w.initial_balance || 0)));
+                if (w.name && (w.balance !== undefined || w.initial_balance !== undefined)) {
+                    const amt = Math.max(0, Math.round(Number(w.balance ?? w.initial_balance ?? 0)));
                     db.prepare(`
                         INSERT INTO balances (user_id, payment_channel, manual_balance, last_updated)
                         VALUES (?, ?, ?, datetime('now', 'localtime'))
@@ -769,7 +771,13 @@ app.post('/api/expenses', authenticate, async (req, res) => {
 
 app.put('/api/expenses/:id', authenticate, (req, res) => {
     const current = db.prepare('SELECT * FROM expenses WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
-    if (!current) return res.status(404).json({ error: 'Transaksi tidak ditemukan.' });
+    if (!current) {
+        const probe = db.prepare('SELECT id, user_id FROM expenses WHERE id = ?').get(req.params.id);
+        if (probe) {
+            console.warn(`[SECURITY AUDIT - BOLA PROBE DETECTED] User ${req.userId} attempted to modify expense ${req.params.id} belonging to user ${probe.user_id}`);
+        }
+        return res.status(404).json({ error: 'Transaksi tidak ditemukan.' });
+    }
     const body = req.body || {};
     const next = {
         merchant: body.merchant !== undefined ? String(body.merchant || '').trim() : current.merchant,
@@ -802,6 +810,11 @@ app.put('/api/expenses/:id', authenticate, (req, res) => {
 });
 
 app.delete('/api/expenses/:id', authenticate, (req, res) => {
+    const probe = db.prepare('SELECT id, user_id FROM expenses WHERE id = ?').get(req.params.id);
+    if (probe && probe.user_id !== req.userId) {
+        console.warn(`[SECURITY AUDIT - BOLA PROBE DETECTED] User ${req.userId} attempted to delete expense ${req.params.id} belonging to user ${probe.user_id}`);
+        return res.status(404).json({ error: 'Transaksi tidak ditemukan.' });
+    }
     const result = db.prepare('DELETE FROM expenses WHERE id = ? AND user_id = ?').run(req.params.id, req.userId);
     if (!result.changes) return res.status(404).json({ error: 'Transaksi tidak ditemukan.' });
     res.json({ success: true, id: String(req.params.id) });

@@ -39,11 +39,11 @@ const reconnectAttempts = new Map();
 const unauthorizedMessageIds = new Map();
 const DEFAULT_REKENING_CHANNELS = ['BCA', 'GOPAY', 'QRIS', 'SUPERBANK', 'TRANSFER', 'CASH'];
 
-const DEFAULT_ALLOWED_WHATSAPP_NUMBERS = [
-    '639917877997',
-    '628196091283',
-    '628970091283',
-];
+// Configure your allowed WhatsApp numbers via the ALLOWED_WHATSAPP_NUMBERS
+// environment variable (comma-separated), e.g.:
+//   ALLOWED_WHATSAPP_NUMBERS=628123456789,628987654321
+// If left empty, no default numbers are whitelisted (bot will not respond to anyone).
+const DEFAULT_ALLOWED_WHATSAPP_NUMBERS = [];
 
 function getReconnectDelayMs(statusCode, attempt) {
     const baseDelay =
@@ -779,7 +779,11 @@ function detectPaymentChannel(text) {
 function parseLocalTransaction(text, userId = '') {
     const trimmed = String(text || '').trim();
     const lowerText = trimmed.toLowerCase();
-    if (!trimmed || ['help', 'bantuan'].includes(lowerText) || lowerText.startsWith('saldo') || lowerText.startsWith('laporan')) return null;
+    if (!trimmed || ['help', 'bantuan'].includes(lowerText) || lowerText.startsWith('saldo') || lowerText.startsWith('cek saldo') || lowerText.startsWith('laporan')) return null;
+
+    // "tarik tunai" / "tarik cash" adalah transfer (bank → Cash), bukan expense.
+    // Biarkan parseTransferTransaction yang menangani.
+    if (/\btarik\s*(tunai|cash|uang|duit)\b/.test(lowerText)) return null;
 
     const amountMatch = lowerText.match(/(?:rp\s*)?(\d+(?:[.,]\d+)*)(?:\s*(rb|ribu|k|jt|juta))?\b/i);
     if (!amountMatch) return null;
@@ -929,12 +933,26 @@ function parseTransferTransaction(text) {
         }
     }
 
-    // 8. Tarik cash/tunai dari [wallet]  e.g. "Tarik Cash 200rb dari Bank Jago", "Tarik tunai 500rb Superbank"
+    // 8. Tarik cash/tunai [amount] dari/pake/via [wallet]
+    //    e.g. "Tarik Cash 200rb dari Bank Jago", "Tarik tunai 500rb dari Superbank"
     if (!fromWallet || !toWallet) {
         const tarikCashMatch = cleanLower.match(/\btarik\s+(?:cash|tunai|uang|duit)\s+[\d.,]*\s*(?:rb|ribu|k|jt|juta)?\s*(?:dari|pake|pakai|via)\s+([a-z0-9\s]+)/i);
         if (tarikCashMatch) {
             fromWallet = normalizeWalletName(tarikCashMatch[1].trim());
             toWallet = 'Cash';
+        }
+    }
+
+    // 8b. Tarik cash/tunai [amount] [wallet]  — bank langsung setelah nominal, tanpa kata "dari"
+    //     e.g. "tarik tunai 200rb Superbank", "tarik cash 500k BCA"
+    if (!fromWallet || !toWallet) {
+        const tarikCashInlineMatch = cleanLower.match(/\btarik\s+(?:cash|tunai|uang|duit)\s+[\d.,]+\s*(?:rb|ribu|k|jt|juta)?\s+([a-z][a-z0-9\s]{1,24})/i);
+        if (tarikCashInlineMatch) {
+            const candidate = normalizeWalletName(tarikCashInlineMatch[1].trim());
+            if (candidate.toLowerCase() !== 'cash') {
+                fromWallet = candidate;
+                toWallet = 'Cash';
+            }
         }
     }
 
@@ -946,6 +964,25 @@ function parseTransferTransaction(text) {
             toWallet = 'Cash';
         }
     }
+
+    // 9b. Tarik [amount] [wallet]  — bank langsung setelah nominal, tanpa kata "dari"
+    //     e.g. "tarik 200rb Superbank", "tarik 500k BCA"
+    if (!fromWallet || !toWallet) {
+        const tarikAmtInlineMatch = cleanLower.match(/\btarik\s+[\d.,]+\s*(?:rb|ribu|k|jt|juta)?\s+([a-z][a-z0-9\s]{1,24})/i);
+        if (tarikAmtInlineMatch) {
+            const candidate = normalizeWalletName(tarikAmtInlineMatch[1].trim());
+            if (candidate.toLowerCase() !== 'cash') {
+                fromWallet = candidate;
+                toWallet = 'Cash';
+            }
+        }
+    }
+
+    // 10. Tarik tunai / tarik cash tanpa nama dompet sumber
+    //     e.g. "tarik tunai 200rb", "tarik cash 500ribu"
+    //     → sumber bank tidak diketahui, kembalikan null agar ditangani
+    //     sebagai income Cash di handleIncomingMessage.
+    //     Jangan buat wallet palsu.
 
     if (!fromWallet || !toWallet || fromWallet.toLowerCase() === toWallet.toLowerCase()) {
         return null;
@@ -1578,19 +1615,20 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
             const amtMatch = rawAmt.match(/(?:rp\s*)?(\d+(?:[.,]\d+)?)(?:\s*(rb|ribu|k|jt|juta))?\b/i);
             const amount = amtMatch ? parseAmountValue(amtMatch[1], amtMatch[2]) : parseInt(rawAmt.replace(/[^0-9]/g, ''));
             if (Number.isFinite(amount) && amount >= 0) {
+                // 1. Simpan saldo aktual ke tabel balances (untuk query saldo bot)
                 db.prepare(`
                     INSERT INTO balances (user_id, payment_channel, manual_balance, last_updated)
                     VALUES (?, ?, ?, datetime('now', 'localtime'))
                 `).run(userId, bank, amount);
 
-                // Sinkronkan ke settings.wallets agar webapp otomatis terupdate
+                // 2. Sinkronkan ke settings.wallets (balance & initial_balance) agar webapp otomatis terupdate
                 const settings = await getUserSettings(userId).catch(() => ({}));
                 const currentWallets = Array.isArray(settings.wallets) ? settings.wallets : [];
                 let found = false;
                 const updatedWallets = currentWallets.map((w) => {
                     if (w.name && w.name.toUpperCase() === bank.toUpperCase()) {
                         found = true;
-                        return { ...w, initial_balance: amount };
+                        return { ...w, balance: amount, initial_balance: amount };
                     }
                     return w;
                 });
@@ -1598,6 +1636,7 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
                     updatedWallets.push({
                         id: `w-${Date.now()}`,
                         name: bank,
+                        balance: amount,
                         initial_balance: amount,
                         account_number: '',
                         threshold: '20%',
@@ -1605,7 +1644,7 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
                     });
                 }
                 await saveUserSettings(userId, { wallets: updatedWallets }).catch(() => {});
-                await sendReply(`✅ Saldo awal *${bank}* berhasil diatur ke *Rp${amount.toLocaleString('id-ID')}*.\nWebapp & Bot otomatis sinkron.`);
+                await sendReply(`✅ Saldo *${bank}* berhasil diatur ke *Rp${amount.toLocaleString('id-ID')}*.\nWebapp & Bot otomatis sinkron.`);
             } else {
                 await sendReply(`⚠️ Format nominal tidak valid. Contoh: *set saldo BCA 500000* atau *set saldo BCA 500rb*.`);
             }
@@ -1615,9 +1654,15 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
         return;
     }
 
-    if (cmd.startsWith('saldo')) {
-        const parts = text.trim().split(' ');
-        const targetBank = parts.length > 1 ? parts[1].toUpperCase() : null;
+    if (cmd.startsWith('saldo') || cmd.startsWith('cek saldo')) {
+        // Ambil nama bank dari pesan — support "saldo BCA", "cek saldo Superbank", "cek saldo Bank Jago"
+        const afterKeyword = cmd.startsWith('cek saldo')
+            ? text.trim().slice('cek saldo'.length).trim()
+            : text.trim().slice('saldo'.length).trim();
+
+        // Normalisasi alias → nama channel yang ada di DB
+        const targetBank = afterKeyword ? normalizeWalletName(afterKeyword).toUpperCase() : null;
+
         let channels = [];
         if (targetBank) {
             channels = [targetBank];
@@ -1631,23 +1676,37 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
             if (channels.length === 0) channels = DEFAULT_REKENING_CHANNELS;
         }
 
-        let reply = `📊 *Informasi Saldo*\n\n`;
+        const walletEmoji = (name) => {
+            const n = String(name).toLowerCase();
+            if (n.includes('cash')) return '💵';
+            if (n.includes('bca')) return '🏦';
+            if (n.includes('gopay') || n.includes('gojek')) return '🟢';
+            if (n.includes('dana')) return '🔵';
+            if (n.includes('ovo')) return '🟣';
+            if (n.includes('qris')) return '📲';
+            if (n.includes('superbank') || n.includes('jago') || n.includes('mandiri') || n.includes('bri') || n.includes('bni') || n.includes('cimb')) return '🏦';
+            return '💳';
+        };
+
+        let reply = `📊 *Cek Saldo Dompet*\n━━━━━━━━━━━━━━━━━━\n`;
         let totalAll = 0;
         for (const bank of channels) {
             const manual = db.prepare(`SELECT manual_balance, last_updated FROM balances WHERE user_id = ? AND UPPER(payment_channel) = ? ORDER BY id DESC LIMIT 1`).get(userId, bank);
             let baseBalance = 0;
-            let dateCondition = "";
+            let dateCondition = '';
             if (manual) {
                 baseBalance = manual.manual_balance;
                 dateCondition = `AND created_at >= '${manual.last_updated}'`;
             }
-            const expenses = db.prepare(`SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND UPPER(payment_channel) = ? AND type = 'expense' AND LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal') AND COALESCE(recap_status, 'active') != 'archived' ${dateCondition}`).get(userId, bank);
-            const incomes = db.prepare(`SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND UPPER(payment_channel) = ? AND type = 'income' AND LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal') AND COALESCE(recap_status, 'active') != 'archived' ${dateCondition}`).get(userId, bank);
-            const currentSaldo = baseBalance + (incomes.total || 0) - (expenses.total || 0);
+            const expRow = db.prepare(`SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND UPPER(payment_channel) = ? AND type = 'expense' AND LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal') AND COALESCE(recap_status, 'active') != 'archived' ${dateCondition}`).get(userId, bank);
+            const incRow = db.prepare(`SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND UPPER(payment_channel) = ? AND type = 'income' AND LOWER(COALESCE(status, 'saved')) NOT IN ('cancelled', 'canceled', 'dibatalkan', 'batal') AND COALESCE(recap_status, 'active') != 'archived' ${dateCondition}`).get(userId, bank);
+            const currentSaldo = baseBalance + (incRow.total || 0) - (expRow.total || 0);
             totalAll += currentSaldo;
-            reply += `• *${bank}:* Rp${currentSaldo.toLocaleString('id-ID')}\n`;
+            reply += `${walletEmoji(bank)} *${bank}*: Rp${currentSaldo.toLocaleString('id-ID')}\n`;
         }
-        if (!targetBank && channels.length > 1) reply += `\n💰 *Total Semua:* Rp${totalAll.toLocaleString('id-ID')}`;
+        if (!targetBank && channels.length > 1) {
+            reply += `━━━━━━━━━━━━━━━━━━\n💰 *Total:* Rp${totalAll.toLocaleString('id-ID')}`;
+        }
         await sendReply(reply);
         return;
     }
@@ -1693,6 +1752,27 @@ async function handleIncomingMessage(sock, userId, msg, eventType, sessionPath, 
         const transferReply = buildTransferReply(localTransfer, messageId);
         await sendReply(transferReply);
         console.log(`[${userId}] WhatsApp transfer flow completed for ${messageId || 'no-id'} in ${Date.now() - startedAt}ms`);
+        return;
+    }
+
+    // 1b. "Tarik tunai/cash" terdeteksi tapi tidak ada nama bank sumber
+    //     → parseTransferTransaction return null karena fromWallet kosong
+    //     → Rule: tarik tunai SELALU harus disertai nama bank/dompet
+    //     → Balas minta klarifikasi, jangan catat apapun
+    const bareTagikMatch = /\btarik\s*(tunai|cash|uang|duit)\b/i.test(text);
+    if (bareTagikMatch && !localTransfer) {
+        await sendReply(
+            '⚠️ *Tarik Tunai — Bank Tidak Disebutkan*\n' +
+            '━━━━━━━━━━━━━━━━━━\n' +
+            'Sebutkan nama bank/dompet sumber tarik tunainya ya.\n\n' +
+            '*Contoh format:*\n' +
+            '• tarik tunai 200rb Superbank\n' +
+            '• tarik tunai 500rb BCA\n' +
+            '• tarik tunai 200rb dari Bank Jago\n' +
+            '━━━━━━━━━━━━━━━━━━\n' +
+            '❌ Transaksi belum dicatat.'
+        );
+        console.log(`[${userId}] Bare tarik tunai rejected (no source bank) for ${messageId || 'no-id'}`);
         return;
     }
 

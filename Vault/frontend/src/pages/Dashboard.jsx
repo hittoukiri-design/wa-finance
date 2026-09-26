@@ -788,10 +788,10 @@ export default function Dashboard() {
     const walletList = Array.from(uniqueKeys).map((key) => {
       const sw = savedWallets.find((w) => w.name && w.name.toLowerCase() === key);
       const displayName = sw?.name || displayNameMap[key] || key.toUpperCase();
-      const initialBal = sw && sw.initial_balance !== undefined ? Number(sw.initial_balance) : 0;
+      const initialBal = sw && sw.initial_balance !== undefined ? Number(sw.initial_balance) : (sw?.balance !== undefined ? Number(sw.balance) : 0);
       const inc = walletIncomeMap[key] || 0;
       const exp = walletExpenseMap[key] || 0;
-      const liveBalance = initialBal + inc - exp;
+      const liveBalance = sw && sw.balance !== undefined ? Number(sw.balance) : (initialBal + inc - exp);
       const txCount = activePeriodExpenses.filter((e) => String(e.payment_channel || e.rekening || 'Cash').trim().toLowerCase() === key).length;
       const cfg = WALLET_CONFIG[key] || { digits: '7721', badgeColor: '#76d446' };
       const last4 = sw?.account_number && sw.account_number.trim()

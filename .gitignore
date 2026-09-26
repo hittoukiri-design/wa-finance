@@ -1,6 +1,9 @@
 .DS_Store
 Icon?
 
+# Local AI agent config (skills, rules — personal workspace only)
+.agents/
+
 # Local Firebase/deploy cache
 .firebase/
 **/.firebase/

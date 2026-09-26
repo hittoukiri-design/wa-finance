@@ -179,8 +179,12 @@ export default function Dompet() {
         const displayName = sw?.name || displayNameMap[key] || key;
         const totalIncome = walletIncomeMap[key] || 0;
         const totalExpense = walletExpenseMap[key] || 0;
-        const initialBal = sw && sw.initial_balance !== undefined ? Number(sw.initial_balance) : (sw?.balance || 0);
-        const liveBal = initialBal + totalIncome - totalExpense;
+        const initialBal = sw && sw.initial_balance !== undefined ? Number(sw.initial_balance) : (sw?.balance !== undefined ? Number(sw.balance) : 0);
+        // Prioritaskan sw.balance (disinkronkan real-time oleh bot & set saldo via settings_json),
+        // fallback ke initialBal + totalIncome - totalExpense jika sw.balance belum ada.
+        const liveBal = sw && sw.balance !== undefined
+          ? Number(sw.balance)
+          : (initialBal + totalIncome - totalExpense);
 
         return {
           id: sw?.id || `w-${key.replace(/\s+/g, '-')}`,
@@ -260,7 +264,7 @@ export default function Dompet() {
     setWalletForm({
       id: w.id,
       name: w.name,
-      initial_balance: w.initial_balance !== undefined ? String(w.initial_balance) : String(w.balance || 0),
+      initial_balance: w.balance !== undefined ? String(w.balance) : String(w.initial_balance || 0),
       account_number: w.account_number || '',
       threshold: w.threshold || '20%',
     });
@@ -287,11 +291,14 @@ export default function Dompet() {
 
     const currentSaved = savedSettings.wallets && Array.isArray(savedSettings.wallets) ? savedSettings.wallets : [];
     let updated;
+    const targetBalance = Number(walletForm.initial_balance || 0);
+
     if (isCreatingWallet) {
       const newWallet = {
         id: walletForm.id || `w-${Date.now()}`,
         name: walletForm.name.trim(),
-        initial_balance: Number(walletForm.initial_balance || 0),
+        balance: targetBalance,
+        initial_balance: targetBalance,
         account_number: (walletForm.account_number || '').trim(),
         threshold: walletForm.threshold.trim() || '20%',
         is_active: true,
@@ -316,7 +323,8 @@ export default function Dompet() {
           return {
             id: w.id || walletForm.id || `w-${Date.now()}`,
             name: walletForm.name.trim(),
-            initial_balance: Number(walletForm.initial_balance || 0),
+            balance: targetBalance,
+            initial_balance: targetBalance,
             account_number: (walletForm.account_number || '').trim(),
             threshold: walletForm.threshold.trim() || '20%',
             is_active: w.is_active !== false,
@@ -325,6 +333,7 @@ export default function Dompet() {
         return {
           id: w.id,
           name: w.name,
+          balance: w.balance !== undefined ? Number(w.balance) : Number(w.initial_balance || 0),
           initial_balance: Number(w.initial_balance || 0),
           account_number: (w.account_number || '').trim(),
           threshold: w.threshold || '20%',
@@ -335,7 +344,8 @@ export default function Dompet() {
         updated.push({
           id: walletForm.id || `w-${Date.now()}`,
           name: walletForm.name.trim(),
-          initial_balance: Number(walletForm.initial_balance || 0),
+          balance: targetBalance,
+          initial_balance: targetBalance,
           account_number: (walletForm.account_number || '').trim(),
           threshold: walletForm.threshold.trim() || '20%',
           is_active: true,
@@ -783,13 +793,13 @@ export default function Dompet() {
               </div>
 
               <div>
-                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Saldo Awal / Penyesuaian Saldo (Rp)</label>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-400">Saldo Saat Ini (Rp)</label>
                 <input
                   required
                   type="number"
                   value={walletForm.initial_balance}
                   onChange={(e) => setWalletForm((c) => ({ ...c, initial_balance: e.target.value }))}
-                  placeholder="Contoh: 0 atau nominal saldo awal"
+                  placeholder="Masukkan saldo aktual dompet sekarang"
                   className="w-full rounded-xl border border-[#2b4421] bg-[#162519] px-4 py-2.5 text-sm font-medium text-white outline-none transition focus:border-[#76d446]"
                 />
               </div>
